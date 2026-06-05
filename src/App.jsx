@@ -1036,7 +1036,13 @@ export default function App() {
               </div>
             </div>
 
-            <div className="flex-1 overflow-x-auto overflow-y-auto p-4 w-full">
+            <div className="flex-1 overflow-x-auto overflow-y-auto p-4 w-full"><datalist id="hoteles-rol-list">
+              {LISTA_HOTELES.map((hotel, index) => (
+                <option key={`rol-${index}`} value={hotel.nombre}>
+                  Zona {hotel.zona}
+                </option>
+              ))}
+            </datalist>
               <table className="min-w-max w-full text-left text-sm whitespace-nowrap">
                 <thead className="sticky top-0 bg-white shadow-sm z-10">
                   <tr className="text-gray-600 border-b">
