@@ -1180,7 +1180,7 @@ export default function App() {
                 {renderData.data.apellido}
               </div>
             </div>
-            <div className="text-[80px] font-bold tracking-[0.2em] text-black">
+            <div className="text-4xl font-medium tracking-[0.4em] text-gray-600 mt-4">
               WELCOME!
             </div>
           </div>
