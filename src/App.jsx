@@ -478,7 +478,7 @@ export default function App() {
         return rollItem ? { ...srv, ...rollItem } : srv;
       });
       setServices(updatedServices);
-      
+
       showToast('¡Rol actualizado en la nube correctamente!');
     } catch (error) {
       console.error("Error al guardar el Rol:", error);
@@ -1191,10 +1191,10 @@ export default function App() {
                       <td className="p-2 text-center">{row.pax}</td><td className="p-2 text-xs">{row.telefono}</td>
                       <td className="p-2">
                         <span className={`px-2 py-1 rounded-full text-xs font-bold ${row.tipoServicio === 'Llegada' ? 'bg-green-100 text-green-800' :
-                            row.tipoServicio === 'Salida' ? 'bg-red-100 text-red-800' :
-                              row.tipoServicio === 'Traslado' ? 'bg-yellow-100 text-yellow-800' :
-                                row.tipoServicio === 'Actividad' ? 'bg-blue-100 text-blue-800' :
-                                  'bg-gray-100 text-gray-800'
+                          row.tipoServicio === 'Salida' ? 'bg-red-100 text-red-800' :
+                            row.tipoServicio === 'Traslado' ? 'bg-yellow-100 text-yellow-800' :
+                              row.tipoServicio === 'Actividad' ? 'bg-blue-100 text-blue-800' :
+                                'bg-gray-100 text-gray-800'
                           }`}>
                           {row.tipoServicio}
                         </span>
@@ -1232,10 +1232,24 @@ export default function App() {
                           )}
 
                           <button
-                            onClick={() => {
-                              if (window.confirm('¿Estás seguro de que deseas eliminar este servicio?')) {
-                                setServices(services.filter(s => s.id !== row.id));
-                                setRollData(rollData.filter(r => r.id !== row.id));
+                            onClick={async () => {
+                              if (window.confirm('¿Estás seguro de que deseas eliminar este servicio permanentemente de la nube?')) {
+                                try {
+                                  showToast('Eliminando...', 'success');
+
+                                  // 1. Le disparamos la orden a Supabase para que lo borre de verdad
+                                  const { error } = await supabase.from('servicios').delete().eq('id', row.id);
+                                  if (error) throw error;
+
+                                  // 2. Lo borramos de la pantalla para que no tengas que recargar la página
+                                  setServices(services.filter(s => s.id !== row.id));
+                                  setRollData(rollData.filter(r => r.id !== row.id));
+
+                                  showToast('¡Servicio eliminado de la nube!');
+                                } catch (error) {
+                                  console.error("Error al eliminar:", error);
+                                  showToast('Error al eliminar en la nube', 'error');
+                                }
                               }
                             }}
                             className="p-1 text-red-500 hover:bg-red-100 rounded"
