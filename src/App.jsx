@@ -135,7 +135,7 @@ export default function App() {
     if (vehiculoFiltro !== 'Expedition') return precioOriginal;
 
     // Buscamos a qué zona pertenece el hotel
-    const hotelEncontrado = LISTA_HOTELES.find(h => 
+    const hotelEncontrado = LISTA_HOTELES.find(h =>
       h.nombre.trim().toLowerCase() === (hotelName || '').trim().toLowerCase()
     );
 
@@ -143,7 +143,7 @@ export default function App() {
     if (!hotelEncontrado) return precioOriginal;
 
     // Asignamos la tarifa según la zona
-    switch(hotelEncontrado.zona) {
+    switch (hotelEncontrado.zona) {
       case 1: return 45;
       case 2: return 48.5;
       case 3: return 52;
@@ -390,17 +390,17 @@ export default function App() {
       showToast('Generando PDF de Cierre...');
       const canvas = await window.html2canvas(element, { scale: 2, useCORS: true });
       const imgData = canvas.toDataURL('image/png');
-      
+
       // Creamos el documento PDF
       const pdf = new window.jspdf.jsPDF('p', 'mm', 'a4');
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-      
+
       pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-      
+
       const fecha = new Date().toISOString().split('T')[0];
       const nombreArchivo = `Cierre_${cierreFilters.vehiculo || 'General'}_${fecha}.pdf`;
-      
+
       pdf.save(nombreArchivo);
       showToast('PDF descargado correctamente');
     } catch (error) {
@@ -1206,7 +1206,10 @@ export default function App() {
                       <td className="p-2"><span className={`px-2 py-1 rounded-full text-xs ${row.tipoServicio === 'Llegada' ? 'bg-green-100 text-green-800' : row.tipoServicio === 'Salida' ? 'bg-red-100 text-red-800' : 'bg-gray-100'}`}>{row.tipoServicio}</span></td>
                       <td className="p-2">{row.hotel}</td><td className="p-2">{row.vuelo}</td><td className="p-2 text-blue-600 font-medium">{row.pickUp}</td>
                       <td className="p-2 text-center">{row.pax}</td><td className="p-2">{row.telefono}</td>
-                      <td className="p-2 font-bold text-green-700">{row.cobro ? `$${row.cobro}` : ''}</td><td className="p-2">{row.metodoPago}</td>
+                      <td className="p-2 font-bold text-green-700">
+                        {row.cobro ? `$${calcularPrecioCierre(row.hotel, row.cobro, cierreFilters.vehiculo)}` : ''}
+                      </td>
+                      <td className="p-2">{row.metodoPago}</td>
                       <td className="p-2 text-gray-600">{row.chofer}</td><td className="p-2 text-gray-600">{row.vehiculo}</td>
                       <td className="p-2 text-gray-800 font-medium">{row.proveedor}</td><td className="p-2 font-bold text-red-700">{row.costoProveedor ? `$${row.costoProveedor}` : ''}</td>
                       <td className="p-2 text-xs">
@@ -1276,7 +1279,7 @@ export default function App() {
               </div>
             </div>
 
-            <div className="flex-1 overflow-x-auto overflow-y-auto p-4 w-full">
+            <div id="cierre-container" className="flex-1 overflow-x-auto overflow-y-auto p-4 w-full">
               <table className="min-w-max w-full text-left text-sm whitespace-nowrap">
                 <thead className="sticky top-0 bg-white shadow-sm z-10">
                   <tr className={`border-b ${cierreFilters.isCallCenter ? 'text-purple-700 bg-purple-50' : 'text-gray-600 bg-gray-50'}`}>
