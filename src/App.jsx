@@ -322,6 +322,7 @@ export default function App() {
 
     // Preparar los datos mapeando a los nombres de las columnas de Supabase
     if (isEditing) {
+      // MODO EDICIÓN: Solo empaquetamos el servicio que se está modificando
       servicesToSave.push({
         id: currentService.id,
         reserva: currentService.reserva,
@@ -350,6 +351,7 @@ export default function App() {
         costo_proveedor: currentService.costoProveedor?.toString() || ''
       });
     } else {
+      // MODO NUEVO: Aquí sí generamos el ID base y permitimos duplicar si es RT
       const baseId = Date.now().toString();
 
       const newService = {
@@ -381,7 +383,7 @@ export default function App() {
       };
       servicesToSave.push(newService);
 
-      // Si es un viaje de ida y vuelta (RT), creamos de una vez el servicio de regreso
+      // SOLO si es un registro NUEVO y es RT, creamos el regreso automático
       if (currentService.tipoViaje === 'RT') {
         servicesToSave.push({
           ...newService,
@@ -397,16 +399,16 @@ export default function App() {
     }
 
     try {
-      // Aquí enviamos la orden a la base de datos (upsert: inserta si no existe, actualiza si ya existe)
+      // Enviamos a la base de datos (upsert actualiza si el ID ya existe)
       const { error } = await supabase.from('servicios').upsert(servicesToSave);
       if (error) throw error;
 
       showToast(isEditing ? 'Servicio actualizado en la nube' : 'Servicio(s) guardado(s) en la nube');
 
-      // Volver a descargar los datos actualizados
+      // Volver a descargar los datos frescos de la nube para actualizar las tablas
       fetchAllData();
 
-      // Limpiar el formulario
+      // Limpiar el formulario y apagar el modo edición
       setCurrentService(initialServiceState);
       setIsEditing(false);
     } catch (error) {
@@ -1131,13 +1133,14 @@ export default function App() {
                   <tr className="text-purple-800 bg-purple-50 border-b">
                     <th className="p-2">ID Registro</th><th className="p-2">Fecha Sistema</th><th className="p-2">Fecha Cliente</th>
                     <th className="p-2">Cliente</th><th className="p-2">Reserva</th><th className="p-2">Acción</th>
-                    <th className="p-2 text-right">Comisión</th>
+                    <th className="p-2 text-right">Comisión</th><th className="p-2 text-center">Acciones</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
                   {callCenterServices.length === 0 ? (
-                    <tr><td colSpan="7" className="text-center p-8 text-gray-500">No hay registros guardados en el Call Center.</td></tr>
+                    <tr><td colSpan="8" className="text-center p-8 text-gray-500">No hay registros guardados en el Call Center.</td></tr>
                   ) : (
+                    // Ordenamos para ver siempre los últimos ingresados arriba
                     [...callCenterServices].reverse().slice(0, 10).map(row => (
                       <tr key={row.id} className="hover:bg-purple-50 transition-colors">
                         <td className="p-2 font-mono text-xs text-gray-500">{row.id}</td>
@@ -1151,6 +1154,33 @@ export default function App() {
                           </span>
                         </td>
                         <td className="p-2 text-right font-bold text-green-700">${parseFloat(row.comision).toFixed(2)}</td>
+                        <td className="p-2 text-center">
+                          <button
+                            onClick={async () => {
+                              if (window.confirm(`¿Estás seguro de que deseas eliminar el registro de ${row.cliente} permanentemente de la nube?`)) {
+                                try {
+                                  showToast('Eliminando...', 'success');
+
+                                  // 1. Lo borramos físicamente de la tabla 'call_center' en Supabase
+                                  const { error } = await supabase.from('call_center').delete().eq('id', row.id);
+                                  if (error) throw error;
+
+                                  // 2. Lo borramos de la pantalla para actualizar la vista de inmediato
+                                  setCallCenterServices(callCenterServices.filter(cc => cc.id !== row.id));
+
+                                  showToast('¡Registro de Call Center eliminado!');
+                                } catch (error) {
+                                  console.error("Error al eliminar en CC:", error);
+                                  showToast('Error al eliminar en la nube', 'error');
+                                }
+                              }
+                            }}
+                            className="p-1 text-red-500 hover:bg-red-100 rounded"
+                            title="Eliminar Registro"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>
+                          </button>
+                        </td>
                       </tr>
                     ))
                   )}
