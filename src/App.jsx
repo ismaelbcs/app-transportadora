@@ -30,7 +30,7 @@ const LISTA_HOTELES = [
   { nombre: "Park Royal Homestay Los Cabos", zona: 1 },
   { nombre: "GR Solaris Lighthouse Los Cabos", zona: 1 },
   { nombre: "Palmilla", zona: 1 },
-  
+
   // ZONA 2
   { nombre: "Las Ventanas al Paraíso (A Rosewood Resort)", zona: 2 },
   { nombre: "Grand Velas Los Cabos", zona: 2 },
@@ -743,13 +743,13 @@ export default function App() {
 
                 <div>
                   <label className="block text-xs font-medium text-gray-700">Hotel / Destino</label>
-                  <input 
-                    type="text" 
-                    name="hotel" 
+                  <input
+                    type="text"
+                    name="hotel"
                     list="hoteles-list"
-                    value={currentService.hotel} 
-                    onChange={handleInputChange} 
-                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm focus:ring-blue-500 focus:border-blue-500" 
+                    value={currentService.hotel}
+                    onChange={handleInputChange}
+                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm focus:ring-blue-500 focus:border-blue-500"
                     placeholder="Escribe o selecciona..."
                   />
                   <datalist id="hoteles-list">
@@ -1053,7 +1053,15 @@ export default function App() {
                       <td className="p-2"><input type="text" value={row.chofer} onChange={(e) => handleRollChange(row.id, 'chofer', e.target.value)} className="w-24 bg-transparent border-b border-dashed focus:outline-none" /></td>
                       <td className="p-2 font-medium">{row.nombre}</td><td className="p-2 font-medium">{row.apellido}</td>
                       <td className="p-2"><input type="text" value={row.vuelo} onChange={(e) => handleRollChange(row.id, 'vuelo', e.target.value)} className="w-20 bg-transparent border-b border-dashed focus:outline-none" /></td>
-                      <td className="p-2"><input type="text" value={row.hotel} onChange={(e) => handleRollChange(row.id, 'hotel', e.target.value)} className="w-32 bg-transparent border-b border-dashed focus:outline-none" /></td>
+                      <td className="p-2">
+                        <input
+                          type="text"
+                          list="hoteles-rol-list"
+                          value={row.hotel}
+                          onChange={(e) => handleRollChange(row.id, 'hotel', e.target.value)}
+                          className="w-32 bg-transparent border-b border-dashed focus:outline-none"
+                        />
+                      </td>
                       <td className="p-2 text-center">{row.pax}</td><td className="p-2 text-xs">{row.telefono}</td>
                       <td className="p-2"><span className={`px-2 py-1 rounded-full text-xs ${row.tipoServicio === 'Llegada' ? 'bg-green-100 text-green-800' : row.tipoServicio === 'Salida' ? 'bg-red-100 text-red-800' : 'bg-gray-100'}`}>{row.tipoServicio}</span></td>
                       <td className="p-2">
@@ -1078,8 +1086,28 @@ export default function App() {
                       <td className="p-2"><input type="text" value={row.comentario} onChange={(e) => handleRollChange(row.id, 'comentario', e.target.value)} className="w-32 bg-transparent border-b border-dashed focus:outline-none text-xs" /></td>
                       <td className="p-2">
                         <div className="flex justify-center items-center gap-2">
-                          <button onClick={() => generateSharePNG(row)} className="p-1 text-blue-600 hover:bg-blue-100 rounded"><Send size={18} /></button>
-                          {row.tipoServicio === 'Llegada' && <button onClick={() => generateWelcomeSign(row)} className="p-1 text-gray-600 hover:bg-gray-200 rounded"><Printer size={18} /></button>}
+                          <button onClick={() => generateSharePNG(row)} className="p-1 text-blue-600 hover:bg-blue-100 rounded" title="Compartir">
+                            <Send size={18} />
+                          </button>
+
+                          {row.tipoServicio === 'Llegada' && (
+                            <button onClick={() => generateWelcomeSign(row)} className="p-1 text-gray-600 hover:bg-gray-200 rounded" title="Imprimir Letrero">
+                              <Printer size={18} />
+                            </button>
+                          )}
+
+                          <button
+                            onClick={() => {
+                              if (window.confirm('¿Estás seguro de que deseas eliminar este servicio?')) {
+                                setServices(services.filter(s => s.id !== row.id));
+                                setRollData(rollData.filter(r => r.id !== row.id));
+                              }
+                            }}
+                            className="p-1 text-red-500 hover:bg-red-100 rounded"
+                            title="Eliminar Servicio"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -1101,6 +1129,13 @@ export default function App() {
             </div>
 
             <div className="flex-1 overflow-x-auto overflow-y-auto p-4 w-full">
+              <datalist id="hoteles-rol-list">
+                {LISTA_HOTELES.map((hotel, index) => (
+                  <option key={index} value={hotel.nombre}>
+                    Zona {hotel.zona}
+                  </option>
+                ))}
+              </datalist>
               <table className="min-w-max w-full text-left text-sm whitespace-nowrap">
                 <thead className="sticky top-0 bg-white shadow-sm z-10">
                   <tr className="text-gray-600 border-b bg-gray-50">
@@ -1154,9 +1189,9 @@ export default function App() {
                 {!cierreFilters.isCallCenter && (
                   <div>
                     <label className="block text-xs font-medium text-gray-700 mb-1">Vehículo (Opcional)</label>
-                    <select 
-                      value={cierreFilters.vehiculo} 
-                      onChange={e => setCierreFilters({ ...cierreFilters, vehiculo: e.target.value })} 
+                    <select
+                      value={cierreFilters.vehiculo}
+                      onChange={e => setCierreFilters({ ...cierreFilters, vehiculo: e.target.value })}
                       className="border border-gray-300 rounded-md p-2 shadow-sm text-sm w-full bg-white cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
                       <option value="">Todos (Sin filtro)</option>
