@@ -1272,10 +1272,15 @@ export default function App() {
                   )}
                 </div>
 
-                <button onClick={() => setCierreFilters({ ...cierreFilters, isCallCenter: !cierreFilters.isCallCenter })} className={`px-4 py-2 rounded-md font-bold shadow-sm flex items-center gap-2 transition-colors ${cierreFilters.isCallCenter ? 'bg-purple-600 text-white hover:bg-purple-700' : 'bg-blue-600 text-white hover:bg-blue-700'}`}>
-                  {cierreFilters.isCallCenter ? <Headset size={18} /> : <Users size={18} />}
-                  {cierreFilters.isCallCenter ? 'Viendo: CALL CENTER' : 'Viendo: NORMALES'}
-                </button>
+                <div className="flex gap-2">
+                  <button onClick={descargarCierrePDF} className="bg-red-600 text-white px-4 py-2 rounded-md font-bold shadow-sm flex items-center gap-2 hover:bg-red-700 transition-colors">
+                    <Download size={18} /> Descargar PDF
+                  </button>
+                  <button onClick={() => setCierreFilters({ ...cierreFilters, isCallCenter: !cierreFilters.isCallCenter })} className={`px-4 py-2 rounded-md font-bold shadow-sm flex items-center gap-2 transition-colors ${cierreFilters.isCallCenter ? 'bg-purple-600 text-white hover:bg-purple-700' : 'bg-blue-600 text-white hover:bg-blue-700'}`}>
+                    {cierreFilters.isCallCenter ? <Headset size={18} /> : <Users size={18} />}
+                    {cierreFilters.isCallCenter ? 'Viendo: CALL CENTER' : 'Viendo: NORMALES'}
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -1343,10 +1348,12 @@ export default function App() {
                                 <span className="text-green-700 font-bold mr-1">$</span>
                                 <input
                                   type="text"
-                                  value={row.cobro || ''}
+                                  value={calcularPrecioCierre(row.hotel, row.cobro, cierreFilters.vehiculo) || ''}
                                   onChange={(e) => handleCierreCobroChange(row.id, e.target.value)}
                                   placeholder="0.00"
-                                  className="w-20 bg-transparent border-b border-dashed border-gray-400 focus:outline-none focus:border-green-600 font-bold text-green-700"
+                                  readOnly={cierreFilters.vehiculo === 'Expedition'}
+                                  title={cierreFilters.vehiculo === 'Expedition' ? 'Precio automático por zona (No afecta BD)' : 'Precio editable'}
+                                  className={`w-20 bg-transparent focus:outline-none font-bold text-green-700 ${cierreFilters.vehiculo === 'Expedition' ? 'border-transparent cursor-default' : 'border-b border-dashed border-gray-400 focus:border-green-600'}`}
                                 />
                               </div>
                             </td>
