@@ -435,14 +435,55 @@ export default function App() {
     }
   };
 
-  const saveRollUpdates = () => {
-    const updatedServices = services.map(srv => {
-      const rollItem = rollData.find(r => r.id === srv.id);
-      return rollItem ? { ...srv, ...rollItem } : srv;
-    });
-    setServices(updatedServices);
-    localStorage.setItem('ballard_services', JSON.stringify(updatedServices));
-    showToast('Rol actualizado en la base de datos');
+  const saveRollUpdates = async () => {
+    try {
+      showToast('Guardando cambios en la nube...');
+
+      // 1. Traducimos los datos del Rol al formato exacto de tu Supabase
+      const servicesToUpdate = rollData.map(item => ({
+        id: item.id,
+        reserva: item.reserva,
+        nombre: item.nombre,
+        apellido: item.apellido,
+        agencia: item.agencia,
+        tipo_servicio: item.tipoServicio,
+        pax: item.pax?.toString(),
+        telefono: item.telefono,
+        fecha: item.fecha,
+        vuelo: item.vuelo,
+        pick_up: item.pickUp,
+        tipo_viaje: item.tipoViaje,
+        hora: item.hora,
+        hotel: item.hotel,
+        cobro: item.cobro?.toString(),
+        metodo_pago: item.metodoPago,
+        car_seat: parseInt(item.carSeat) || 0,
+        baby_seat: parseInt(item.babySeat) || 0,
+        booster: parseInt(item.booster) || 0,
+        parada_compras: item.paradaCompras,
+        comentario: item.comentario,
+        chofer: item.chofer || '',
+        vehiculo: item.vehiculo || '',
+        proveedor: item.proveedor || '',
+        costo_proveedor: item.costoProveedor?.toString() || ''
+      }));
+
+      // 2. Enviamos la orden de actualización masiva a la nube
+      const { error } = await supabase.from('servicios').upsert(servicesToUpdate);
+      if (error) throw error;
+
+      // 3. Si todo sale bien, actualizamos la memoria local de la app
+      const updatedServices = services.map(srv => {
+        const rollItem = rollData.find(r => r.id === srv.id);
+        return rollItem ? { ...srv, ...rollItem } : srv;
+      });
+      setServices(updatedServices);
+      
+      showToast('¡Rol actualizado en la nube correctamente!');
+    } catch (error) {
+      console.error("Error al guardar el Rol:", error);
+      showToast('Error al guardar en la nube', 'error');
+    }
   };
 
   const processCallCenterInput = async () => {
