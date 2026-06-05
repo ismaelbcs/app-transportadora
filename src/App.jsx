@@ -2025,6 +2025,22 @@ export default function App() {
                       <span className="leading-tight uppercase">{ticketDataToPrint.hotel}</span>
                     </p>
                   </div>
+
+                  {/* NUEVA SECCIÓN DE PAGO */}
+                  <div>
+                    <p className="text-xs text-gray-500 font-bold uppercase tracking-wider mb-1">{ticketLang === 'EN' ? 'Payment / Method' : 'Cobro / Método'}</p>
+                    <p className="text-base font-bold text-slate-800 flex items-center gap-2 uppercase">
+                      {/* Ícono de dinero hecho a medida */}
+                      <span className="bg-amber-500 text-slate-900 rounded-full w-5 h-5 flex items-center justify-center font-black text-xs">
+                        $
+                      </span>
+                      {/* Lógica: Si hay cobro lo muestra con su método, si está vacío o es 0 dice PREPAGADO */}
+                      {ticketDataToPrint.cobro && ticketDataToPrint.cobro !== '0' 
+                        ? `$${ticketDataToPrint.cobro} ${ticketDataToPrint.metodoPago ? `(${ticketDataToPrint.metodoPago})` : ''}` 
+                        : (ticketLang === 'EN' ? 'PREPAID' : 'PREPAGADO')}
+                    </p>
+                  </div>
+
                 </div>
               </div>
 
