@@ -1049,7 +1049,15 @@ export default function App() {
                 {!cierreFilters.isCallCenter && (
                   <div>
                     <label className="block text-xs font-medium text-gray-700 mb-1">Vehículo (Opcional)</label>
-                    <input type="text" placeholder="Ej. Sprinter 01" value={cierreFilters.vehiculo} onChange={e => setCierreFilters({ ...cierreFilters, vehiculo: e.target.value })} className="border border-gray-300 rounded-md p-2 shadow-sm text-sm" />
+                    <select 
+                      value={cierreFilters.vehiculo} 
+                      onChange={e => setCierreFilters({ ...cierreFilters, vehiculo: e.target.value })} 
+                      className="border border-gray-300 rounded-md p-2 shadow-sm text-sm w-full bg-white cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="">Todos (Sin filtro)</option>
+                      <option value="Expedition">Expedition</option>
+                      <option value="Hiace">Hiace</option>
+                    </select>
                   </div>
                 )}
 
