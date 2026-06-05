@@ -485,6 +485,53 @@ export default function App() {
       showToast('Error al guardar en la nube', 'error');
     }
   };
+  const handleDatabaseChange = (id, field, value) => {
+    setServices(prev => prev.map(item => item.id === id ? { ...item, [field]: value } : item));
+  };
+
+  const saveDatabaseUpdates = async () => {
+    try {
+      showToast('Guardando base de datos en la nube...');
+
+      // Empaquetamos todo tal cual lo recibe Supabase
+      const servicesToUpdate = services.map(item => ({
+        id: item.id,
+        reserva: item.reserva,
+        nombre: item.nombre,
+        apellido: item.apellido,
+        agencia: item.agencia,
+        tipo_servicio: item.tipoServicio,
+        pax: item.pax?.toString(),
+        telefono: item.telefono,
+        fecha: item.fecha,
+        vuelo: item.vuelo,
+        pick_up: item.pickUp,
+        tipo_viaje: item.tipoViaje,
+        hora: item.hora,
+        hotel: item.hotel,
+        cobro: item.cobro?.toString(),
+        metodo_pago: item.metodoPago,
+        car_seat: parseInt(item.carSeat) || 0,
+        baby_seat: parseInt(item.babySeat) || 0,
+        booster: parseInt(item.booster) || 0,
+        parada_compras: item.paradaCompras,
+        comentario: item.comentario,
+        chofer: item.chofer || '',
+        vehiculo: item.vehiculo || '',
+        proveedor: item.proveedor || '',
+        costo_proveedor: item.costoProveedor?.toString() || ''
+      }));
+
+      // Disparamos la actualización
+      const { error } = await supabase.from('servicios').upsert(servicesToUpdate);
+      if (error) throw error;
+
+      showToast('¡Base de datos actualizada en la nube!');
+    } catch (error) {
+      console.error("Error al guardar BD:", error);
+      showToast('Error al guardar en la nube', 'error');
+    }
+  };
 
   const processCallCenterInput = async () => {
     if (!ccInput.trim()) return showToast('El mensaje está vacío', 'error');
@@ -1270,43 +1317,113 @@ export default function App() {
         { }
         {activeTab === 'database' && (
           <div className="bg-white rounded-lg shadow-md flex flex-col h-[80vh]">
-            <div className="p-4 border-b bg-gray-50 rounded-t-lg flex justify-between items-center">
-              <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-                <Database className="text-blue-600" /> Base de Datos General
-              </h2>
-              <span className="text-sm text-gray-500">{services.length} registros en total</span>
+            <div className="p-4 border-b bg-gray-50 rounded-t-lg flex justify-between items-center flex-wrap gap-4">
+              <div className="flex items-center gap-4">
+                <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                  <Database className="text-blue-600" /> Base de Datos General
+                </h2>
+                <span className="text-sm text-gray-500">{services.length} registros en total</span>
+              </div>
+              <button onClick={saveDatabaseUpdates} className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center gap-2 font-medium transition-colors shadow-sm">
+                <Save size={18} /> Guardar Cambios
+              </button>
             </div>
 
             <div className="flex-1 overflow-x-auto overflow-y-auto p-4 w-full">
               <table className="min-w-max w-full text-left text-sm whitespace-nowrap">
                 <thead className="sticky top-0 bg-white shadow-sm z-10">
                   <tr className="text-gray-600 border-b bg-gray-50">
-                    <th className="p-2">Reserva</th><th className="p-2">Agencia</th><th className="p-2">Nombre Completo</th>
+                    <th className="p-2">Reserva</th><th className="p-2">Agencia</th><th className="p-2 min-w-[150px]">Nombre y Apellido</th>
                     <th className="p-2">Fecha</th><th className="p-2">Hora</th><th className="p-2">Tipo</th><th className="p-2">Hotel</th>
                     <th className="p-2">Vuelo</th><th className="p-2">PickUp</th><th className="p-2">PAX</th><th className="p-2">Teléfono</th>
                     <th className="p-2">Cobro</th><th className="p-2">Método Pago</th><th className="p-2">Chofer</th><th className="p-2">Vehículo</th>
                     <th className="p-2">Proveedor</th><th className="p-2">Cantidad</th><th className="p-2">Extras</th><th className="p-2">Comentarios</th>
+                    <th className="p-2 text-center">Acciones</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
-                  {services.length === 0 ? <tr><td colSpan="19" className="text-center p-8 text-gray-500">No hay servicios registrados.</td></tr> : services.map(row => (
+                  {services.length === 0 ? <tr><td colSpan="20" className="text-center p-8 text-gray-500">No hay servicios registrados.</td></tr> : services.map(row => (
                     <tr key={row.id} className="hover:bg-blue-50 transition-colors">
-                      <td className="p-2 font-medium">{row.reserva}</td><td className="p-2">{row.agencia}</td><td className="p-2 font-bold">{row.nombre} {row.apellido}</td>
-                      <td className="p-2">{row.fecha}</td><td className="p-2 font-semibold">{row.hora}</td>
-                      <td className="p-2"><span className={`px-2 py-1 rounded-full text-xs ${row.tipoServicio === 'Llegada' ? 'bg-green-100 text-green-800' : row.tipoServicio === 'Salida' ? 'bg-red-100 text-red-800' : 'bg-gray-100'}`}>{row.tipoServicio}</span></td>
-                      <td className="p-2">{row.hotel}</td><td className="p-2">{row.vuelo}</td><td className="p-2 text-blue-600 font-medium">{row.pickUp}</td>
-                      <td className="p-2 text-center">{row.pax}</td><td className="p-2">{row.telefono}</td>
-                      <td className="p-2 font-bold text-green-700">
-                        {row.cobro ? `$${calcularPrecioCierre(row.hotel, row.cobro, cierreFilters.vehiculo)}` : ''}
+                      <td className="p-2"><input type="text" value={row.reserva || ''} onChange={e => handleDatabaseChange(row.id, 'reserva', e.target.value)} className="w-16 bg-transparent border-b border-dashed focus:outline-none" /></td>
+                      <td className="p-2"><input type="text" value={row.agencia || ''} onChange={e => handleDatabaseChange(row.id, 'agencia', e.target.value)} className="w-20 bg-transparent border-b border-dashed focus:outline-none" /></td>
+                      <td className="p-2 flex gap-1">
+                        <input type="text" value={row.nombre || ''} onChange={e => handleDatabaseChange(row.id, 'nombre', e.target.value)} className="w-20 bg-transparent border-b border-dashed focus:outline-none" placeholder="Nombre" />
+                        <input type="text" value={row.apellido || ''} onChange={e => handleDatabaseChange(row.id, 'apellido', e.target.value)} className="w-24 bg-transparent border-b border-dashed focus:outline-none" placeholder="Apellido" />
                       </td>
-                      <td className="p-2">{row.metodoPago}</td>
-                      <td className="p-2 text-gray-600">{row.chofer}</td><td className="p-2 text-gray-600">{row.vehiculo}</td>
-                      <td className="p-2 text-gray-800 font-medium">{row.proveedor}</td><td className="p-2 font-bold text-red-700">{row.costoProveedor ? `$${row.costoProveedor}` : ''}</td>
+                      <td className="p-2"><input type="date" value={row.fecha || ''} onChange={e => handleDatabaseChange(row.id, 'fecha', e.target.value)} className="w-28 bg-transparent border-b border-dashed focus:outline-none text-xs" /></td>
+                      <td className="p-2"><input type="time" value={row.hora || ''} onChange={e => handleDatabaseChange(row.id, 'hora', e.target.value)} className="w-20 bg-transparent border-b border-dashed focus:outline-none font-semibold text-xs" /></td>
+                      <td className="p-2">
+                        <select value={row.tipoServicio || ''} onChange={e => handleDatabaseChange(row.id, 'tipoServicio', e.target.value)} className={`w-24 bg-transparent border-b border-dashed focus:outline-none text-xs font-bold cursor-pointer ${row.tipoServicio === 'Llegada' ? 'text-green-700' : row.tipoServicio === 'Salida' ? 'text-red-700' : row.tipoServicio === 'Traslado' ? 'text-yellow-700' : 'text-blue-700'}`}>
+                          <option value="Llegada">Llegada</option>
+                          <option value="Salida">Salida</option>
+                          <option value="Traslado">Traslado</option>
+                          <option value="Actividad">Actividad</option>
+                        </select>
+                      </td>
+                      <td className="p-2"><input type="text" list="hoteles-list" value={row.hotel || ''} onChange={e => handleDatabaseChange(row.id, 'hotel', e.target.value)} className="w-28 bg-transparent border-b border-dashed focus:outline-none text-xs cursor-pointer" placeholder="Elegir..." /></td>
+                      <td className="p-2"><input type="text" value={row.vuelo || ''} onChange={e => handleDatabaseChange(row.id, 'vuelo', e.target.value)} className="w-16 bg-transparent border-b border-dashed focus:outline-none text-xs" /></td>
+                      <td className="p-2"><input type="time" value={row.pickUp || ''} onChange={e => handleDatabaseChange(row.id, 'pickUp', e.target.value)} className="w-20 bg-transparent border-b border-dashed focus:outline-none text-blue-600 font-medium text-xs" /></td>
+                      <td className="p-2"><input type="number" value={row.pax || ''} onChange={e => handleDatabaseChange(row.id, 'pax', e.target.value)} className="w-12 bg-transparent border-b border-dashed focus:outline-none text-center" /></td>
+                      <td className="p-2"><input type="text" value={row.telefono || ''} onChange={e => handleDatabaseChange(row.id, 'telefono', e.target.value)} className="w-24 bg-transparent border-b border-dashed focus:outline-none text-xs" /></td>
+                      <td className="p-2">
+                        <div className="flex items-center">
+                          <span className="text-green-700 font-bold mr-1">$</span>
+                          <input type="text" value={row.cobro || ''} onChange={e => handleDatabaseChange(row.id, 'cobro', e.target.value)} className="w-16 bg-transparent border-b border-dashed focus:outline-none font-bold text-green-700" />
+                        </div>
+                      </td>
+                      <td className="p-2">
+                        <select value={row.metodoPago || ''} onChange={e => handleDatabaseChange(row.id, 'metodoPago', e.target.value)} className="w-24 bg-transparent border-b border-dashed focus:outline-none text-xs cursor-pointer">
+                          <option value=""></option>
+                          <option value="Efectivo">Efectivo</option>
+                          <option value="Tarjeta">Tarjeta</option>
+                          <option value="PayPal">PayPal</option>
+                        </select>
+                      </td>
+                      <td className="p-2"><input type="text" value={row.chofer || ''} onChange={e => handleDatabaseChange(row.id, 'chofer', e.target.value)} className="w-20 bg-transparent border-b border-dashed focus:outline-none text-gray-600 text-xs" /></td>
+                      <td className="p-2">
+                        <select value={row.vehiculo || ''} onChange={e => handleDatabaseChange(row.id, 'vehiculo', e.target.value)} className="w-24 bg-transparent border-b border-dashed focus:outline-none text-xs text-gray-600 cursor-pointer">
+                          <option value=""></option>
+                          <option value="Expedition">Expedition</option>
+                          <option value="Hiace">Hiace</option>
+                        </select>
+                      </td>
+                      <td className="p-2"><input type="text" value={row.proveedor || ''} onChange={e => handleDatabaseChange(row.id, 'proveedor', e.target.value)} className="w-20 bg-transparent border-b border-dashed focus:outline-none text-xs font-medium" /></td>
+                      <td className="p-2">
+                        <div className="flex items-center">
+                          <span className="text-red-700 font-bold mr-1">$</span>
+                          <input type="text" value={row.costoProveedor || ''} onChange={e => handleDatabaseChange(row.id, 'costoProveedor', e.target.value)} className="w-16 bg-transparent border-b border-dashed focus:outline-none font-bold text-red-700" />
+                        </div>
+                      </td>
                       <td className="p-2 text-xs">
-                        {row.carSeat > 0 && <span className="mr-1">Car:{row.carSeat}</span>}{row.babySeat > 0 && <span className="mr-1">Baby:{row.babySeat}</span>}
-                        {row.booster > 0 && <span className="mr-1">Bstr:{row.booster}</span>}{row.paradaCompras && <span className="text-blue-600">Compras</span>}
+                        <div className="flex flex-col gap-1 w-16">
+                          <input type="text" placeholder="Car" value={row.carSeat > 0 ? row.carSeat : ''} onChange={e => handleDatabaseChange(row.id, 'carSeat', e.target.value)} className="w-full bg-transparent border-b border-dashed focus:outline-none" title="Car Seat" />
+                          <input type="text" placeholder="Baby" value={row.babySeat > 0 ? row.babySeat : ''} onChange={e => handleDatabaseChange(row.id, 'babySeat', e.target.value)} className="w-full bg-transparent border-b border-dashed focus:outline-none" title="Baby Seat" />
+                          <input type="text" placeholder="Bstr" value={row.booster > 0 ? row.booster : ''} onChange={e => handleDatabaseChange(row.id, 'booster', e.target.value)} className="w-full bg-transparent border-b border-dashed focus:outline-none" title="Booster" />
+                        </div>
                       </td>
-                      <td className="p-2 text-xs text-gray-500 max-w-[200px] truncate" title={row.comentario}>{row.comentario}</td>
+                      <td className="p-2"><input type="text" value={row.comentario || ''} onChange={e => handleDatabaseChange(row.id, 'comentario', e.target.value)} className="w-32 bg-transparent border-b border-dashed focus:outline-none text-xs text-gray-500" /></td>
+                      <td className="p-2 text-center">
+                        <button
+                          onClick={async () => {
+                            if (window.confirm('¿Estás seguro de que deseas eliminar este servicio de la Base de Datos permanentemente?')) {
+                              try {
+                                showToast('Eliminando...', 'success');
+                                const { error } = await supabase.from('servicios').delete().eq('id', row.id);
+                                if (error) throw error;
+                                setServices(services.filter(s => s.id !== row.id));
+                                showToast('¡Servicio eliminado!');
+                              } catch (error) {
+                                console.error("Error al eliminar:", error);
+                                showToast('Error al eliminar', 'error');
+                              }
+                            }
+                          }}
+                          className="p-1 text-red-500 hover:bg-red-100 rounded"
+                          title="Eliminar Servicio"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
