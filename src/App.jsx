@@ -716,18 +716,18 @@ export default function App() {
     }
 
     try {
-      showToast('Generando imagen (versión Choferes)...');
+      showToast('Generando imagen en Alta Calidad (HD)...');
 
       const canvas = await window.html2canvas(element, {
-        scale: 2,
+        scale: 3, // <-- AQUÍ ESTÁ EL CAMBIO: Subimos la escala de 2 a 3 para máxima nitidez
         useCORS: true,
         backgroundColor: '#ffffff',
         logging: false,
-        // Aquí ocurre la magia: modificamos la foto antes de tomarla
+        // Modificamos la foto antes de tomarla para ocultar lo secreto
         onclone: (clonedDoc) => {
           const columnasSecretas = clonedDoc.querySelectorAll('.ocultar-en-foto');
           columnasSecretas.forEach(celda => {
-            celda.style.display = 'none'; // Las borramos solo en la imagen
+            celda.style.display = 'none'; 
           });
         }
       });
@@ -738,7 +738,7 @@ export default function App() {
       link.href = canvas.toDataURL('image/png');
       link.click();
 
-      showToast('Imagen descargada correctamente');
+      showToast('Imagen HD descargada correctamente');
     } catch (error) {
       console.error("Error al generar PNG:", error);
       showToast('Error al generar la imagen', 'error');
