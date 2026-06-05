@@ -625,9 +625,14 @@ export default function App() {
     const isVenta = accionString.includes('venta');
 
     // Creamos el registro adaptado a las columnas de Supabase
+    // 1. Calculamos la fecha exacta local (México) restando la diferencia de zona horaria
+    const offsetMinutos = new Date().getTimezoneOffset() * 60000;
+    const fechaLocal = new Date(Date.now() - offsetMinutos).toISOString().split('T')[0];
+
+    // 2. Creamos el registro con la fecha corregida
     const newCCRecord = {
       id: `CC-${Date.now().toString().slice(-5)}`,
-      fecha_sistema: new Date().toISOString().split('T')[0],
+      fecha_sistema: fechaLocal,
       fecha_cliente: fechaMatch ? fechaMatch[1].trim() : 'Sin fecha',
       cliente: clienteMatch ? clienteMatch[1].trim() : 'Desconocido',
       reserva: reservaMatch ? reservaMatch[1].trim() : 'N/A',
