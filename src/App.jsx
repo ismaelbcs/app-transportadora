@@ -11,6 +11,7 @@ const initialServiceState = {
   fechaRegreso: '', horaPickUpRegreso: '', vueloRegreso: '', horaRegreso: '',
   chofer: '', vehiculo: '', proveedor: '', costoProveedor: ''
 };
+
 const LISTA_HOTELES = [
   // ZONA 1
   { nombre: "Cabo Azul Resort", zona: 1 },
@@ -742,9 +743,23 @@ export default function App() {
 
                 <div>
                   <label className="block text-xs font-medium text-gray-700">Hotel / Destino</label>
-                  <input type="text" name="hotel" value={currentService.hotel} onChange={handleInputChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm" />
+                  <input 
+                    type="text" 
+                    name="hotel" 
+                    list="hoteles-list"
+                    value={currentService.hotel} 
+                    onChange={handleInputChange} 
+                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm focus:ring-blue-500 focus:border-blue-500" 
+                    placeholder="Escribe o selecciona..."
+                  />
+                  <datalist id="hoteles-list">
+                    {LISTA_HOTELES.map((hotel, index) => (
+                      <option key={index} value={hotel.nombre}>
+                        Zona {hotel.zona}
+                      </option>
+                    ))}
+                  </datalist>
                 </div>
-              </div>
 
               <div className="space-y-4">
                 <h3 className="font-semibold text-gray-700 border-b pb-2">Extras y Comentarios</h3>
