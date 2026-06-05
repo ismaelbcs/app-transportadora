@@ -13,6 +13,8 @@ const initialServiceState = {
 };
 
 export default function App() {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [password, setPassword] = useState('');
   const [services, setServices] = useState([]);
   const [currentService, setCurrentService] = useState(initialServiceState);
   const [activeTab, setActiveTab] = useState('form');
@@ -464,6 +466,41 @@ export default function App() {
     className={className} 
   />
 );
+
+  if (!isLoggedIn) {
+    return (
+      <div className="min-h-screen bg-gray-200 flex items-center justify-center p-4">
+        <div className="bg-white p-8 rounded-xl shadow-xl w-full max-w-md flex flex-col items-center border-t-4 border-blue-600">
+          <img src="/logo-oficial.png" alt="Logo Ballard" className="h-24 w-auto mb-6" />
+          <h2 className="text-xl font-bold text-gray-800 mb-6">Acceso al Sistema</h2>
+          
+          <input 
+            type="password" 
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Ingresa la contraseña"
+            className="w-full border border-gray-300 rounded-lg p-3 mb-4 text-center text-lg focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 shadow-sm"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                if (password === 'Ballard2026') setIsLoggedIn(true);
+                else alert('Contraseña incorrecta');
+              }
+            }}
+          />
+          
+          <button 
+            onClick={() => {
+              if (password === 'Ballard2026') setIsLoggedIn(true);
+              else alert('Contraseña incorrecta');
+            }}
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition-colors shadow-md"
+          >
+            Entrar
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-800 font-sans">
