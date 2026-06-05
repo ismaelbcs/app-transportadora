@@ -533,6 +533,36 @@ export default function App() {
     }
   };
 
+  const handleFleetChange = (id, field, value) => {
+    setFleetExpenses(prev => prev.map(item => item.id === id ? { ...item, [field]: value } : item));
+  };
+
+  const saveFleetUpdates = async () => {
+    try {
+      showToast('Guardando cambios en gastos...');
+
+      // Preparamos los datos tal como los lee Supabase
+      const gastosToUpdate = fleetExpenses.map(item => ({
+        id: item.id,
+        fecha: item.fecha,
+        chofer: item.chofer,
+        vehiculo: item.vehiculo,
+        gasolina: item.gasolina,
+        casetas: item.casetas,
+        gasto_total: item.gastoTotal
+      }));
+
+      // Disparamos la actualización a la nube
+      const { error } = await supabase.from('gastos_flota').upsert(gastosToUpdate);
+      if (error) throw error;
+
+      showToast('¡Gastos actualizados en la nube!');
+    } catch (error) {
+      console.error("Error al guardar gastos:", error);
+      showToast('Error al actualizar gastos', 'error');
+    }
+  };
+
   const processCallCenterInput = async () => {
     if (!ccInput.trim()) return showToast('El mensaje está vacío', 'error');
 
@@ -1115,22 +1145,53 @@ export default function App() {
             </div>
 
             <div className="flex-1 overflow-x-auto overflow-y-auto p-2 w-full">
-              <h3 className="text-lg font-semibold text-gray-700 mb-4 border-b pb-2">Historial de Gastos</h3>
+              <div className="flex justify-between items-center mb-4 border-b pb-2">
+                <h3 className="text-lg font-semibold text-gray-700">Historial de Gastos</h3>
+                <button onClick={saveFleetUpdates} className="bg-orange-500 text-white px-3 py-1 rounded-md hover:bg-orange-600 flex items-center gap-2 text-sm font-medium transition-colors shadow-sm">
+                  <Save size={16} /> Guardar Cambios
+                </button>
+              </div>
               <table className="min-w-full text-left text-sm whitespace-nowrap">
                 <thead className="sticky top-0 bg-white shadow-sm z-10">
-                  <tr className="text-gray-600 border-b">
+                  <tr className="text-gray-600 border-b bg-gray-50">
                     <th className="p-2">ID Gasto</th><th className="p-2">Fecha</th><th className="p-2">Chofer</th><th className="p-2">Vehículo</th>
                     <th className="p-2 text-right">Gasolina</th><th className="p-2 text-right">Casetas</th><th className="p-2 text-right font-bold">Gasto Total</th>
+                    <th className="p-2 text-center">Acciones</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
-                  {fleetExpenses.length === 0 ? <tr><td colSpan="7" className="text-center p-8 text-gray-500">No hay gastos registrados.</td></tr> : [...fleetExpenses].reverse().map(row => (
+                  {fleetExpenses.length === 0 ? <tr><td colSpan="8" className="text-center p-8 text-gray-500">No hay gastos registrados.</td></tr> : [...fleetExpenses].reverse().map(row => (
                     <tr key={row.id} className="hover:bg-orange-50 transition-colors">
-                      <td className="p-2 font-medium text-gray-500">{row.id}</td><td className="p-2">{row.fecha}</td>
+                      <td className="p-2 font-medium text-gray-500">{row.id}</td>
+                      <td className="p-2">
+                        <input type="date" value={row.fecha || ''} onChange={e => handleFleetChange(row.id, 'fecha', e.target.value)} className="bg-transparent border-b border-dashed border-gray-400 focus:outline-none focus:border-orange-500 text-gray-700" />
+                      </td>
                       <td className="p-2">{row.chofer}</td><td className="p-2">{row.vehiculo}</td>
-                      <td className="p-2 text-right text-gray-600">${parseFloat(row.gasolina).toFixed(2)}</td>
-                      <td className="p-2 text-right text-gray-600">${parseFloat(row.casetas).toFixed(2)}</td>
-                      <td className="p-2 text-right font-bold text-red-700">${parseFloat(row.gastoTotal).toFixed(2)}</td>
+                      <td className="p-2 text-right text-gray-600">${parseFloat(row.gasolina || 0).toFixed(2)}</td>
+                      <td className="p-2 text-right text-gray-600">${parseFloat(row.casetas || 0).toFixed(2)}</td>
+                      <td className="p-2 text-right font-bold text-red-700">${parseFloat(row.gastoTotal || 0).toFixed(2)}</td>
+                      <td className="p-2 text-center">
+                        <button
+                          onClick={async () => {
+                            if (window.confirm('¿Estás seguro de que deseas eliminar este gasto de la nube?')) {
+                              try {
+                                showToast('Eliminando...', 'success');
+                                const { error } = await supabase.from('gastos_flota').delete().eq('id', row.id);
+                                if (error) throw error;
+                                setFleetExpenses(fleetExpenses.filter(g => g.id !== row.id));
+                                showToast('¡Gasto eliminado!');
+                              } catch (error) {
+                                console.error("Error al eliminar gasto:", error);
+                                showToast('Error al eliminar', 'error');
+                              }
+                            }
+                          }}
+                          className="p-1 text-red-500 hover:bg-red-100 rounded"
+                          title="Eliminar Gasto"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -1330,326 +1391,335 @@ export default function App() {
             </div>
 
             <div className="flex-1 overflow-x-auto overflow-y-auto p-4 w-full">
-              <table className="min-w-max w-full text-left text-sm whitespace-nowrap">
-                <thead className="sticky top-0 bg-white shadow-sm z-10">
-                  <tr className="text-gray-600 border-b bg-gray-50">
-                    <th className="p-2">Reserva</th><th className="p-2">Agencia</th><th className="p-2 min-w-[150px]">Nombre y Apellido</th>
-                    <th className="p-2">Fecha</th><th className="p-2">Hora</th><th className="p-2">Tipo</th><th className="p-2">Hotel</th>
-                    <th className="p-2">Vuelo</th><th className="p-2">PickUp</th><th className="p-2">PAX</th><th className="p-2">Teléfono</th>
-                    <th className="p-2">Cobro</th><th className="p-2">Método Pago</th><th className="p-2">Chofer</th><th className="p-2">Vehículo</th>
-                    <th className="p-2">Proveedor</th><th className="p-2">Cantidad</th><th className="p-2">Extras</th><th className="p-2">Comentarios</th>
-                    <th className="p-2 text-center">Acciones</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y">
-                  {services.length === 0 ? <tr><td colSpan="20" className="text-center p-8 text-gray-500">No hay servicios registrados.</td></tr> : services.map(row => (
-                    <tr key={row.id} className="hover:bg-blue-50 transition-colors">
-                      <td className="p-2"><input type="text" value={row.reserva || ''} onChange={e => handleDatabaseChange(row.id, 'reserva', e.target.value)} className="w-16 bg-transparent border-b border-dashed focus:outline-none" /></td>
-                      <td className="p-2"><input type="text" value={row.agencia || ''} onChange={e => handleDatabaseChange(row.id, 'agencia', e.target.value)} className="w-20 bg-transparent border-b border-dashed focus:outline-none" /></td>
-                      <td className="p-2 flex gap-1">
-                        <input type="text" value={row.nombre || ''} onChange={e => handleDatabaseChange(row.id, 'nombre', e.target.value)} className="w-20 bg-transparent border-b border-dashed focus:outline-none" placeholder="Nombre" />
-                        <input type="text" value={row.apellido || ''} onChange={e => handleDatabaseChange(row.id, 'apellido', e.target.value)} className="w-24 bg-transparent border-b border-dashed focus:outline-none" placeholder="Apellido" />
-                      </td>
-                      <td className="p-2"><input type="date" value={row.fecha || ''} onChange={e => handleDatabaseChange(row.id, 'fecha', e.target.value)} className="w-28 bg-transparent border-b border-dashed focus:outline-none text-xs" /></td>
-                      <td className="p-2"><input type="time" value={row.hora || ''} onChange={e => handleDatabaseChange(row.id, 'hora', e.target.value)} className="w-20 bg-transparent border-b border-dashed focus:outline-none font-semibold text-xs" /></td>
-                      <td className="p-2">
-                        <select value={row.tipoServicio || ''} onChange={e => handleDatabaseChange(row.id, 'tipoServicio', e.target.value)} className={`w-24 bg-transparent border-b border-dashed focus:outline-none text-xs font-bold cursor-pointer ${row.tipoServicio === 'Llegada' ? 'text-green-700' : row.tipoServicio === 'Salida' ? 'text-red-700' : row.tipoServicio === 'Traslado' ? 'text-yellow-700' : 'text-blue-700'}`}>
-                          <option value="Llegada">Llegada</option>
-                          <option value="Salida">Salida</option>
-                          <option value="Traslado">Traslado</option>
-                          <option value="Actividad">Actividad</option>
-                        </select>
-                      </td>
-                      <td className="p-2"><input type="text" list="hoteles-list" value={row.hotel || ''} onChange={e => handleDatabaseChange(row.id, 'hotel', e.target.value)} className="w-28 bg-transparent border-b border-dashed focus:outline-none text-xs cursor-pointer" placeholder="Elegir..." /></td>
-                      <td className="p-2"><input type="text" value={row.vuelo || ''} onChange={e => handleDatabaseChange(row.id, 'vuelo', e.target.value)} className="w-16 bg-transparent border-b border-dashed focus:outline-none text-xs" /></td>
-                      <td className="p-2"><input type="time" value={row.pickUp || ''} onChange={e => handleDatabaseChange(row.id, 'pickUp', e.target.value)} className="w-20 bg-transparent border-b border-dashed focus:outline-none text-blue-600 font-medium text-xs" /></td>
-                      <td className="p-2"><input type="number" value={row.pax || ''} onChange={e => handleDatabaseChange(row.id, 'pax', e.target.value)} className="w-12 bg-transparent border-b border-dashed focus:outline-none text-center" /></td>
-                      <td className="p-2"><input type="text" value={row.telefono || ''} onChange={e => handleDatabaseChange(row.id, 'telefono', e.target.value)} className="w-24 bg-transparent border-b border-dashed focus:outline-none text-xs" /></td>
-                      <td className="p-2">
-                        <div className="flex items-center">
-                          <span className="text-green-700 font-bold mr-1">$</span>
-                          <input type="text" value={row.cobro || ''} onChange={e => handleDatabaseChange(row.id, 'cobro', e.target.value)} className="w-16 bg-transparent border-b border-dashed focus:outline-none font-bold text-green-700" />
-                        </div>
-                      </td>
-                      <td className="p-2">
-                        <select value={row.metodoPago || ''} onChange={e => handleDatabaseChange(row.id, 'metodoPago', e.target.value)} className="w-24 bg-transparent border-b border-dashed focus:outline-none text-xs cursor-pointer">
-                          <option value=""></option>
-                          <option value="Efectivo">Efectivo</option>
-                          <option value="Tarjeta">Tarjeta</option>
-                          <option value="PayPal">PayPal</option>
-                        </select>
-                      </td>
-                      <td className="p-2"><input type="text" value={row.chofer || ''} onChange={e => handleDatabaseChange(row.id, 'chofer', e.target.value)} className="w-20 bg-transparent border-b border-dashed focus:outline-none text-gray-600 text-xs" /></td>
-                      <td className="p-2">
-                        <select value={row.vehiculo || ''} onChange={e => handleDatabaseChange(row.id, 'vehiculo', e.target.value)} className="w-24 bg-transparent border-b border-dashed focus:outline-none text-xs text-gray-600 cursor-pointer">
-                          <option value=""></option>
+
+                <datalist id="hoteles-bd-list">
+                  {LISTA_HOTELES.map((hotel, index) => (
+                    <option key={`bd-${index}`} value={hotel.nombre}>
+                      Zona {hotel.zona}
+                    </option>
+                  ))}
+                </datalist>
+
+                <table className="min-w-max w-full text-left text-sm whitespace-nowrap">
+                  <thead className="sticky top-0 bg-white shadow-sm z-10">
+                    <tr className="text-gray-600 border-b bg-gray-50">
+                      <th className="p-2">Reserva</th><th className="p-2">Agencia</th><th className="p-2 min-w-[150px]">Nombre y Apellido</th>
+                      <th className="p-2">Fecha</th><th className="p-2">Hora</th><th className="p-2">Tipo</th><th className="p-2">Hotel</th>
+                      <th className="p-2">Vuelo</th><th className="p-2">PickUp</th><th className="p-2">PAX</th><th className="p-2">Teléfono</th>
+                      <th className="p-2">Cobro</th><th className="p-2">Método Pago</th><th className="p-2">Chofer</th><th className="p-2">Vehículo</th>
+                      <th className="p-2">Proveedor</th><th className="p-2">Cantidad</th><th className="p-2">Extras</th><th className="p-2">Comentarios</th>
+                      <th className="p-2 text-center">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y">
+                    {services.length === 0 ? <tr><td colSpan="20" className="text-center p-8 text-gray-500">No hay servicios registrados.</td></tr> : services.map(row => (
+                      <tr key={row.id} className="hover:bg-blue-50 transition-colors">
+                        <td className="p-2"><input type="text" value={row.reserva || ''} onChange={e => handleDatabaseChange(row.id, 'reserva', e.target.value)} className="w-16 bg-transparent border-b border-dashed focus:outline-none" /></td>
+                        <td className="p-2"><input type="text" value={row.agencia || ''} onChange={e => handleDatabaseChange(row.id, 'agencia', e.target.value)} className="w-20 bg-transparent border-b border-dashed focus:outline-none" /></td>
+                        <td className="p-2 flex gap-1">
+                          <input type="text" value={row.nombre || ''} onChange={e => handleDatabaseChange(row.id, 'nombre', e.target.value)} className="w-20 bg-transparent border-b border-dashed focus:outline-none" placeholder="Nombre" />
+                          <input type="text" value={row.apellido || ''} onChange={e => handleDatabaseChange(row.id, 'apellido', e.target.value)} className="w-24 bg-transparent border-b border-dashed focus:outline-none" placeholder="Apellido" />
+                        </td>
+                        <td className="p-2"><input type="date" value={row.fecha || ''} onChange={e => handleDatabaseChange(row.id, 'fecha', e.target.value)} className="w-28 bg-transparent border-b border-dashed focus:outline-none text-xs" /></td>
+                        <td className="p-2"><input type="time" value={row.hora || ''} onChange={e => handleDatabaseChange(row.id, 'hora', e.target.value)} className="w-20 bg-transparent border-b border-dashed focus:outline-none font-semibold text-xs" /></td>
+                        <td className="p-2">
+                          <select value={row.tipoServicio || ''} onChange={e => handleDatabaseChange(row.id, 'tipoServicio', e.target.value)} className={`w-24 bg-transparent border-b border-dashed focus:outline-none text-xs font-bold cursor-pointer ${row.tipoServicio === 'Llegada' ? 'text-green-700' : row.tipoServicio === 'Salida' ? 'text-red-700' : row.tipoServicio === 'Traslado' ? 'text-yellow-700' : 'text-blue-700'}`}>
+                            <option value="Llegada">Llegada</option>
+                            <option value="Salida">Salida</option>
+                            <option value="Traslado">Traslado</option>
+                            <option value="Actividad">Actividad</option>
+                          </select>
+                        </td>
+                        <td className="p-2"><input type="text" list="hoteles-bd-list" value={row.hotel || ''} onChange={e => handleDatabaseChange(row.id, 'hotel', e.target.value)} className="w-28 bg-transparent border-b border-dashed focus:outline-none text-xs cursor-pointer" placeholder="Elegir..."/></td>
+                        <td className="p-2"><input type="text" value={row.vuelo || ''} onChange={e => handleDatabaseChange(row.id, 'vuelo', e.target.value)} className="w-16 bg-transparent border-b border-dashed focus:outline-none text-xs" /></td>
+                        <td className="p-2"><input type="time" value={row.pickUp || ''} onChange={e => handleDatabaseChange(row.id, 'pickUp', e.target.value)} className="w-20 bg-transparent border-b border-dashed focus:outline-none text-blue-600 font-medium text-xs" /></td>
+                        <td className="p-2"><input type="number" value={row.pax || ''} onChange={e => handleDatabaseChange(row.id, 'pax', e.target.value)} className="w-12 bg-transparent border-b border-dashed focus:outline-none text-center" /></td>
+                        <td className="p-2"><input type="text" value={row.telefono || ''} onChange={e => handleDatabaseChange(row.id, 'telefono', e.target.value)} className="w-24 bg-transparent border-b border-dashed focus:outline-none text-xs" /></td>
+                        <td className="p-2">
+                          <div className="flex items-center">
+                            <span className="text-green-700 font-bold mr-1">$</span>
+                            <input type="text" value={row.cobro || ''} onChange={e => handleDatabaseChange(row.id, 'cobro', e.target.value)} className="w-16 bg-transparent border-b border-dashed focus:outline-none font-bold text-green-700" />
+                          </div>
+                        </td>
+                        <td className="p-2">
+                          <select value={row.metodoPago || ''} onChange={e => handleDatabaseChange(row.id, 'metodoPago', e.target.value)} className="w-24 bg-transparent border-b border-dashed focus:outline-none text-xs cursor-pointer">
+                            <option value=""></option>
+                            <option value="Efectivo">Efectivo</option>
+                            <option value="Tarjeta">Tarjeta</option>
+                            <option value="PayPal">PayPal</option>
+                          </select>
+                        </td>
+                        <td className="p-2"><input type="text" value={row.chofer || ''} onChange={e => handleDatabaseChange(row.id, 'chofer', e.target.value)} className="w-20 bg-transparent border-b border-dashed focus:outline-none text-gray-600 text-xs" /></td>
+                        <td className="p-2">
+                          <select value={row.vehiculo || ''} onChange={e => handleDatabaseChange(row.id, 'vehiculo', e.target.value)} className="w-24 bg-transparent border-b border-dashed focus:outline-none text-xs text-gray-600 cursor-pointer">
+                            <option value=""></option>
+                            <option value="Expedition">Expedition</option>
+                            <option value="Hiace">Hiace</option>
+                          </select>
+                        </td>
+                        <td className="p-2"><input type="text" value={row.proveedor || ''} onChange={e => handleDatabaseChange(row.id, 'proveedor', e.target.value)} className="w-20 bg-transparent border-b border-dashed focus:outline-none text-xs font-medium" /></td>
+                        <td className="p-2">
+                          <div className="flex items-center">
+                            <span className="text-red-700 font-bold mr-1">$</span>
+                            <input type="text" value={row.costoProveedor || ''} onChange={e => handleDatabaseChange(row.id, 'costoProveedor', e.target.value)} className="w-16 bg-transparent border-b border-dashed focus:outline-none font-bold text-red-700" />
+                          </div>
+                        </td>
+                        <td className="p-2 text-xs">
+                          <div className="flex flex-col gap-1 w-16">
+                            <input type="text" placeholder="Car" value={row.carSeat > 0 ? row.carSeat : ''} onChange={e => handleDatabaseChange(row.id, 'carSeat', e.target.value)} className="w-full bg-transparent border-b border-dashed focus:outline-none" title="Car Seat" />
+                            <input type="text" placeholder="Baby" value={row.babySeat > 0 ? row.babySeat : ''} onChange={e => handleDatabaseChange(row.id, 'babySeat', e.target.value)} className="w-full bg-transparent border-b border-dashed focus:outline-none" title="Baby Seat" />
+                            <input type="text" placeholder="Bstr" value={row.booster > 0 ? row.booster : ''} onChange={e => handleDatabaseChange(row.id, 'booster', e.target.value)} className="w-full bg-transparent border-b border-dashed focus:outline-none" title="Booster" />
+                          </div>
+                        </td>
+                        <td className="p-2"><input type="text" value={row.comentario || ''} onChange={e => handleDatabaseChange(row.id, 'comentario', e.target.value)} className="w-32 bg-transparent border-b border-dashed focus:outline-none text-xs text-gray-500" /></td>
+                        <td className="p-2 text-center">
+                          <button
+                            onClick={async () => {
+                              if (window.confirm('¿Estás seguro de que deseas eliminar este servicio de la Base de Datos permanentemente?')) {
+                                try {
+                                  showToast('Eliminando...', 'success');
+                                  const { error } = await supabase.from('servicios').delete().eq('id', row.id);
+                                  if (error) throw error;
+                                  setServices(services.filter(s => s.id !== row.id));
+                                  showToast('¡Servicio eliminado!');
+                                } catch (error) {
+                                  console.error("Error al eliminar:", error);
+                                  showToast('Error al eliminar', 'error');
+                                }
+                              }
+                            }}
+                            className="p-1 text-red-500 hover:bg-red-100 rounded"
+                            title="Eliminar Servicio"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+        )}
+
+            { }
+            {activeTab === 'cierre' && (
+              <div className="bg-white rounded-lg shadow-md flex flex-col h-[80vh]">
+                <div className="p-4 border-b bg-gray-50 rounded-t-lg">
+                  <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                    <Calendar className="text-blue-600" /> Módulo de Cierre
+                  </h2>
+                  <div className="flex flex-col md:flex-row gap-4 items-end">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Fecha Inicial</label>
+                      <input type="date" value={cierreFilters.startDate} onChange={e => setCierreFilters({ ...cierreFilters, startDate: e.target.value })} className="border border-gray-300 rounded-md p-2 shadow-sm text-sm" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Fecha Final</label>
+                      <input type="date" value={cierreFilters.endDate} onChange={e => setCierreFilters({ ...cierreFilters, endDate: e.target.value })} className="border border-gray-300 rounded-md p-2 shadow-sm text-sm" />
+                    </div>
+                    {!cierreFilters.isCallCenter && (
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">Vehículo (Opcional)</label>
+                        <select
+                          value={cierreFilters.vehiculo}
+                          onChange={e => setCierreFilters({ ...cierreFilters, vehiculo: e.target.value })}
+                          className="border border-gray-300 rounded-md p-2 shadow-sm text-sm w-full bg-white cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                          <option value="">Todos (Sin filtro)</option>
                           <option value="Expedition">Expedition</option>
                           <option value="Hiace">Hiace</option>
                         </select>
-                      </td>
-                      <td className="p-2"><input type="text" value={row.proveedor || ''} onChange={e => handleDatabaseChange(row.id, 'proveedor', e.target.value)} className="w-20 bg-transparent border-b border-dashed focus:outline-none text-xs font-medium" /></td>
-                      <td className="p-2">
-                        <div className="flex items-center">
-                          <span className="text-red-700 font-bold mr-1">$</span>
-                          <input type="text" value={row.costoProveedor || ''} onChange={e => handleDatabaseChange(row.id, 'costoProveedor', e.target.value)} className="w-16 bg-transparent border-b border-dashed focus:outline-none font-bold text-red-700" />
-                        </div>
-                      </td>
-                      <td className="p-2 text-xs">
-                        <div className="flex flex-col gap-1 w-16">
-                          <input type="text" placeholder="Car" value={row.carSeat > 0 ? row.carSeat : ''} onChange={e => handleDatabaseChange(row.id, 'carSeat', e.target.value)} className="w-full bg-transparent border-b border-dashed focus:outline-none" title="Car Seat" />
-                          <input type="text" placeholder="Baby" value={row.babySeat > 0 ? row.babySeat : ''} onChange={e => handleDatabaseChange(row.id, 'babySeat', e.target.value)} className="w-full bg-transparent border-b border-dashed focus:outline-none" title="Baby Seat" />
-                          <input type="text" placeholder="Bstr" value={row.booster > 0 ? row.booster : ''} onChange={e => handleDatabaseChange(row.id, 'booster', e.target.value)} className="w-full bg-transparent border-b border-dashed focus:outline-none" title="Booster" />
-                        </div>
-                      </td>
-                      <td className="p-2"><input type="text" value={row.comentario || ''} onChange={e => handleDatabaseChange(row.id, 'comentario', e.target.value)} className="w-32 bg-transparent border-b border-dashed focus:outline-none text-xs text-gray-500" /></td>
-                      <td className="p-2 text-center">
-                        <button
-                          onClick={async () => {
-                            if (window.confirm('¿Estás seguro de que deseas eliminar este servicio de la Base de Datos permanentemente?')) {
-                              try {
-                                showToast('Eliminando...', 'success');
-                                const { error } = await supabase.from('servicios').delete().eq('id', row.id);
-                                if (error) throw error;
-                                setServices(services.filter(s => s.id !== row.id));
-                                showToast('¡Servicio eliminado!');
-                              } catch (error) {
-                                console.error("Error al eliminar:", error);
-                                showToast('Error al eliminar', 'error');
-                              }
-                            }
-                          }}
-                          className="p-1 text-red-500 hover:bg-red-100 rounded"
-                          title="Eliminar Servicio"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-
-        { }
-        {activeTab === 'cierre' && (
-          <div className="bg-white rounded-lg shadow-md flex flex-col h-[80vh]">
-            <div className="p-4 border-b bg-gray-50 rounded-t-lg">
-              <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-                <Calendar className="text-blue-600" /> Módulo de Cierre
-              </h2>
-              <div className="flex flex-col md:flex-row gap-4 items-end">
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">Fecha Inicial</label>
-                  <input type="date" value={cierreFilters.startDate} onChange={e => setCierreFilters({ ...cierreFilters, startDate: e.target.value })} className="border border-gray-300 rounded-md p-2 shadow-sm text-sm" />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">Fecha Final</label>
-                  <input type="date" value={cierreFilters.endDate} onChange={e => setCierreFilters({ ...cierreFilters, endDate: e.target.value })} className="border border-gray-300 rounded-md p-2 shadow-sm text-sm" />
-                </div>
-                {!cierreFilters.isCallCenter && (
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">Vehículo (Opcional)</label>
-                    <select
-                      value={cierreFilters.vehiculo}
-                      onChange={e => setCierreFilters({ ...cierreFilters, vehiculo: e.target.value })}
-                      className="border border-gray-300 rounded-md p-2 shadow-sm text-sm w-full bg-white cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                      <option value="">Todos (Sin filtro)</option>
-                      <option value="Expedition">Expedition</option>
-                      <option value="Hiace">Hiace</option>
-                    </select>
-                  </div>
-                )}
-
-                <div className="flex-1 text-center md:text-left">
-                  {cierreFilters.isCallCenter && (
-                    <div className="md:ml-4 bg-purple-100 border border-purple-300 px-4 py-2 rounded-lg inline-block shadow-sm">
-                      <span className="text-sm font-medium text-purple-800">Total Acumulado de Comisión: </span>
-                      <span className="text-xl font-bold text-purple-900">
-                        ${callCenterServices.filter(s => {
-                          let match = true;
-                          if (cierreFilters.startDate && s.fechaSistema < cierreFilters.startDate) match = false;
-                          if (cierreFilters.endDate && s.fechaSistema > cierreFilters.endDate) match = false;
-                          return match;
-                        }).reduce((sum, item) => sum + item.comision, 0)}
-                      </span>
-                    </div>
-                  )}
-                </div>
-
-                <div className="flex gap-2">
-                  <button onClick={descargarCierrePDF} className="bg-red-600 text-white px-4 py-2 rounded-md font-bold shadow-sm flex items-center gap-2 hover:bg-red-700 transition-colors">
-                    <Download size={18} /> Descargar PDF
-                  </button>
-                  <button onClick={() => setCierreFilters({ ...cierreFilters, isCallCenter: !cierreFilters.isCallCenter })} className={`px-4 py-2 rounded-md font-bold shadow-sm flex items-center gap-2 transition-colors ${cierreFilters.isCallCenter ? 'bg-purple-600 text-white hover:bg-purple-700' : 'bg-blue-600 text-white hover:bg-blue-700'}`}>
-                    {cierreFilters.isCallCenter ? <Headset size={18} /> : <Users size={18} />}
-                    {cierreFilters.isCallCenter ? 'Viendo: CALL CENTER' : 'Viendo: NORMALES'}
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <div id="cierre-container" className="flex-1 overflow-x-auto overflow-y-auto p-4 w-full">
-              <table className="min-w-max w-full text-left text-sm whitespace-nowrap">
-                <thead className="sticky top-0 bg-white shadow-sm z-10">
-                  <tr className={`border-b ${cierreFilters.isCallCenter ? 'text-purple-700 bg-purple-50' : 'text-gray-600 bg-gray-50'}`}>
-                    {cierreFilters.isCallCenter ? (
-                      <>
-                        <th className="p-2">ID Registro</th><th className="p-2">Fecha Sistema</th><th className="p-2">Fecha Cliente</th>
-                        <th className="p-2">Cliente</th><th className="p-2">Reserva</th><th className="p-2">Acción</th>
-                        <th className="p-2">Comisión</th><th className="p-2">Mensaje Crudo</th>
-                      </>
-                    ) : (
-                      <>
-                        <th className="p-2">Fecha</th><th className="p-2">Hora</th><th className="p-2">Reserva</th><th className="p-2">Nombre</th>
-                        <th className="p-2">Tipo</th><th className="p-2">Hotel</th><th className="p-2">Cobro</th><th className="p-2">Vehículo</th><th className="p-2">Chofer</th>
-                      </>
+                      </div>
                     )}
-                  </tr>
-                </thead>
-                <tbody className="divide-y">
-                  {(() => {
-                    const dataSource = cierreFilters.isCallCenter ? callCenterServices : services;
-                    const filtered = dataSource.filter(s => {
-                      let match = true;
-                      if (cierreFilters.isCallCenter) {
-                        if (cierreFilters.startDate && s.fechaSistema < cierreFilters.startDate) match = false;
-                        if (cierreFilters.endDate && s.fechaSistema > cierreFilters.endDate) match = false;
-                      } else {
-                        if (cierreFilters.startDate && s.fecha < cierreFilters.startDate) match = false;
-                        if (cierreFilters.endDate && s.fecha > cierreFilters.endDate) match = false;
-                        if (cierreFilters.vehiculo && !(s.vehiculo || '').toLowerCase().includes(cierreFilters.vehiculo.toLowerCase())) match = false;
-                      }
-                      return match;
-                    });
-                    if (filtered.length === 0) return <tr><td colSpan="9" className="text-center p-8 text-gray-500">No hay registros.</td></tr>;
-                    return filtered.map(row => (
-                      <tr key={row.id} className="hover:bg-gray-50">
+
+                    <div className="flex-1 text-center md:text-left">
+                      {cierreFilters.isCallCenter && (
+                        <div className="md:ml-4 bg-purple-100 border border-purple-300 px-4 py-2 rounded-lg inline-block shadow-sm">
+                          <span className="text-sm font-medium text-purple-800">Total Acumulado de Comisión: </span>
+                          <span className="text-xl font-bold text-purple-900">
+                            ${callCenterServices.filter(s => {
+                              let match = true;
+                              if (cierreFilters.startDate && s.fechaSistema < cierreFilters.startDate) match = false;
+                              if (cierreFilters.endDate && s.fechaSistema > cierreFilters.endDate) match = false;
+                              return match;
+                            }).reduce((sum, item) => sum + item.comision, 0)}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex gap-2">
+                      <button onClick={descargarCierrePDF} className="bg-red-600 text-white px-4 py-2 rounded-md font-bold shadow-sm flex items-center gap-2 hover:bg-red-700 transition-colors">
+                        <Download size={18} /> Descargar PDF
+                      </button>
+                      <button onClick={() => setCierreFilters({ ...cierreFilters, isCallCenter: !cierreFilters.isCallCenter })} className={`px-4 py-2 rounded-md font-bold shadow-sm flex items-center gap-2 transition-colors ${cierreFilters.isCallCenter ? 'bg-purple-600 text-white hover:bg-purple-700' : 'bg-blue-600 text-white hover:bg-blue-700'}`}>
+                        {cierreFilters.isCallCenter ? <Headset size={18} /> : <Users size={18} />}
+                        {cierreFilters.isCallCenter ? 'Viendo: CALL CENTER' : 'Viendo: NORMALES'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div id="cierre-container" className="flex-1 overflow-x-auto overflow-y-auto p-4 w-full">
+                  <table className="min-w-max w-full text-left text-sm whitespace-nowrap">
+                    <thead className="sticky top-0 bg-white shadow-sm z-10">
+                      <tr className={`border-b ${cierreFilters.isCallCenter ? 'text-purple-700 bg-purple-50' : 'text-gray-600 bg-gray-50'}`}>
                         {cierreFilters.isCallCenter ? (
                           <>
-                            <td className="p-2 font-mono text-xs">{row.id}</td><td className="p-2">{row.fechaSistema}</td><td className="p-2 font-medium">{row.fechaCliente}</td>
-                            <td className="p-2 font-bold uppercase">{row.cliente}</td><td className="p-2">{row.reserva}</td>
-                            <td className="p-2"><span className={`px-2 py-1 rounded-full text-xs ${row.accion === 'Venta' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'}`}>{row.accion}</span></td>
-                            <td className="p-2">
-                              <div className="flex items-center">
-                                <span className="text-green-700 font-bold mr-1">$</span>
-                                <input
-                                  type="number"
-                                  value={row.comision}
-                                  onChange={(e) => handleCierreComisionChange(row.id, e.target.value)}
-                                  className="w-16 bg-transparent border-b border-dashed border-gray-400 focus:outline-none focus:border-green-600 font-bold text-green-700"
-                                />
-                              </div>
-                            </td>
-                            <td className="p-2 text-xs text-gray-500 max-w-xs truncate" title={row.rawMessage}>{row.rawMessage}</td>
+                            <th className="p-2">ID Registro</th><th className="p-2">Fecha Sistema</th><th className="p-2">Fecha Cliente</th>
+                            <th className="p-2">Cliente</th><th className="p-2">Reserva</th><th className="p-2">Acción</th>
+                            <th className="p-2">Comisión</th><th className="p-2">Mensaje Crudo</th>
                           </>
                         ) : (
                           <>
-                            <td className="p-2">{row.fecha}</td><td className="p-2 font-semibold">{row.hora}</td><td className="p-2">{row.reserva}</td>
-                            <td className="p-2 font-bold">{row.nombre} {row.apellido}</td><td className="p-2">{row.tipoServicio}</td>
-                            <td className="p-2">{row.hotel}</td>
-                            <td className="p-2">
-                              <div className="flex items-center">
-                                <span className="text-green-700 font-bold mr-1">$</span>
-                                <input
-                                  type="text"
-                                  value={calcularPrecioCierre(row.hotel, row.cobro, cierreFilters.vehiculo) || ''}
-                                  onChange={(e) => handleCierreCobroChange(row.id, e.target.value)}
-                                  placeholder="0.00"
-                                  readOnly={cierreFilters.vehiculo === 'Expedition'}
-                                  title={cierreFilters.vehiculo === 'Expedition' ? 'Precio automático por zona (No afecta BD)' : 'Precio editable'}
-                                  className={`w-20 bg-transparent focus:outline-none font-bold text-green-700 ${cierreFilters.vehiculo === 'Expedition' ? 'border-transparent cursor-default' : 'border-b border-dashed border-gray-400 focus:border-green-600'}`}
-                                />
-                              </div>
-                            </td>
-                            <td className="p-2 font-medium">{row.vehiculo}</td><td className="p-2">{row.chofer}</td>
+                            <th className="p-2">Fecha</th><th className="p-2">Hora</th><th className="p-2">Reserva</th><th className="p-2">Nombre</th>
+                            <th className="p-2">Tipo</th><th className="p-2">Hotel</th><th className="p-2">Cobro</th><th className="p-2">Vehículo</th><th className="p-2">Chofer</th>
                           </>
                         )}
                       </tr>
-                    ));
-                  })()}
-                </tbody>
-              </table>
+                    </thead>
+                    <tbody className="divide-y">
+                      {(() => {
+                        const dataSource = cierreFilters.isCallCenter ? callCenterServices : services;
+                        const filtered = dataSource.filter(s => {
+                          let match = true;
+                          if (cierreFilters.isCallCenter) {
+                            if (cierreFilters.startDate && s.fechaSistema < cierreFilters.startDate) match = false;
+                            if (cierreFilters.endDate && s.fechaSistema > cierreFilters.endDate) match = false;
+                          } else {
+                            if (cierreFilters.startDate && s.fecha < cierreFilters.startDate) match = false;
+                            if (cierreFilters.endDate && s.fecha > cierreFilters.endDate) match = false;
+                            if (cierreFilters.vehiculo && !(s.vehiculo || '').toLowerCase().includes(cierreFilters.vehiculo.toLowerCase())) match = false;
+                          }
+                          return match;
+                        });
+                        if (filtered.length === 0) return <tr><td colSpan="9" className="text-center p-8 text-gray-500">No hay registros.</td></tr>;
+                        return filtered.map(row => (
+                          <tr key={row.id} className="hover:bg-gray-50">
+                            {cierreFilters.isCallCenter ? (
+                              <>
+                                <td className="p-2 font-mono text-xs">{row.id}</td><td className="p-2">{row.fechaSistema}</td><td className="p-2 font-medium">{row.fechaCliente}</td>
+                                <td className="p-2 font-bold uppercase">{row.cliente}</td><td className="p-2">{row.reserva}</td>
+                                <td className="p-2"><span className={`px-2 py-1 rounded-full text-xs ${row.accion === 'Venta' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'}`}>{row.accion}</span></td>
+                                <td className="p-2">
+                                  <div className="flex items-center">
+                                    <span className="text-green-700 font-bold mr-1">$</span>
+                                    <input
+                                      type="number"
+                                      value={row.comision}
+                                      onChange={(e) => handleCierreComisionChange(row.id, e.target.value)}
+                                      className="w-16 bg-transparent border-b border-dashed border-gray-400 focus:outline-none focus:border-green-600 font-bold text-green-700"
+                                    />
+                                  </div>
+                                </td>
+                                <td className="p-2 text-xs text-gray-500 max-w-xs truncate" title={row.rawMessage}>{row.rawMessage}</td>
+                              </>
+                            ) : (
+                              <>
+                                <td className="p-2">{row.fecha}</td><td className="p-2 font-semibold">{row.hora}</td><td className="p-2">{row.reserva}</td>
+                                <td className="p-2 font-bold">{row.nombre} {row.apellido}</td><td className="p-2">{row.tipoServicio}</td>
+                                <td className="p-2">{row.hotel}</td>
+                                <td className="p-2">
+                                  <div className="flex items-center">
+                                    <span className="text-green-700 font-bold mr-1">$</span>
+                                    <input
+                                      type="text"
+                                      value={calcularPrecioCierre(row.hotel, row.cobro, cierreFilters.vehiculo) || ''}
+                                      onChange={(e) => handleCierreCobroChange(row.id, e.target.value)}
+                                      placeholder="0.00"
+                                      readOnly={cierreFilters.vehiculo === 'Expedition'}
+                                      title={cierreFilters.vehiculo === 'Expedition' ? 'Precio automático por zona (No afecta BD)' : 'Precio editable'}
+                                      className={`w-20 bg-transparent focus:outline-none font-bold text-green-700 ${cierreFilters.vehiculo === 'Expedition' ? 'border-transparent cursor-default' : 'border-b border-dashed border-gray-400 focus:border-green-600'}`}
+                                    />
+                                  </div>
+                                </td>
+                                <td className="p-2 font-medium">{row.vehiculo}</td><td className="p-2">{row.chofer}</td>
+                              </>
+                            )}
+                          </tr>
+                        ));
+                      })()}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+          </main>
+
+      { }
+        {renderData?.type === 'share' && (
+          <div className="fixed top-0 left-0 -z-50 pointer-events-none opacity-0">
+            <div ref={shareRef} className="bg-white p-6 w-[500px] border-4 border-gray-800 rounded-xl font-sans">
+              <div className="flex justify-between items-center border-b-2 border-gray-200 pb-4 mb-4">
+                <BallardLogo className="h-12" />
+                <div className="text-right">
+                  <div className="text-sm text-gray-500 uppercase tracking-widest">{renderData.data.fecha}</div>
+                  <div className="text-2xl font-bold">{renderData.data.hora}</div>
+                </div>
+              </div>
+              <div className="space-y-4">
+                <div>
+                  <div className="text-xs text-gray-500 uppercase">Pasajero</div>
+                  <div className="text-xl font-bold uppercase">{renderData.data.nombre} {renderData.data.apellido}</div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-gray-50 p-3 rounded">
+                    <div className="text-xs text-gray-500 uppercase flex items-center gap-1"><MapPin size={12} /> Hotel / Destino</div>
+                    <div className="font-semibold">{renderData.data.hotel}</div>
+                  </div>
+                  <div className="bg-gray-50 p-3 rounded">
+                    <div className="text-xs text-gray-500 uppercase">Vuelo</div>
+                    <div className="font-semibold">{renderData.data.vuelo || 'N/A'}</div>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="border border-gray-200 p-3 rounded flex items-center justify-between">
+                    <span className="text-xs text-gray-500 uppercase flex items-center gap-1"><Users size={12} /> Pasajeros</span>
+                    <span className="font-bold text-lg">{renderData.data.pax}</span>
+                  </div>
+                  <div className="border border-gray-200 p-3 rounded flex items-center justify-between">
+                    <span className="text-xs text-gray-500 uppercase">Servicio</span>
+                    <span className="font-bold text-blue-800">{renderData.data.tipoServicio}</span>
+                  </div>
+                </div>
+                {(renderData.data.carSeat > 0 || renderData.data.babySeat > 0 || renderData.data.booster > 0 || renderData.data.paradaCompras) && (
+                  <div className="bg-blue-50 text-blue-900 p-3 rounded border border-blue-100">
+                    <div className="text-xs uppercase mb-1 font-semibold flex items-center gap-1"><Car size={12} /> Extras</div>
+                    <div className="flex flex-wrap gap-3 font-medium text-sm">
+                      {renderData.data.carSeat > 0 && <span>Car Seat: {renderData.data.carSeat}</span>}
+                      {renderData.data.babySeat > 0 && <span>Baby Seat: {renderData.data.babySeat}</span>}
+                      {renderData.data.booster > 0 && <span>Booster: {renderData.data.booster}</span>}
+                      {renderData.data.paradaCompras && <span className="bg-blue-200 px-2 py-0.5 rounded">Parada de Compras</span>}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         )}
 
-      </main>
-
-      { }
-      {renderData?.type === 'share' && (
-        <div className="fixed top-0 left-0 -z-50 pointer-events-none opacity-0">
-          <div ref={shareRef} className="bg-white p-6 w-[500px] border-4 border-gray-800 rounded-xl font-sans">
-            <div className="flex justify-between items-center border-b-2 border-gray-200 pb-4 mb-4">
-              <BallardLogo className="h-12" />
-              <div className="text-right">
-                <div className="text-sm text-gray-500 uppercase tracking-widest">{renderData.data.fecha}</div>
-                <div className="text-2xl font-bold">{renderData.data.hora}</div>
+        {renderData?.type === 'sign' && (
+          <div className="fixed top-0 left-0 -z-50 pointer-events-none opacity-0">
+            <div ref={signRef} className="bg-white w-[1122px] h-[793px] flex flex-col items-center justify-center p-12 relative overflow-hidden font-sans">
+              <div className="mb-12 flex justify-center w-full">
+                <BallardLogo className="h-48" />
               </div>
-            </div>
-            <div className="space-y-4">
-              <div>
-                <div className="text-xs text-gray-500 uppercase">Pasajero</div>
-                <div className="text-xl font-bold uppercase">{renderData.data.nombre} {renderData.data.apellido}</div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-gray-50 p-3 rounded">
-                  <div className="text-xs text-gray-500 uppercase flex items-center gap-1"><MapPin size={12} /> Hotel / Destino</div>
-                  <div className="font-semibold">{renderData.data.hotel}</div>
+              <div className="text-center w-full max-w-4xl mb-16">
+                <div className="text-[130px] leading-none font-bold uppercase text-black break-words px-4 text-center w-full">
+                  {renderData.data.nombre}
                 </div>
-                <div className="bg-gray-50 p-3 rounded">
-                  <div className="text-xs text-gray-500 uppercase">Vuelo</div>
-                  <div className="font-semibold">{renderData.data.vuelo || 'N/A'}</div>
+                <div className="text-[130px] leading-tight font-bold uppercase text-black break-words px-4 text-center w-full mt-6">
+                  {renderData.data.apellido}
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="border border-gray-200 p-3 rounded flex items-center justify-between">
-                  <span className="text-xs text-gray-500 uppercase flex items-center gap-1"><Users size={12} /> Pasajeros</span>
-                  <span className="font-bold text-lg">{renderData.data.pax}</span>
-                </div>
-                <div className="border border-gray-200 p-3 rounded flex items-center justify-between">
-                  <span className="text-xs text-gray-500 uppercase">Servicio</span>
-                  <span className="font-bold text-blue-800">{renderData.data.tipoServicio}</span>
-                </div>
+              <div className="text-4xl font-medium tracking-[0.4em] text-gray-600 mt-4">
+                WELCOME!
               </div>
-              {(renderData.data.carSeat > 0 || renderData.data.babySeat > 0 || renderData.data.booster > 0 || renderData.data.paradaCompras) && (
-                <div className="bg-blue-50 text-blue-900 p-3 rounded border border-blue-100">
-                  <div className="text-xs uppercase mb-1 font-semibold flex items-center gap-1"><Car size={12} /> Extras</div>
-                  <div className="flex flex-wrap gap-3 font-medium text-sm">
-                    {renderData.data.carSeat > 0 && <span>Car Seat: {renderData.data.carSeat}</span>}
-                    {renderData.data.babySeat > 0 && <span>Baby Seat: {renderData.data.babySeat}</span>}
-                    {renderData.data.booster > 0 && <span>Booster: {renderData.data.booster}</span>}
-                    {renderData.data.paradaCompras && <span className="bg-blue-200 px-2 py-0.5 rounded">Parada de Compras</span>}
-                  </div>
-                </div>
-              )}
             </div>
           </div>
-        </div>
-      )}
-
-      {renderData?.type === 'sign' && (
-        <div className="fixed top-0 left-0 -z-50 pointer-events-none opacity-0">
-          <div ref={signRef} className="bg-white w-[1122px] h-[793px] flex flex-col items-center justify-center p-12 relative overflow-hidden font-sans">
-            <div className="mb-12 flex justify-center w-full">
-              <BallardLogo className="h-48" />
-            </div>
-            <div className="text-center w-full max-w-4xl mb-16">
-              <div className="text-[130px] leading-none font-bold uppercase text-black break-words px-4 text-center w-full">
-                {renderData.data.nombre}
-              </div>
-              <div className="text-[130px] leading-tight font-bold uppercase text-black break-words px-4 text-center w-full mt-6">
-                {renderData.data.apellido}
-              </div>
-            </div>
-            <div className="text-4xl font-medium tracking-[0.4em] text-gray-600 mt-4">
-              WELCOME!
-            </div>
-          </div>
-        </div>
-      )}
+        )}
 
     </div>
   );
