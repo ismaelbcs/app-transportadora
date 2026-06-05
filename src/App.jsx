@@ -431,7 +431,7 @@ export default function App() {
 
     try {
       showToast('Generando imagen (versión Choferes)...');
-      
+
       const canvas = await window.html2canvas(element, {
         scale: 2,
         useCORS: true,
@@ -460,12 +460,12 @@ export default function App() {
   };
 
   const BallardLogo = ({ className }) => (
-  <img 
-    src="/logo-oficial.png" 
-    alt="Logo Ballard" 
-    className={className} 
-  />
-);
+    <img
+      src="/logo-oficial.png"
+      alt="Logo Ballard"
+      className={className}
+    />
+  );
 
   if (!isLoggedIn) {
     return (
@@ -473,9 +473,9 @@ export default function App() {
         <div className="bg-white p-8 rounded-xl shadow-xl w-full max-w-md flex flex-col items-center border-t-4 border-blue-600">
           <img src="/logo-oficial.png" alt="Logo Ballard" className="h-24 w-auto mb-6" />
           <h2 className="text-xl font-bold text-gray-800 mb-6">Acceso al Sistema</h2>
-          
-          <input 
-            type="password" 
+
+          <input
+            type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="Ingresa la contraseña"
@@ -487,8 +487,8 @@ export default function App() {
               }
             }}
           />
-          
-          <button 
+
+          <button
             onClick={() => {
               if (password === 'Ballard2026') setIsLoggedIn(true);
               else alert('Contraseña incorrecta');
@@ -951,7 +951,17 @@ export default function App() {
                       <td className="p-2"><input type="text" value={row.hotel} onChange={(e) => handleRollChange(row.id, 'hotel', e.target.value)} className="w-32 bg-transparent border-b border-dashed focus:outline-none" /></td>
                       <td className="p-2 text-center">{row.pax}</td><td className="p-2 text-xs">{row.telefono}</td>
                       <td className="p-2"><span className={`px-2 py-1 rounded-full text-xs ${row.tipoServicio === 'Llegada' ? 'bg-green-100 text-green-800' : row.tipoServicio === 'Salida' ? 'bg-red-100 text-red-800' : 'bg-gray-100'}`}>{row.tipoServicio}</span></td>
-                      <td className="p-2"><input type="text" value={row.vehiculo} onChange={(e) => handleRollChange(row.id, 'vehiculo', e.target.value)} className="w-24 bg-transparent border-b border-dashed focus:outline-none" /></td>
+                      <td className="p-2">
+                        <select
+                          value={row.vehiculo || ''}
+                          onChange={(e) => handleRollChange(row.id, 'vehiculo', e.target.value)}
+                          className="w-24 bg-transparent border-b border-dashed focus:outline-none text-sm cursor-pointer"
+                        >
+                          <option value=""></option>
+                          <option value="Expedition">Expedition</option>
+                          <option value="Hiace">Hiace</option>
+                        </select>
+                      </td>
                       <td className="p-2"><input type="text" value={row.proveedor || ''} onChange={(e) => handleRollChange(row.id, 'proveedor', e.target.value)} className="w-24 bg-transparent border-b border-dashed focus:outline-none" /></td>
                       <td className="p-2"><input type="number" value={row.costoProveedor || ''} onChange={(e) => handleRollChange(row.id, 'costoProveedor', e.target.value)} className="w-16 bg-transparent border-b border-dashed focus:outline-none font-bold text-red-700" /></td>
                       <td className="p-2 text-xs text-gray-600">
