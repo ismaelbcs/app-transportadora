@@ -1062,10 +1062,11 @@ export default function App() {
                       <td className="p-2">
                         <input
                           type="text"
-                          list="hoteles-list"
+                          list="hoteles-rol-list"
                           value={row.hotel}
                           onChange={(e) => handleRollChange(row.id, 'hotel', e.target.value)}
-                          className="w-32 bg-transparent border-b border-dashed focus:outline-none"
+                          className="w-32 bg-transparent border-b border-dashed focus:outline-none cursor-pointer"
+                          placeholder="Elegir..."
                         />
                       </td>
                       <td className="p-2 text-center">{row.pax}</td><td className="p-2 text-xs">{row.telefono}</td>
