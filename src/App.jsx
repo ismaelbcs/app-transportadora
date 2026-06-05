@@ -760,6 +760,7 @@ export default function App() {
                     ))}
                   </datalist>
                 </div>
+              </div>
 
               <div className="space-y-4">
                 <h3 className="font-semibold text-gray-700 border-b pb-2">Extras y Comentarios</h3>
