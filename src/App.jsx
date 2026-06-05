@@ -130,6 +130,28 @@ export default function App() {
   const [libsLoaded, setLibsLoaded] = useState(false);
   const [renderData, setRenderData] = useState(null);
 
+  const calcularPrecioCierre = (hotelName, precioOriginal, vehiculoFiltro) => {
+    // Si no están filtrando por Expedition, devolvemos el precio original
+    if (vehiculoFiltro !== 'Expedition') return precioOriginal;
+
+    // Buscamos a qué zona pertenece el hotel
+    const hotelEncontrado = LISTA_HOTELES.find(h => 
+      h.nombre.trim().toLowerCase() === (hotelName || '').trim().toLowerCase()
+    );
+
+    // Si el hotel no está en la lista, devolvemos el precio original
+    if (!hotelEncontrado) return precioOriginal;
+
+    // Asignamos la tarifa según la zona
+    switch(hotelEncontrado.zona) {
+      case 1: return 45;
+      case 2: return 48.5;
+      case 3: return 52;
+      case 4: return 55;
+      default: return precioOriginal;
+    }
+  };
+
   const shareRef = useRef(null);
   const signRef = useRef(null);
   const rollRef = useRef(null);
@@ -355,6 +377,36 @@ export default function App() {
 
   const handleRollChange = (id, field, value) => {
     setRollData(prev => prev.map(item => item.id === id ? { ...item, [field]: value } : item));
+  };
+
+  const descargarCierrePDF = async () => {
+    const element = document.getElementById('cierre-container');
+    if (!element) {
+      alert('No se encontró la tabla de cierre');
+      return;
+    }
+
+    try {
+      showToast('Generando PDF de Cierre...');
+      const canvas = await window.html2canvas(element, { scale: 2, useCORS: true });
+      const imgData = canvas.toDataURL('image/png');
+      
+      // Creamos el documento PDF
+      const pdf = new window.jspdf.jsPDF('p', 'mm', 'a4');
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+      
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      
+      const fecha = new Date().toISOString().split('T')[0];
+      const nombreArchivo = `Cierre_${cierreFilters.vehiculo || 'General'}_${fecha}.pdf`;
+      
+      pdf.save(nombreArchivo);
+      showToast('PDF descargado correctamente');
+    } catch (error) {
+      console.error("Error al generar PDF:", error);
+      showToast('Error al generar el PDF', 'error');
+    }
   };
 
   const saveRollUpdates = () => {
