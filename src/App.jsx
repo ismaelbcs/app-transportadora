@@ -1,6 +1,19 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, Save, Download, Send, Printer, Calendar, Clock, MapPin, Users, Car, FileText, CheckCircle, AlertCircle, X, Database, Headset, Fuel } from 'lucide-react';
+import { Search, Save, Download, Send, Printer, Calendar, Clock, MapPin, Users, Car, FileText, CheckCircle, AlertCircle, X, Database, Headset, Fuel, Plane, User, Info, Phone, Mail, Globe, Map, ShieldCheck, Ticket } from 'lucide-react';
 import { supabase } from './supabaseClient';
+
+const SuvIcon = ({ size = 24, className = "" }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M2 10.5C2 9.1 3.1 8 4.5 8h10c1.2 0 2.3.7 2.8 1.8l1.7 3.7H21c1.1 0 2 .9 2 2v2.5c0 .8-.7 1.5-1.5 1.5h-.5" />
+    <path d="M2 10.5V18c0 .8.7 1.5 1.5 1.5h.5" />
+    <circle cx="7" cy="18" r="2.5" />
+    <circle cx="17" cy="18" r="2.5" />
+    <path d="M9.5 18h5" />
+    <path d="M2 12.5h17" />
+    <path d="M7 8v4.5" />
+    <path d="M12.5 8v4.5" />
+  </svg>
+);
 
 const initialServiceState = {
   id: '', reserva: '', nombre: '', apellido: '', agencia: '',
@@ -108,6 +121,8 @@ export default function App() {
   const [services, setServices] = useState([]);
   const [currentService, setCurrentService] = useState(initialServiceState);
   const [activeTab, setActiveTab] = useState('form');
+  const [ticketDataToPrint, setTicketDataToPrint] = useState(null);
+  const [ticketLang, setTicketLang] = useState('EN');
 
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState([]);
@@ -1633,6 +1648,16 @@ export default function App() {
                       <td className="p-2"><input type="text" value={row.comentario || ''} onChange={e => handleDatabaseChange(row.id, 'comentario', e.target.value)} className="w-32 bg-transparent border-b border-dashed focus:outline-none text-xs text-gray-500" /></td>
                       <td className="p-2 text-center">
                         <button
+                          onClick={() => {
+                            setTicketDataToPrint(row);
+                            setTicketLang('EN');
+                          }}
+                          className="p-1 text-slate-500 hover:bg-slate-200 rounded mr-1"
+                          title="Generar Ticket"
+                        >
+                          <Ticket size={18} />
+                        </button>
+                        <button
                           onClick={async () => {
                             if (window.confirm('¿Estás seguro de que deseas eliminar este servicio de la Base de Datos permanentemente?')) {
                               try {
@@ -1880,7 +1905,178 @@ export default function App() {
           </div>
         </div>
       )}
+      {/* --- MODAL DEL TICKET DE IMPRESIÓN --- */}
+      {ticketDataToPrint && (
+        <div className="fixed inset-0 z-[9999] bg-gray-100 overflow-y-auto flex flex-col items-center py-8 px-4 font-sans print:p-0 print:bg-white">
 
+          {/* Controles superiores (se ocultan al imprimir) */}
+          <div className="mb-8 flex flex-wrap justify-center gap-4 print:hidden">
+            <button
+              onClick={() => setTicketLang(ticketLang === 'EN' ? 'ES' : 'EN')}
+              className="bg-white border-2 border-slate-900 text-slate-900 font-bold py-2 px-6 rounded-xl transition-colors hover:bg-slate-100 shadow-md"
+            >
+              🔄 Cambiar a {ticketLang === 'EN' ? 'Español' : 'English'}
+            </button>
+            <button
+              onClick={() => window.print()}
+              className="bg-amber-500 hover:bg-amber-600 text-slate-900 font-bold py-2 px-6 rounded-xl flex items-center gap-2 transition-colors shadow-md"
+            >
+              <Printer size={20} /> Imprimir / PDF
+            </button>
+            <button
+              onClick={() => setTicketDataToPrint(null)}
+              className="bg-slate-900 hover:bg-slate-800 text-white font-bold py-2 px-6 rounded-xl flex items-center gap-2 transition-colors shadow-md"
+            >
+              <X size={20} /> Cerrar
+            </button>
+          </div>
+
+          {/* ÁREA DEL TICKET */}
+          <div className="w-full max-w-2xl flex justify-center print:w-full">
+            <div className="w-full bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col border border-gray-200 print:shadow-none print:border-gray-400 print:rounded-none">
+
+              <div className="bg-slate-900 text-white p-8 relative overflow-hidden">
+                <div className="absolute top-0 right-0 p-8 opacity-10">
+                  <SuvIcon size={150} />
+                </div>
+
+                <div className="relative z-10 flex justify-between items-start">
+                  <div>
+                    <h1 className="text-3xl font-black tracking-wider text-amber-500 uppercase">Ballard</h1>
+                    <p className="text-sm font-medium tracking-widest text-slate-300 uppercase">Tour Services</p>
+                  </div>
+                  <div className="text-right">
+                    <div className="inline-block bg-amber-500 text-slate-900 font-bold px-3 py-1 rounded text-xs tracking-wider mb-2 uppercase">
+                      {ticketLang === 'EN' ? 'CONFIRMED' : 'CONFIRMADO'}
+                    </div>
+                    {/* El folio dinámico: Si no tiene reserva, usa su ID corto */}
+                    <p className="font-mono text-sm text-slate-300 uppercase font-bold">Folio: {ticketDataToPrint.reserva || ticketDataToPrint.id.slice(-5)}</p>
+                  </div>
+                </div>
+
+                <div className="mt-8 flex justify-between items-end relative z-10">
+                  <div>
+                    <h2 className="text-xl font-bold tracking-wide uppercase">{ticketLang === 'EN' ? 'PRIVATE TRANSPORTATION' : 'TRANSPORTE PRIVADO'}</h2>
+                    <p className="text-slate-400 text-sm mt-1 flex items-center gap-2">
+                      <ShieldCheck size={16} className="text-amber-500" />
+                      Boleto Seguro / Safe Ticket
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="relative h-4 bg-white">
+                <div className="absolute w-full border-t-2 border-dashed border-gray-300 top-1/2"></div>
+                <div className="absolute left-0 top-1/2 -mt-3 -ml-3 w-6 h-6 bg-gray-100 print:bg-white rounded-full"></div>
+                <div className="absolute right-0 top-1/2 -mt-3 -mr-3 w-6 h-6 bg-gray-100 print:bg-white rounded-full"></div>
+              </div>
+
+              <div className="p-8 pb-6 grid grid-cols-1 md:grid-cols-2 gap-y-6 gap-x-8">
+                <div className="space-y-5">
+                  <div>
+                    <p className="text-xs text-gray-500 font-bold uppercase tracking-wider mb-1">{ticketLang === 'EN' ? 'Passenger Name' : 'Nombre del Pasajero'}</p>
+                    <p className="text-lg font-bold text-slate-800 flex items-center gap-2 uppercase">
+                      <User size={18} className="text-amber-500" />
+                      {ticketDataToPrint.nombre} {ticketDataToPrint.apellido}
+                    </p>
+                  </div>
+
+                  <div>
+                    <p className="text-xs text-gray-500 font-bold uppercase tracking-wider mb-1">
+                      {ticketLang === 'EN'
+                        ? (ticketDataToPrint.tipoServicio === 'Llegada' ? 'Arrival Date & Time' : 'Pick Up Date & Time')
+                        : (ticketDataToPrint.tipoServicio === 'Llegada' ? 'Fecha y Hora de Llegada' : 'Fecha y Hora de Pick Up')}
+                    </p>
+                    <div className="flex flex-col gap-1">
+                      <p className="text-base font-bold text-slate-800 flex items-center gap-2">
+                        <Calendar size={18} className="text-amber-500" />
+                        {ticketDataToPrint.fecha}
+                      </p>
+                      <p className="text-base font-bold text-slate-800 flex items-center gap-2">
+                        <Clock size={18} className="text-amber-500" />
+                        {ticketDataToPrint.hora} {ticketDataToPrint.tipoServicio === 'Salida' ? '(Lobby)' : ''}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-5">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-xs text-gray-500 font-bold uppercase tracking-wider mb-1">PAX</p>
+                      <p className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                        <Users size={18} className="text-amber-500" />
+                        {ticketDataToPrint.pax}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500 font-bold uppercase tracking-wider mb-1">{ticketLang === 'EN' ? 'Flight' : 'Vuelo'}</p>
+                      <p className="text-lg font-bold text-slate-800 flex items-center gap-2 uppercase">
+                        <Plane size={18} className="text-amber-500" />
+                        {ticketDataToPrint.vuelo || 'N/A'}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div>
+                    <p className="text-xs text-gray-500 font-bold uppercase tracking-wider mb-1">{ticketLang === 'EN' ? 'Hotel / Destination' : 'Hotel / Destino'}</p>
+                    <p className="text-base font-bold text-slate-800 flex items-start gap-2">
+                      <MapPin size={18} className="text-amber-500 min-w-max mt-0.5" />
+                      <span className="leading-tight uppercase">{ticketDataToPrint.hotel}</span>
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="px-8 flex justify-center mb-6">
+                <svg className="h-12 w-full max-w-sm" preserveAspectRatio="none" viewBox="0 0 200 50" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="0" y="0" width="4" height="50" className="text-slate-800" /><rect x="6" y="0" width="2" height="50" className="text-slate-800" /><rect x="12" y="0" width="6" height="50" className="text-slate-800" /><rect x="22" y="0" width="2" height="50" className="text-slate-800" /><rect x="26" y="0" width="8" height="50" className="text-slate-800" /><rect x="38" y="0" width="4" height="50" className="text-slate-800" /><rect x="46" y="0" width="2" height="50" className="text-slate-800" /><rect x="52" y="0" width="6" height="50" className="text-slate-800" /><rect x="62" y="0" width="10" height="50" className="text-slate-800" /><rect x="76" y="0" width="4" height="50" className="text-slate-800" /><rect x="84" y="0" width="2" height="50" className="text-slate-800" /><rect x="90" y="0" width="8" height="50" className="text-slate-800" /><rect x="102" y="0" width="4" height="50" className="text-slate-800" /><rect x="110" y="0" width="6" height="50" className="text-slate-800" /><rect x="120" y="0" width="2" height="50" className="text-slate-800" /><rect x="126" y="0" width="8" height="50" className="text-slate-800" /><rect x="138" y="0" width="4" height="50" className="text-slate-800" /><rect x="146" y="0" width="2" height="50" className="text-slate-800" /><rect x="152" y="0" width="12" height="50" className="text-slate-800" /><rect x="168" y="0" width="4" height="50" className="text-slate-800" /><rect x="176" y="0" width="6" height="50" className="text-slate-800" /><rect x="186" y="0" width="2" height="50" className="text-slate-800" /><rect x="192" y="0" width="8" height="50" className="text-slate-800" />
+                </svg>
+              </div>
+
+              {/* INSTRUCCIONES DINÁMICAS (Llegada vs Salida / EN vs ES) */}
+              <div className="bg-amber-50 p-6 mx-4 rounded-xl border border-amber-200 mb-4">
+                <h3 className="text-sm font-bold text-amber-900 flex items-center gap-2 mb-2">
+                  <Info size={16} />
+                  {ticketDataToPrint.tipoServicio === 'Llegada'
+                    ? (ticketLang === 'EN' ? 'How to spot your driver upon arrival?' : '¿Cómo ubicar a su chofer al llegar?')
+                    : (ticketLang === 'EN' ? 'Pick-up Instructions' : 'Instrucciones de Pick-up')}
+                </h3>
+                <p className="text-sm text-amber-800/80 leading-relaxed text-justify">
+                  {ticketDataToPrint.tipoServicio === 'Llegada'
+                    ? (ticketLang === 'EN'
+                      ? 'All transport companies are waiting outside the departure gate. You just have to walk to the parking lot to look for your name on a sign. We are usually located in Shadow 3 or Terminal 1 is "SALIDA DE GRUPOS". So when you get there, just walk into the parking lot and you will see some staff members standing under these curtains holding up their signs, one of them will have your name on it.'
+                      : 'Todas las empresas de transporte esperan afuera de la puerta de salida. Camine al estacionamiento y busque su nombre en un letrero. Usualmente estamos en la Sombra 3 o Terminal 1 "SALIDA DE GRUPOS". Al llegar, camine al estacionamiento y verá a nuestro personal bajo los toldos con su letrero.')
+                    : (ticketLang === 'EN'
+                      ? 'Please be ready in the hotel lobby 15 minutes before your scheduled pick-up time. Look for the driver holding a Ballard Tour Services sign. If you have any issues, please contact us immediately.'
+                      : 'Por favor, esté listo en el lobby del hotel 15 minutos antes de su hora programada de pick-up. Busque al chofer con el letrero de Ballard Tour Services. Si tiene algún problema, contáctenos de inmediato.')}
+                </p>
+              </div>
+
+              <div className="px-6 pb-6 text-center">
+                <h3 className="text-sm font-bold text-slate-800 mb-1 flex items-center justify-center gap-2">
+                  <Map size={16} className="text-slate-500" />
+                  {ticketLang === 'EN' ? 'You need other activities?' : '¿Buscas otras actividades?'}
+                </h3>
+                <p className="text-xs text-slate-500">
+                  {ticketLang === 'EN'
+                    ? 'We can take you to see the Arch of Los Cabos, ride a motorcycle, get to know the Historic Center of San Jose del Cabo, the Hotel California in Todos Santos, and much more...'
+                    : 'Podemos llevarte a conocer el Arco de Los Cabos, pasear en cuatrimoto, conocer el Centro Histórico de San José del Cabo, el Hotel California en Todos Santos y mucho más...'}
+                </p>
+              </div>
+
+              <div className="bg-slate-900 text-slate-300 p-4 text-xs flex flex-col md:flex-row justify-between items-center gap-3">
+                <div className="flex items-center gap-4">
+                  <span className="flex items-center gap-1"><Phone size={14} className="text-amber-500" /> +52 624 139 3497</span>
+                  <span className="flex items-center gap-1 hidden sm:flex"><Mail size={14} className="text-amber-500" /> reservationballard@gmail.com</span>
+                </div>
+                <span className="flex items-center gap-1"><Globe size={14} className="text-amber-500" /> www.ballardtours.com</span>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
