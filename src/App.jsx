@@ -458,16 +458,12 @@ export default function App() {
   };
 
   const BallardLogo = ({ className }) => (
-    <svg className={className} viewBox="0 0 200 80" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M40 15C25 15 15 35 15 40C15 45 25 65 40 65C55 65 65 45 65 40C65 35 55 15 40 15Z" fill="#111827" />
-      <path d="M40 15C35 25 35 55 40 65C45 55 45 25 40 15Z" fill="white" />
-      <circle cx="35" cy="30" r="3" fill="white" />
-      <circle cx="45" cy="30" r="3" fill="#111827" />
-      <path d="M15 40L25 55L15 70Z" fill="#111827" />
-      <text x="75" y="45" fontFamily="Arial, sans-serif" fontWeight="bold" fontSize="28" fill="#111827">Ballard</text>
-      <text x="75" y="65" fontFamily="Arial, sans-serif" fontWeight="normal" fontSize="16" letterSpacing="1" fill="#111827">Tour Services</text>
-    </svg>
-  );
+  <img 
+    src="/logo-oficial.png" 
+    alt="Logo Ballard" 
+    className={className} 
+  />
+);
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-800 font-sans">
