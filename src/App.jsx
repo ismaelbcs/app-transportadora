@@ -222,8 +222,10 @@ export default function App() {
 
     Promise.all([
       loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'),
-      loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js')
-    ]).then(() => setLibsLoaded(true)).catch(() => showToast('Error cargando librerías de PDF/PNG', 'error'));
+      loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js'),
+      // Agregamos la librería mágica para crear Excels
+      loadScript('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js')
+    ]).then(() => setLibsLoaded(true)).catch(() => showToast('Error cargando librerías', 'error'));
   }, []);
 
   useEffect(() => {
@@ -532,6 +534,37 @@ export default function App() {
   };
 
   const saveDatabaseUpdates = async () => {
+    const descargarRespaldoExcel = () => {
+      if (!window.XLSX) return showToast('Librería Excel cargando...', 'error');
+
+      try {
+        showToast('Generando Respaldo Total en Excel...');
+
+        // 1. Creamos un nuevo libro de Excel vacío
+        const libro = window.XLSX.utils.book_new();
+
+        // 2. Convertimos tus 3 variables a formato de hoja de cálculo
+        const hojaGeneral = window.XLSX.utils.json_to_sheet(services);
+        const hojaCallCenter = window.XLSX.utils.json_to_sheet(callCenterServices);
+        const hojaGastos = window.XLSX.utils.json_to_sheet(fleetExpenses);
+
+        // 3. Metemos las 3 hojas al libro
+        window.XLSX.utils.book_append_sheet(libro, hojaGeneral, "Base General");
+        window.XLSX.utils.book_append_sheet(libro, hojaCallCenter, "Call Center");
+        window.XLSX.utils.book_append_sheet(libro, hojaGastos, "Gastos Flota");
+
+        // 4. Lo descargamos con la fecha de hoy
+        const fecha = new Date().toISOString().split('T')[0];
+        window.XLSX.writeFile(libro, `Respaldo_Ballard_Total_${fecha}.xlsx`);
+
+        showToast('¡Respaldo descargado con éxito!');
+      } catch (error) {
+        console.error("Error al crear Excel:", error);
+        showToast('Error al generar el respaldo', 'error');
+      }
+    };
+
+
     try {
       showToast('Guardando base de datos en la nube...');
 
@@ -1476,9 +1509,14 @@ export default function App() {
                 </h2>
                 <span className="text-sm text-gray-500">{services.length} registros en total</span>
               </div>
-              <button onClick={saveDatabaseUpdates} className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center gap-2 font-medium transition-colors shadow-sm">
-                <Save size={18} /> Guardar Cambios
-              </button>
+              <div className="flex gap-2">
+                <button onClick={descargarRespaldoExcel} className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 flex items-center gap-2 font-medium transition-colors shadow-sm">
+                  <Download size={18} /> Respaldo Excel
+                </button>
+                <button onClick={saveDatabaseUpdates} className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center gap-2 font-medium transition-colors shadow-sm">
+                  <Save size={18} /> Guardar Cambios
+                </button>
+              </div>
             </div>
 
             <div className="flex-1 overflow-x-auto overflow-y-auto p-4 w-full">
