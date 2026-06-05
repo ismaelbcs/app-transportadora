@@ -228,8 +228,14 @@ export default function App() {
 
   useEffect(() => {
     if (activeTab === 'roll') {
+      // 1. Filtramos los servicios por la fecha seleccionada
       const filtered = services.filter(s => s.fecha === rollDate);
-      setRollData(filtered);
+
+      // 2. Ordenamos por hora (de más temprano a más tarde)
+      const sorted = filtered.sort((a, b) => (a.hora || '').localeCompare(b.hora || ''));
+
+      // 3. Guardamos los datos ordenados en la tabla
+      setRollData(sorted);
     }
   }, [rollDate, services, activeTab]);
 
@@ -388,7 +394,27 @@ export default function App() {
 
     try {
       showToast('Generando PDF de Cierre...');
-      const canvas = await window.html2canvas(element, { scale: 2, useCORS: true });
+      const canvas = await window.html2canvas(element, {
+        scale: 2,
+        useCORS: true,
+        // AQUÍ ESTÁ LA MAGIA PARA EVITAR EL TEXTO CORTADO
+        onclone: (clonedDoc) => {
+          const inputs = clonedDoc.querySelectorAll('input');
+          inputs.forEach(input => {
+            const span = clonedDoc.createElement('span');
+            // Copiamos el valor que tenía el input
+            span.innerText = input.value || input.placeholder;
+            // Le pasamos las mismas clases de diseño (negritas, verde, etc.)
+            span.className = input.className;
+            // Nos aseguramos de que no tenga bordes raros en el PDF
+            span.style.border = 'none';
+            span.style.display = 'inline-block';
+            span.style.paddingBottom = '4px'; // Un poco de aire para que no se corte
+            // Reemplazamos el input por el texto solo para la foto
+            input.parentNode.replaceChild(span, input);
+          });
+        }
+      });
       const imgData = canvas.toDataURL('image/png');
 
       // Creamos el documento PDF
@@ -1054,7 +1080,7 @@ export default function App() {
                     <h1 className="text-3xl font-bold tracking-tight">Rol Diario de Servicios</h1>
                   </div>
                   <div className="text-4xl font-bold text-gray-800 tracking-wider">
-                    {new Date(rollDate).toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }).toUpperCase()}
+                    {new Date(rollDate + 'T12:00:00').toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }).toUpperCase()}
                   </div>
                 </div>
                 <table className="w-full text-left text-sm border-collapse">
@@ -1122,7 +1148,16 @@ export default function App() {
                         />
                       </td>
                       <td className="p-2 text-center">{row.pax}</td><td className="p-2 text-xs">{row.telefono}</td>
-                      <td className="p-2"><span className={`px-2 py-1 rounded-full text-xs ${row.tipoServicio === 'Llegada' ? 'bg-green-100 text-green-800' : row.tipoServicio === 'Salida' ? 'bg-red-100 text-red-800' : 'bg-gray-100'}`}>{row.tipoServicio}</span></td>
+                      <td className="p-2">
+                        <span className={`px-2 py-1 rounded-full text-xs font-bold ${row.tipoServicio === 'Llegada' ? 'bg-green-100 text-green-800' :
+                            row.tipoServicio === 'Salida' ? 'bg-red-100 text-red-800' :
+                              row.tipoServicio === 'Traslado' ? 'bg-yellow-100 text-yellow-800' :
+                                row.tipoServicio === 'Actividad' ? 'bg-blue-100 text-blue-800' :
+                                  'bg-gray-100 text-gray-800'
+                          }`}>
+                          {row.tipoServicio}
+                        </span>
+                      </td>
                       <td className="p-2">
                         <select
                           value={row.vehiculo || ''}
