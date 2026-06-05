@@ -608,6 +608,36 @@ export default function App() {
     }
   };
 
+  const descargarRespaldoExcel = () => {
+    if (!window.XLSX) return showToast('Librería Excel cargando...', 'error');
+
+    try {
+      showToast('Generando Respaldo Total en Excel...');
+
+      // 1. Creamos un nuevo libro de Excel vacío
+      const libro = window.XLSX.utils.book_new();
+
+      // 2. Convertimos tus 3 variables a formato de hoja de cálculo
+      const hojaGeneral = window.XLSX.utils.json_to_sheet(services);
+      const hojaCallCenter = window.XLSX.utils.json_to_sheet(callCenterServices);
+      const hojaGastos = window.XLSX.utils.json_to_sheet(fleetExpenses);
+
+      // 3. Metemos las 3 hojas al libro
+      window.XLSX.utils.book_append_sheet(libro, hojaGeneral, "Base General");
+      window.XLSX.utils.book_append_sheet(libro, hojaCallCenter, "Call Center");
+      window.XLSX.utils.book_append_sheet(libro, hojaGastos, "Gastos Flota");
+
+      // 4. Lo descargamos con la fecha de hoy
+      const fecha = new Date().toISOString().split('T')[0];
+      window.XLSX.writeFile(libro, `Respaldo_Ballard_Total_${fecha}.xlsx`);
+
+      showToast('¡Respaldo descargado con éxito!');
+    } catch (error) {
+      console.error("Error al crear Excel:", error);
+      showToast('Error al generar el respaldo', 'error');
+    }
+  };
+
   const handleFleetChange = (id, field, value) => {
     setFleetExpenses(prev => prev.map(item => item.id === id ? { ...item, [field]: value } : item));
   };
