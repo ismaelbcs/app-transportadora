@@ -15,8 +15,8 @@ const initialServiceState = {
 export default function App() {
   const [services, setServices] = useState([]);
   const [currentService, setCurrentService] = useState(initialServiceState);
-  const [activeTab, setActiveTab] = useState('form'); 
-  
+  const [activeTab, setActiveTab] = useState('form');
+
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [isEditing, setIsEditing] = useState(false);
@@ -37,7 +37,7 @@ export default function App() {
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
   const [libsLoaded, setLibsLoaded] = useState(false);
   const [renderData, setRenderData] = useState(null);
-  
+
   const shareRef = useRef(null);
   const signRef = useRef(null);
   const rollRef = useRef(null);
@@ -50,7 +50,7 @@ export default function App() {
         .from('servicios')
         .select('*');
       if (serviciosError) throw serviciosError;
-      
+
       // Mapear los nombres de la base de datos (con guion bajo) al formato de tu React (CamelCase)
       const formattedServices = (serviciosData || []).map(s => ({
         id: s.id, reserva: s.reserva, nombre: s.nombre, apellido: s.apellido, agencia: s.agencia,
@@ -66,7 +66,7 @@ export default function App() {
         .from('call_center')
         .select('*');
       if (ccError) throw ccError;
-      
+
       const formattedCC = (ccData || []).map(cc => ({
         id: cc.id, fechaSistema: cc.fecha_sistema, fechaCliente: cc.fecha_cliente,
         cliente: cc.cliente, reserva: cc.reserva, accion: cc.accion, comision: cc.comision, rawMessage: cc.raw_message
@@ -137,10 +137,10 @@ export default function App() {
     setSearchTerm(term);
     if (term.length > 2) {
       const lower = term.toLowerCase();
-      const results = services.filter(s => 
-        (s.nombre || '').toLowerCase().includes(lower) || 
-        (s.apellido || '').toLowerCase().includes(lower) || 
-        (s.reserva || '').toLowerCase().includes(lower) || 
+      const results = services.filter(s =>
+        (s.nombre || '').toLowerCase().includes(lower) ||
+        (s.apellido || '').toLowerCase().includes(lower) ||
+        (s.reserva || '').toLowerCase().includes(lower) ||
         (s.hotel || '').toLowerCase().includes(lower) ||
         (s.fecha || '').toLowerCase().includes(lower)
       );
@@ -159,7 +159,7 @@ export default function App() {
 
   const saveForm = async () => {
     let servicesToSave = [];
-    
+
     // Preparar los datos mapeando a los nombres de las columnas de Supabase
     if (isEditing) {
       servicesToSave.push({
@@ -169,7 +169,7 @@ export default function App() {
         apellido: currentService.apellido,
         agencia: currentService.agencia,
         tipo_servicio: currentService.tipoServicio,
-        pax: currentService.pax?.toString(), 
+        pax: currentService.pax?.toString(),
         telefono: currentService.telefono,
         fecha: currentService.fecha,
         vuelo: currentService.vuelo,
@@ -191,7 +191,7 @@ export default function App() {
       });
     } else {
       const baseId = Date.now().toString();
-      
+
       const newService = {
         id: baseId,
         reserva: currentService.reserva,
@@ -214,7 +214,7 @@ export default function App() {
         booster: parseInt(currentService.booster) || 0,
         parada_compras: currentService.paradaCompras,
         comentario: currentService.comentario,
-        chofer: '', 
+        chofer: '',
         vehiculo: '',
         proveedor: '',
         costo_proveedor: ''
@@ -240,12 +240,12 @@ export default function App() {
       // Aquí enviamos la orden a la base de datos (upsert: inserta si no existe, actualiza si ya existe)
       const { error } = await supabase.from('servicios').upsert(servicesToSave);
       if (error) throw error;
-      
+
       showToast(isEditing ? 'Servicio actualizado en la nube' : 'Servicio(s) guardado(s) en la nube');
-      
+
       // Volver a descargar los datos actualizados
       fetchAllData();
-      
+
       // Limpiar el formulario
       setCurrentService(initialServiceState);
       setIsEditing(false);
@@ -276,8 +276,8 @@ export default function App() {
   };
 
   const processCallCenterInput = async () => {
-    if(!ccInput.trim()) return showToast('El mensaje está vacío', 'error');
-    
+    if (!ccInput.trim()) return showToast('El mensaje está vacío', 'error');
+
     // Extracción mediante RegEx (Se queda exactamente igual)
     const regexAccion = /ACCI[ÓO]N:\s*(Venta|Confirmaci[óo]n)/i;
     const regexCliente = /CLIENTE:\s*(.+?)(?=\nRESERVA:)/is;
@@ -289,11 +289,11 @@ export default function App() {
     const reservaMatch = ccInput.match(regexReserva);
     const fechaMatch = ccInput.match(regexFecha);
 
-    if(!accionMatch) return showToast('No se detectó "Acción" válida', 'error');
+    if (!accionMatch) return showToast('No se detectó "Acción" válida', 'error');
 
     const accionString = accionMatch[1].toLowerCase();
     const isVenta = accionString.includes('venta');
-    
+
     // Creamos el registro adaptado a las columnas de Supabase
     const newCCRecord = {
       id: `CC-${Date.now().toString().slice(-5)}`,
@@ -313,7 +313,7 @@ export default function App() {
 
       showToast('¡Datos del Call Center guardados en la nube!');
       setCcInput('');
-      
+
       // Actualizamos la pantalla con los nuevos datos
       fetchAllData();
     } catch (error) {
@@ -354,7 +354,7 @@ export default function App() {
 
       showToast('Gasto de flota registrado en la nube');
       setCurrentExpense(initialExpenseState);
-      
+
       // Actualizamos la pantalla con los nuevos datos
       fetchAllData();
     } catch (error) {
@@ -378,7 +378,7 @@ export default function App() {
   const generateSharePNG = async (item) => {
     if (!libsLoaded) return showToast('Librerías cargando...', 'error');
     setRenderData({ type: 'share', data: item });
-    
+
     setTimeout(async () => {
       try {
         const canvas = await window.html2canvas(shareRef.current, { scale: 2, useCORS: true });
@@ -399,7 +399,7 @@ export default function App() {
   const generateWelcomeSign = async (item) => {
     if (!libsLoaded || !window.jspdf) return showToast('Librerías cargando...', 'error');
     setRenderData({ type: 'sign', data: item });
-    
+
     setTimeout(async () => {
       try {
         const canvas = await window.html2canvas(signRef.current, { scale: 2, useCORS: true });
@@ -407,7 +407,7 @@ export default function App() {
         const pdf = new window.jspdf.jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
         const pdfWidth = pdf.internal.pageSize.getWidth();
         const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-        
+
         pdf.addImage(imgData, 'JPEG', 0, (pdf.internal.pageSize.getHeight() - pdfHeight) / 2, pdfWidth, pdfHeight);
         pdf.save(`Letrero_${item.nombre}_${item.apellido}.pdf`);
         setRenderData(null);
@@ -420,37 +420,50 @@ export default function App() {
     }, 300);
   };
 
-  const downloadRollPDF = async () => {
-    if (!libsLoaded || !window.jspdf) return showToast('Librerías cargando...', 'error');
-    showToast('Generando Rol en PDF...');
-    
-    setTimeout(async () => {
-      try {
-        const canvas = await window.html2canvas(rollRef.current, { scale: 1.5, useCORS: true });
-        const imgData = canvas.toDataURL('image/jpeg', 1.0);
-        const pdf = new window.jspdf.jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-        
-        const imgProps = pdf.getImageProperties(imgData);
-        const pdfWidth = pdf.internal.pageSize.getWidth();
-        const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-        
-        pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
-        pdf.save(`Rol_Diario_${rollDate}.pdf`);
-        showToast('Rol PDF descargado');
-      } catch (e) {
-        console.error(e);
-        showToast('Error generando PDF', 'error');
-      }
-    }, 500);
+  const downloadRolPNG = async () => {
+    const element = document.getElementById('rol-diario-container');
+    if (!element) {
+      showToast('No se encontró el contenedor', 'error');
+      return;
+    }
+
+    try {
+      showToast('Generando imagen (versión Choferes)...');
+      
+      const canvas = await window.html2canvas(element, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#ffffff',
+        logging: false,
+        // Aquí ocurre la magia: modificamos la foto antes de tomarla
+        onclone: (clonedDoc) => {
+          const columnasSecretas = clonedDoc.querySelectorAll('.ocultar-en-foto');
+          columnasSecretas.forEach(celda => {
+            celda.style.display = 'none'; // Las borramos solo en la imagen
+          });
+        }
+      });
+
+      const link = document.createElement('a');
+      const fecha = new Date().toISOString().split('T')[0];
+      link.download = `Rol_Diario_${fecha}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+
+      showToast('Imagen descargada correctamente');
+    } catch (error) {
+      console.error("Error al generar PNG:", error);
+      showToast('Error al generar la imagen', 'error');
+    }
   };
 
   const BallardLogo = ({ className }) => (
     <svg className={className} viewBox="0 0 200 80" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M40 15C25 15 15 35 15 40C15 45 25 65 40 65C55 65 65 45 65 40C65 35 55 15 40 15Z" fill="#111827"/>
-      <path d="M40 15C35 25 35 55 40 65C45 55 45 25 40 15Z" fill="white"/>
-      <circle cx="35" cy="30" r="3" fill="white"/>
-      <circle cx="45" cy="30" r="3" fill="#111827"/>
-      <path d="M15 40L25 55L15 70Z" fill="#111827"/>
+      <path d="M40 15C25 15 15 35 15 40C15 45 25 65 40 65C55 65 65 45 65 40C65 35 55 15 40 15Z" fill="#111827" />
+      <path d="M40 15C35 25 35 55 40 65C45 55 45 25 40 15Z" fill="white" />
+      <circle cx="35" cy="30" r="3" fill="white" />
+      <circle cx="45" cy="30" r="3" fill="#111827" />
+      <path d="M15 40L25 55L15 70Z" fill="#111827" />
       <text x="75" y="45" fontFamily="Arial, sans-serif" fontWeight="bold" fontSize="28" fill="#111827">Ballard</text>
       <text x="75" y="65" fontFamily="Arial, sans-serif" fontWeight="normal" fontSize="16" letterSpacing="1" fill="#111827">Tour Services</text>
     </svg>
@@ -468,7 +481,7 @@ export default function App() {
       <header className="bg-white shadow">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col sm:flex-row justify-between items-center">
           <div className="flex items-center gap-3">
-             <BallardLogo className="h-12" />
+            <BallardLogo className="h-12" />
           </div>
           <div className="flex flex-wrap gap-2 mt-4 sm:mt-0 justify-center">
             <button onClick={() => setActiveTab('form')} className={`px-4 py-2 rounded-md font-medium transition-colors text-sm ${activeTab === 'form' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}>
@@ -494,15 +507,15 @@ export default function App() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        
-        {}
+
+        { }
         {activeTab === 'form' && (
           <div className="bg-white rounded-lg shadow-md p-6">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
               <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-                {isEditing ? <><FileText className="text-blue-600"/> Modificar Servicio</> : <><FileText className="text-blue-600"/> Ingresar Nuevo Servicio</>}
+                {isEditing ? <><FileText className="text-blue-600" /> Modificar Servicio</> : <><FileText className="text-blue-600" /> Ingresar Nuevo Servicio</>}
               </h2>
-              
+
               <div className="relative w-full md:w-64">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <Search className="h-5 w-5 text-gray-400" />
@@ -518,7 +531,7 @@ export default function App() {
                   <ul className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
                     {searchResults.map(res => (
                       <li key={res.id} onClick={() => selectServiceToEdit(res)} className="px-4 py-2 hover:bg-blue-50 cursor-pointer text-sm border-b">
-                        <span className="font-semibold">{res.nombre} {res.apellido}</span> - {res.fecha} <br/>
+                        <span className="font-semibold">{res.nombre} {res.apellido}</span> - {res.fecha} <br />
                         <span className="text-xs text-gray-500">Reserva: {res.reserva} | Hotel: {res.hotel}</span>
                       </li>
                     ))}
@@ -582,7 +595,7 @@ export default function App() {
                     </div>
                   )}
                 </div>
-                
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   <div>
                     <label className="block text-xs font-medium text-gray-700">Fecha del Servicio</label>
@@ -627,7 +640,7 @@ export default function App() {
                     <input type="number" min="0" name="booster" value={currentService.booster} onChange={handleInputChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm" />
                   </div>
                 </div>
-                
+
                 <div className="flex items-center mt-2">
                   <input type="checkbox" name="paradaCompras" checked={currentService.paradaCompras} onChange={handleInputChange} className="h-4 w-4 text-blue-600 border-gray-300 rounded" />
                   <label className="ml-2 block text-sm text-gray-900">Parada de compras</label>
@@ -658,7 +671,7 @@ export default function App() {
 
             {currentService.tipoViaje === 'RT' && !isEditing && (
               <div className="mt-6 bg-blue-50 p-4 rounded-md border border-blue-200">
-                <h3 className="font-semibold text-blue-800 mb-3 flex items-center gap-2"><MapPin size={18}/> Datos del Viaje de Regreso</h3>
+                <h3 className="font-semibold text-blue-800 mb-3 flex items-center gap-2"><MapPin size={18} /> Datos del Viaje de Regreso</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                   <div>
                     <label className="block text-xs font-medium text-blue-700">Fecha de Regreso</label>
@@ -693,77 +706,77 @@ export default function App() {
           </div>
         )}
 
-        {}
+        { }
         {activeTab === 'callcenter' && (
           <div className="bg-white rounded-lg shadow-md p-6 border-t-4 border-purple-600">
             <h2 className="text-2xl font-bold text-purple-900 flex items-center gap-2 mb-6">
-              <Headset className="text-purple-600"/> Ingreso Rápido - Call Center
+              <Headset className="text-purple-600" /> Ingreso Rápido - Call Center
             </h2>
             <div className="bg-purple-50 p-6 rounded-lg border border-purple-100 mb-8">
-               <p className="text-sm text-purple-800 mb-4 font-medium">Pega el mensaje de WhatsApp aquí usando la plantilla requerida. El sistema calculará la comisión ($10 Venta / $5 Confirmación) automáticamente.</p>
-               <textarea 
-                 rows="5" 
-                 value={ccInput}
-                 onChange={(e) => setCcInput(e.target.value)}
-                 className="w-full border border-purple-200 rounded-md p-4 shadow-sm focus:ring-purple-500 focus:border-purple-500 text-sm font-mono"
-                 placeholder="ACCIÓN: Venta&#10;CLIENTE: Juan Pérez&#10;RESERVA: 12345&#10;FECHA DEL SERVICIO: 15/06/2026&#10;NOTAS: Pasajero requiere asiento de bebé"
-               ></textarea>
-               <div className="mt-4 flex justify-end">
-                 <button onClick={processCallCenterInput} className="bg-purple-600 text-white px-6 py-2 rounded-md hover:bg-purple-700 shadow-sm font-medium transition-colors flex items-center gap-2">
-                   <Database size={18} /> Extraer y Guardar
-                 </button>
-               </div>
+              <p className="text-sm text-purple-800 mb-4 font-medium">Pega el mensaje de WhatsApp aquí usando la plantilla requerida. El sistema calculará la comisión ($10 Venta / $5 Confirmación) automáticamente.</p>
+              <textarea
+                rows="5"
+                value={ccInput}
+                onChange={(e) => setCcInput(e.target.value)}
+                className="w-full border border-purple-200 rounded-md p-4 shadow-sm focus:ring-purple-500 focus:border-purple-500 text-sm font-mono"
+                placeholder="ACCIÓN: Venta&#10;CLIENTE: Juan Pérez&#10;RESERVA: 12345&#10;FECHA DEL SERVICIO: 15/06/2026&#10;NOTAS: Pasajero requiere asiento de bebé"
+              ></textarea>
+              <div className="mt-4 flex justify-end">
+                <button onClick={processCallCenterInput} className="bg-purple-600 text-white px-6 py-2 rounded-md hover:bg-purple-700 shadow-sm font-medium transition-colors flex items-center gap-2">
+                  <Database size={18} /> Extraer y Guardar
+                </button>
+              </div>
             </div>
 
             {/* Nueva sección: Historial de Call Center directo en la pestaña */}
             <div className="flex-1 overflow-x-auto overflow-y-auto p-2 w-full">
-               <div className="flex justify-between items-center mb-4 border-b pb-2">
-                 <h3 className="text-lg font-semibold text-purple-900">Historial Reciente de Call Center (En la Nube)</h3>
-                 <button onClick={fetchAllData} className="bg-purple-100 text-purple-700 px-3 py-1 rounded text-xs font-bold hover:bg-purple-200 transition-colors">
-                   🔄 Actualizar Datos
-                 </button>
-               </div>
-               <table className="min-w-full text-left text-sm whitespace-nowrap">
-                  <thead>
-                     <tr className="text-purple-800 bg-purple-50 border-b">
-                        <th className="p-2">ID Registro</th><th className="p-2">Fecha Sistema</th><th className="p-2">Fecha Cliente</th>
-                        <th className="p-2">Cliente</th><th className="p-2">Reserva</th><th className="p-2">Acción</th>
-                        <th className="p-2 text-right">Comisión</th>
-                     </tr>
-                  </thead>
-                  <tbody className="divide-y">
-                     {callCenterServices.length === 0 ? (
-                       <tr><td colSpan="7" className="text-center p-8 text-gray-500">No hay registros guardados en el Call Center.</td></tr>
-                     ) : (
-                       [...callCenterServices].reverse().slice(0, 10).map(row => (
-                        <tr key={row.id} className="hover:bg-purple-50 transition-colors">
-                           <td className="p-2 font-mono text-xs text-gray-500">{row.id}</td>
-                           <td className="p-2">{row.fechaSistema}</td>
-                           <td className="p-2 font-medium">{row.fechaCliente}</td>
-                           <td className="p-2 font-bold uppercase">{row.cliente}</td>
-                           <td className="p-2">{row.reserva}</td>
-                           <td className="p-2">
-                             <span className={`px-2 py-1 rounded-full text-xs ${row.accion === 'Venta' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'}`}>
-                               {row.accion}
-                             </span>
-                           </td>
-                           <td className="p-2 text-right font-bold text-green-700">${parseFloat(row.comision).toFixed(2)}</td>
-                        </tr>
-                       ))
-                     )}
-                  </tbody>
-               </table>
+              <div className="flex justify-between items-center mb-4 border-b pb-2">
+                <h3 className="text-lg font-semibold text-purple-900">Historial Reciente de Call Center (En la Nube)</h3>
+                <button onClick={fetchAllData} className="bg-purple-100 text-purple-700 px-3 py-1 rounded text-xs font-bold hover:bg-purple-200 transition-colors">
+                  🔄 Actualizar Datos
+                </button>
+              </div>
+              <table className="min-w-full text-left text-sm whitespace-nowrap">
+                <thead>
+                  <tr className="text-purple-800 bg-purple-50 border-b">
+                    <th className="p-2">ID Registro</th><th className="p-2">Fecha Sistema</th><th className="p-2">Fecha Cliente</th>
+                    <th className="p-2">Cliente</th><th className="p-2">Reserva</th><th className="p-2">Acción</th>
+                    <th className="p-2 text-right">Comisión</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {callCenterServices.length === 0 ? (
+                    <tr><td colSpan="7" className="text-center p-8 text-gray-500">No hay registros guardados en el Call Center.</td></tr>
+                  ) : (
+                    [...callCenterServices].reverse().slice(0, 10).map(row => (
+                      <tr key={row.id} className="hover:bg-purple-50 transition-colors">
+                        <td className="p-2 font-mono text-xs text-gray-500">{row.id}</td>
+                        <td className="p-2">{row.fechaSistema}</td>
+                        <td className="p-2 font-medium">{row.fechaCliente}</td>
+                        <td className="p-2 font-bold uppercase">{row.cliente}</td>
+                        <td className="p-2">{row.reserva}</td>
+                        <td className="p-2">
+                          <span className={`px-2 py-1 rounded-full text-xs ${row.accion === 'Venta' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'}`}>
+                            {row.accion}
+                          </span>
+                        </td>
+                        <td className="p-2 text-right font-bold text-green-700">${parseFloat(row.comision).toFixed(2)}</td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
         )}
 
-        {}
+        { }
         {activeTab === 'flota' && (
           <div className="bg-white rounded-lg shadow-md p-6">
             <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2 mb-6">
-              <Fuel className="text-orange-500"/> Control de Flota (Gastos)
+              <Fuel className="text-orange-500" /> Control de Flota (Gastos)
             </h2>
-            
+
             <div className="bg-orange-50 p-6 rounded-lg border border-orange-100 mb-8">
               <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
                 <div>
@@ -789,97 +802,100 @@ export default function App() {
               </div>
               <div className="mt-4 flex justify-between items-center bg-white p-3 rounded border border-orange-200">
                 <div className="text-sm font-semibold text-gray-700">
-                   Gasto Total: <span className="text-lg text-red-600 ml-2">${((parseFloat(currentExpense.gasolina) || 0) + (parseFloat(currentExpense.casetas) || 0)).toFixed(2)}</span>
+                  Gasto Total: <span className="text-lg text-red-600 ml-2">${((parseFloat(currentExpense.gasolina) || 0) + (parseFloat(currentExpense.casetas) || 0)).toFixed(2)}</span>
                 </div>
                 <button onClick={saveExpense} className="bg-orange-500 text-white px-6 py-2 rounded-md hover:bg-orange-600 shadow-sm font-medium transition-colors flex items-center gap-2">
-                   <Save size={18} /> Guardar Gasto
+                  <Save size={18} /> Guardar Gasto
                 </button>
               </div>
             </div>
 
             <div className="flex-1 overflow-x-auto overflow-y-auto p-2 w-full">
-               <h3 className="text-lg font-semibold text-gray-700 mb-4 border-b pb-2">Historial de Gastos</h3>
-               <table className="min-w-full text-left text-sm whitespace-nowrap">
-                  <thead className="sticky top-0 bg-white shadow-sm z-10">
-                     <tr className="text-gray-600 border-b">
-                        <th className="p-2">ID Gasto</th><th className="p-2">Fecha</th><th className="p-2">Chofer</th><th className="p-2">Vehículo</th>
-                        <th className="p-2 text-right">Gasolina</th><th className="p-2 text-right">Casetas</th><th className="p-2 text-right font-bold">Gasto Total</th>
-                     </tr>
-                  </thead>
-                  <tbody className="divide-y">
-                     {fleetExpenses.length === 0 ? <tr><td colSpan="7" className="text-center p-8 text-gray-500">No hay gastos registrados.</td></tr> : [...fleetExpenses].reverse().map(row => (
-                        <tr key={row.id} className="hover:bg-orange-50 transition-colors">
-                           <td className="p-2 font-medium text-gray-500">{row.id}</td><td className="p-2">{row.fecha}</td>
-                           <td className="p-2">{row.chofer}</td><td className="p-2">{row.vehiculo}</td>
-                           <td className="p-2 text-right text-gray-600">${parseFloat(row.gasolina).toFixed(2)}</td>
-                           <td className="p-2 text-right text-gray-600">${parseFloat(row.casetas).toFixed(2)}</td>
-                           <td className="p-2 text-right font-bold text-red-700">${parseFloat(row.gastoTotal).toFixed(2)}</td>
-                        </tr>
-                     ))}
-                  </tbody>
-               </table>
+              <h3 className="text-lg font-semibold text-gray-700 mb-4 border-b pb-2">Historial de Gastos</h3>
+              <table className="min-w-full text-left text-sm whitespace-nowrap">
+                <thead className="sticky top-0 bg-white shadow-sm z-10">
+                  <tr className="text-gray-600 border-b">
+                    <th className="p-2">ID Gasto</th><th className="p-2">Fecha</th><th className="p-2">Chofer</th><th className="p-2">Vehículo</th>
+                    <th className="p-2 text-right">Gasolina</th><th className="p-2 text-right">Casetas</th><th className="p-2 text-right font-bold">Gasto Total</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {fleetExpenses.length === 0 ? <tr><td colSpan="7" className="text-center p-8 text-gray-500">No hay gastos registrados.</td></tr> : [...fleetExpenses].reverse().map(row => (
+                    <tr key={row.id} className="hover:bg-orange-50 transition-colors">
+                      <td className="p-2 font-medium text-gray-500">{row.id}</td><td className="p-2">{row.fecha}</td>
+                      <td className="p-2">{row.chofer}</td><td className="p-2">{row.vehiculo}</td>
+                      <td className="p-2 text-right text-gray-600">${parseFloat(row.gasolina).toFixed(2)}</td>
+                      <td className="p-2 text-right text-gray-600">${parseFloat(row.casetas).toFixed(2)}</td>
+                      <td className="p-2 text-right font-bold text-red-700">${parseFloat(row.gastoTotal).toFixed(2)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
         )}
 
-        {}
+        { }
         {activeTab === 'roll' && (
           <div className="bg-white rounded-lg shadow-md flex flex-col h-[80vh]">
             <div className="p-4 border-b flex flex-wrap justify-between items-center gap-4 bg-gray-50 rounded-t-lg">
               <div className="flex items-center gap-4">
-                 <input type="date" value={rollDate} onChange={(e) => setRollDate(e.target.value)} className="border border-gray-300 rounded-md p-2 shadow-sm font-semibold text-gray-700" />
+                <input type="date" value={rollDate} onChange={(e) => setRollDate(e.target.value)} className="border border-gray-300 rounded-md p-2 shadow-sm font-semibold text-gray-700" />
                 <span className="text-sm text-gray-500">{rollData.length} servicio(s) encontrado(s)</span>
               </div>
               <div className="flex gap-2">
                 <button onClick={saveRollUpdates} className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 flex items-center gap-2 text-sm font-medium transition-colors">
                   <Save size={16} /> Guardar
                 </button>
-                <button onClick={downloadRollPDF} className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 flex items-center gap-2 text-sm font-medium transition-colors">
-                  <Download size={16} /> Descargar PDF
+                <button
+                  onClick={downloadRolPNG}
+                  className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 flex items-center gap-2 shadow-sm"
+                >
+                  <Download size={18} /> Descargar PNG
                 </button>
               </div>
             </div>
 
             <div className="absolute top-[-9999px] left-[-9999px]">
-               <div ref={rollRef} className="bg-white p-8 w-[1600px]">
-                  <div className="flex justify-between items-end border-b-2 border-black pb-4 mb-4">
-                     <div className="flex flex-col">
-                        <BallardLogo className="h-16 mb-2" />
-                        <h1 className="text-3xl font-bold tracking-tight">Rol Diario de Servicios</h1>
-                     </div>
-                     <div className="text-4xl font-bold text-gray-800 tracking-wider">
-                        {new Date(rollDate).toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }).toUpperCase()}
-                     </div>
+              <div id="rol-diario-container" className="bg-white p-8 w-[1600px]">
+                <div className="flex justify-between items-end border-b-2 border-black pb-4 mb-4">
+                  <div className="flex flex-col">
+                    <BallardLogo className="h-16 mb-2" />
+                    <h1 className="text-3xl font-bold tracking-tight">Rol Diario de Servicios</h1>
                   </div>
-                  <table className="w-full text-left text-sm border-collapse">
-                    <thead>
-                      <tr className="bg-gray-200">
-                        <th className="border p-2">Hora</th><th className="border p-2">Chofer</th><th className="border p-2">Nombre</th>
-                        <th className="border p-2">Apellido</th><th className="border p-2">Vuelo</th><th className="border p-2">Hotel</th>
-                        <th className="border p-2">Pax</th><th className="border p-2">Teléfono</th><th className="border p-2">Tipo</th>
-                        <th className="border p-2">Vehículo</th><th className="border p-2">Proveedor</th><th className="border p-2">Cantidad</th>
-                        <th className="border p-2">Extras</th><th className="border p-2 w-48">Comentario</th>
+                  <div className="text-4xl font-bold text-gray-800 tracking-wider">
+                    {new Date(rollDate).toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }).toUpperCase()}
+                  </div>
+                </div>
+                <table className="w-full text-left text-sm border-collapse">
+                  <thead>
+                    <tr className="bg-gray-200">
+                      <th className="border p-2">Hora</th><th className="border p-2">Chofer</th><th className="border p-2">Nombre</th>
+                      <th className="border p-2">Apellido</th><th className="border p-2">Vuelo</th><th className="border p-2">Hotel</th>
+                      <th className="border p-2">Pax</th><th className="border p-2">Teléfono</th><th className="border p-2">Tipo</th>
+                      <th className="border p-2">Vehículo</th><th className="border p-2 border-b ocultar-en-foto">Proveedor</th><th className="border p-2 border-b ocultar-en-foto">Cantidad</th>
+                      <th className="border p-2">Extras</th><th className="border p-2 w-48">Comentario</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rollData.map(row => (
+                      <tr key={row.id} className="border-b">
+                        <td className="border p-2 font-bold">{row.hora}</td><td className="border p-2">{row.chofer}</td>
+                        <td className="border p-2 uppercase">{row.nombre}</td><td className="border p-2 uppercase">{row.apellido}</td>
+                        <td className="border p-2">{row.vuelo}</td><td className="border p-2 text-xs">{row.hotel}</td>
+                        <td className="border p-2 text-center">{row.pax}</td><td className="border p-2 text-xs">{row.telefono}</td>
+                        <td className="border p-2 text-xs">{row.tipoServicio}</td><td className="border p-2">{row.vehiculo}</td>
+                        <td className="border p-2 text-xs border-b ocultar-en-foto">{row.proveedor}</td><td className="border p-2 text-xs font-bold">{row.costoProveedor ? `$${row.costoProveedor}` : ''}</td>
+                        <td className="border p-2 text-xs">
+                          {row.carSeat > 0 && `Car:${row.carSeat} `}{row.babySeat > 0 && `Baby:${row.babySeat} `}
+                          {row.booster > 0 && `Bstr:${row.booster} `}{row.paradaCompras && `Compras`}
+                        </td>
+                        <td className="border p-2 text-xs break-words">{row.comentario}</td>
                       </tr>
-                    </thead>
-                    <tbody>
-                      {rollData.map(row => (
-                        <tr key={row.id} className="border-b">
-                          <td className="border p-2 font-bold">{row.hora}</td><td className="border p-2">{row.chofer}</td>
-                          <td className="border p-2 uppercase">{row.nombre}</td><td className="border p-2 uppercase">{row.apellido}</td>
-                          <td className="border p-2">{row.vuelo}</td><td className="border p-2 text-xs">{row.hotel}</td>
-                          <td className="border p-2 text-center">{row.pax}</td><td className="border p-2 text-xs">{row.telefono}</td>
-                          <td className="border p-2 text-xs">{row.tipoServicio}</td><td className="border p-2">{row.vehiculo}</td>
-                          <td className="border p-2 text-xs">{row.proveedor}</td><td className="border p-2 text-xs font-bold">{row.costoProveedor ? `$${row.costoProveedor}` : ''}</td>
-                          <td className="border p-2 text-xs">
-                             {row.carSeat > 0 && `Car:${row.carSeat} `}{row.babySeat > 0 && `Baby:${row.babySeat} `}
-                             {row.booster > 0 && `Bstr:${row.booster} `}{row.paradaCompras && `Compras`}
-                          </td>
-                          <td className="border p-2 text-xs break-words">{row.comentario}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-               </div>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
 
             <div className="flex-1 overflow-x-auto overflow-y-auto p-4 w-full">
@@ -926,16 +942,16 @@ export default function App() {
           </div>
         )}
 
-        {}
+        { }
         {activeTab === 'database' && (
           <div className="bg-white rounded-lg shadow-md flex flex-col h-[80vh]">
             <div className="p-4 border-b bg-gray-50 rounded-t-lg flex justify-between items-center">
               <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-                <Database className="text-blue-600"/> Base de Datos General
+                <Database className="text-blue-600" /> Base de Datos General
               </h2>
               <span className="text-sm text-gray-500">{services.length} registros en total</span>
             </div>
-            
+
             <div className="flex-1 overflow-x-auto overflow-y-auto p-4 w-full">
               <table className="min-w-max w-full text-left text-sm whitespace-nowrap">
                 <thead className="sticky top-0 bg-white shadow-sm z-10">
@@ -971,52 +987,52 @@ export default function App() {
           </div>
         )}
 
-        {}
+        { }
         {activeTab === 'cierre' && (
           <div className="bg-white rounded-lg shadow-md flex flex-col h-[80vh]">
             <div className="p-4 border-b bg-gray-50 rounded-t-lg">
               <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-                <Calendar className="text-blue-600"/> Módulo de Cierre
+                <Calendar className="text-blue-600" /> Módulo de Cierre
               </h2>
               <div className="flex flex-col md:flex-row gap-4 items-end">
                 <div>
                   <label className="block text-xs font-medium text-gray-700 mb-1">Fecha Inicial</label>
-                  <input type="date" value={cierreFilters.startDate} onChange={e => setCierreFilters({...cierreFilters, startDate: e.target.value})} className="border border-gray-300 rounded-md p-2 shadow-sm text-sm" />
+                  <input type="date" value={cierreFilters.startDate} onChange={e => setCierreFilters({ ...cierreFilters, startDate: e.target.value })} className="border border-gray-300 rounded-md p-2 shadow-sm text-sm" />
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-gray-700 mb-1">Fecha Final</label>
-                  <input type="date" value={cierreFilters.endDate} onChange={e => setCierreFilters({...cierreFilters, endDate: e.target.value})} className="border border-gray-300 rounded-md p-2 shadow-sm text-sm" />
+                  <input type="date" value={cierreFilters.endDate} onChange={e => setCierreFilters({ ...cierreFilters, endDate: e.target.value })} className="border border-gray-300 rounded-md p-2 shadow-sm text-sm" />
                 </div>
                 {!cierreFilters.isCallCenter && (
                   <div>
                     <label className="block text-xs font-medium text-gray-700 mb-1">Vehículo (Opcional)</label>
-                    <input type="text" placeholder="Ej. Sprinter 01" value={cierreFilters.vehiculo} onChange={e => setCierreFilters({...cierreFilters, vehiculo: e.target.value})} className="border border-gray-300 rounded-md p-2 shadow-sm text-sm" />
+                    <input type="text" placeholder="Ej. Sprinter 01" value={cierreFilters.vehiculo} onChange={e => setCierreFilters({ ...cierreFilters, vehiculo: e.target.value })} className="border border-gray-300 rounded-md p-2 shadow-sm text-sm" />
                   </div>
                 )}
-                
+
                 <div className="flex-1 text-center md:text-left">
                   {cierreFilters.isCallCenter && (
                     <div className="md:ml-4 bg-purple-100 border border-purple-300 px-4 py-2 rounded-lg inline-block shadow-sm">
-                       <span className="text-sm font-medium text-purple-800">Total Acumulado de Comisión: </span>
-                       <span className="text-xl font-bold text-purple-900">
-                         ${callCenterServices.filter(s => {
-                            let match = true;
-                            if (cierreFilters.startDate && s.fechaSistema < cierreFilters.startDate) match = false;
-                            if (cierreFilters.endDate && s.fechaSistema > cierreFilters.endDate) match = false;
-                            return match;
-                         }).reduce((sum, item) => sum + item.comision, 0)}
-                       </span>
+                      <span className="text-sm font-medium text-purple-800">Total Acumulado de Comisión: </span>
+                      <span className="text-xl font-bold text-purple-900">
+                        ${callCenterServices.filter(s => {
+                          let match = true;
+                          if (cierreFilters.startDate && s.fechaSistema < cierreFilters.startDate) match = false;
+                          if (cierreFilters.endDate && s.fechaSistema > cierreFilters.endDate) match = false;
+                          return match;
+                        }).reduce((sum, item) => sum + item.comision, 0)}
+                      </span>
                     </div>
                   )}
                 </div>
 
-                <button onClick={() => setCierreFilters({...cierreFilters, isCallCenter: !cierreFilters.isCallCenter})} className={`px-4 py-2 rounded-md font-bold shadow-sm flex items-center gap-2 transition-colors ${cierreFilters.isCallCenter ? 'bg-purple-600 text-white hover:bg-purple-700' : 'bg-blue-600 text-white hover:bg-blue-700'}`}>
+                <button onClick={() => setCierreFilters({ ...cierreFilters, isCallCenter: !cierreFilters.isCallCenter })} className={`px-4 py-2 rounded-md font-bold shadow-sm flex items-center gap-2 transition-colors ${cierreFilters.isCallCenter ? 'bg-purple-600 text-white hover:bg-purple-700' : 'bg-blue-600 text-white hover:bg-blue-700'}`}>
                   {cierreFilters.isCallCenter ? <Headset size={18} /> : <Users size={18} />}
                   {cierreFilters.isCallCenter ? 'Viendo: CALL CENTER' : 'Viendo: NORMALES'}
                 </button>
               </div>
             </div>
-            
+
             <div className="flex-1 overflow-x-auto overflow-y-auto p-4 w-full">
               <table className="min-w-max w-full text-left text-sm whitespace-nowrap">
                 <thead className="sticky top-0 bg-white shadow-sm z-10">
@@ -1041,12 +1057,12 @@ export default function App() {
                     const filtered = dataSource.filter(s => {
                       let match = true;
                       if (cierreFilters.isCallCenter) {
-                         if (cierreFilters.startDate && s.fechaSistema < cierreFilters.startDate) match = false;
-                         if (cierreFilters.endDate && s.fechaSistema > cierreFilters.endDate) match = false;
+                        if (cierreFilters.startDate && s.fechaSistema < cierreFilters.startDate) match = false;
+                        if (cierreFilters.endDate && s.fechaSistema > cierreFilters.endDate) match = false;
                       } else {
-                         if (cierreFilters.startDate && s.fecha < cierreFilters.startDate) match = false;
-                         if (cierreFilters.endDate && s.fecha > cierreFilters.endDate) match = false;
-                         if (cierreFilters.vehiculo && !(s.vehiculo || '').toLowerCase().includes(cierreFilters.vehiculo.toLowerCase())) match = false;
+                        if (cierreFilters.startDate && s.fecha < cierreFilters.startDate) match = false;
+                        if (cierreFilters.endDate && s.fecha > cierreFilters.endDate) match = false;
+                        if (cierreFilters.vehiculo && !(s.vehiculo || '').toLowerCase().includes(cierreFilters.vehiculo.toLowerCase())) match = false;
                       }
                       return match;
                     });
@@ -1054,42 +1070,42 @@ export default function App() {
                     return filtered.map(row => (
                       <tr key={row.id} className="hover:bg-gray-50">
                         {cierreFilters.isCallCenter ? (
-                           <>
-                             <td className="p-2 font-mono text-xs">{row.id}</td><td className="p-2">{row.fechaSistema}</td><td className="p-2 font-medium">{row.fechaCliente}</td>
-                             <td className="p-2 font-bold uppercase">{row.cliente}</td><td className="p-2">{row.reserva}</td>
-                             <td className="p-2"><span className={`px-2 py-1 rounded-full text-xs ${row.accion === 'Venta' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'}`}>{row.accion}</span></td>
-                             <td className="p-2">
-                               <div className="flex items-center">
-                                 <span className="text-green-700 font-bold mr-1">$</span>
-                                 <input 
-                                   type="number" 
-                                   value={row.comision} 
-                                   onChange={(e) => handleCierreComisionChange(row.id, e.target.value)} 
-                                   className="w-16 bg-transparent border-b border-dashed border-gray-400 focus:outline-none focus:border-green-600 font-bold text-green-700" 
-                                 />
-                               </div>
-                             </td>
-                             <td className="p-2 text-xs text-gray-500 max-w-xs truncate" title={row.rawMessage}>{row.rawMessage}</td>
-                           </>
+                          <>
+                            <td className="p-2 font-mono text-xs">{row.id}</td><td className="p-2">{row.fechaSistema}</td><td className="p-2 font-medium">{row.fechaCliente}</td>
+                            <td className="p-2 font-bold uppercase">{row.cliente}</td><td className="p-2">{row.reserva}</td>
+                            <td className="p-2"><span className={`px-2 py-1 rounded-full text-xs ${row.accion === 'Venta' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'}`}>{row.accion}</span></td>
+                            <td className="p-2">
+                              <div className="flex items-center">
+                                <span className="text-green-700 font-bold mr-1">$</span>
+                                <input
+                                  type="number"
+                                  value={row.comision}
+                                  onChange={(e) => handleCierreComisionChange(row.id, e.target.value)}
+                                  className="w-16 bg-transparent border-b border-dashed border-gray-400 focus:outline-none focus:border-green-600 font-bold text-green-700"
+                                />
+                              </div>
+                            </td>
+                            <td className="p-2 text-xs text-gray-500 max-w-xs truncate" title={row.rawMessage}>{row.rawMessage}</td>
+                          </>
                         ) : (
-                           <>
-                             <td className="p-2">{row.fecha}</td><td className="p-2 font-semibold">{row.hora}</td><td className="p-2">{row.reserva}</td>
-                             <td className="p-2 font-bold">{row.nombre} {row.apellido}</td><td className="p-2">{row.tipoServicio}</td>
-                             <td className="p-2">{row.hotel}</td>
-                             <td className="p-2">
-                               <div className="flex items-center">
-                                 <span className="text-green-700 font-bold mr-1">$</span>
-                                 <input 
-                                   type="text" 
-                                   value={row.cobro || ''} 
-                                   onChange={(e) => handleCierreCobroChange(row.id, e.target.value)} 
-                                   placeholder="0.00"
-                                   className="w-20 bg-transparent border-b border-dashed border-gray-400 focus:outline-none focus:border-green-600 font-bold text-green-700" 
-                                 />
-                               </div>
-                             </td>
-                             <td className="p-2 font-medium">{row.vehiculo}</td><td className="p-2">{row.chofer}</td>
-                           </>
+                          <>
+                            <td className="p-2">{row.fecha}</td><td className="p-2 font-semibold">{row.hora}</td><td className="p-2">{row.reserva}</td>
+                            <td className="p-2 font-bold">{row.nombre} {row.apellido}</td><td className="p-2">{row.tipoServicio}</td>
+                            <td className="p-2">{row.hotel}</td>
+                            <td className="p-2">
+                              <div className="flex items-center">
+                                <span className="text-green-700 font-bold mr-1">$</span>
+                                <input
+                                  type="text"
+                                  value={row.cobro || ''}
+                                  onChange={(e) => handleCierreCobroChange(row.id, e.target.value)}
+                                  placeholder="0.00"
+                                  className="w-20 bg-transparent border-b border-dashed border-gray-400 focus:outline-none focus:border-green-600 font-bold text-green-700"
+                                />
+                              </div>
+                            </td>
+                            <td className="p-2 font-medium">{row.vehiculo}</td><td className="p-2">{row.chofer}</td>
+                          </>
                         )}
                       </tr>
                     ));
@@ -1102,7 +1118,7 @@ export default function App() {
 
       </main>
 
-      {}
+      { }
       {renderData?.type === 'share' && (
         <div className="fixed top-0 left-0 -z-50 pointer-events-none opacity-0">
           <div ref={shareRef} className="bg-white p-6 w-[500px] border-4 border-gray-800 rounded-xl font-sans">
@@ -1120,7 +1136,7 @@ export default function App() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="bg-gray-50 p-3 rounded">
-                  <div className="text-xs text-gray-500 uppercase flex items-center gap-1"><MapPin size={12}/> Hotel / Destino</div>
+                  <div className="text-xs text-gray-500 uppercase flex items-center gap-1"><MapPin size={12} /> Hotel / Destino</div>
                   <div className="font-semibold">{renderData.data.hotel}</div>
                 </div>
                 <div className="bg-gray-50 p-3 rounded">
@@ -1130,7 +1146,7 @@ export default function App() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="border border-gray-200 p-3 rounded flex items-center justify-between">
-                  <span className="text-xs text-gray-500 uppercase flex items-center gap-1"><Users size={12}/> Pasajeros</span>
+                  <span className="text-xs text-gray-500 uppercase flex items-center gap-1"><Users size={12} /> Pasajeros</span>
                   <span className="font-bold text-lg">{renderData.data.pax}</span>
                 </div>
                 <div className="border border-gray-200 p-3 rounded flex items-center justify-between">
@@ -1140,7 +1156,7 @@ export default function App() {
               </div>
               {(renderData.data.carSeat > 0 || renderData.data.babySeat > 0 || renderData.data.booster > 0 || renderData.data.paradaCompras) && (
                 <div className="bg-blue-50 text-blue-900 p-3 rounded border border-blue-100">
-                  <div className="text-xs uppercase mb-1 font-semibold flex items-center gap-1"><Car size={12}/> Extras</div>
+                  <div className="text-xs uppercase mb-1 font-semibold flex items-center gap-1"><Car size={12} /> Extras</div>
                   <div className="flex flex-wrap gap-3 font-medium text-sm">
                     {renderData.data.carSeat > 0 && <span>Car Seat: {renderData.data.carSeat}</span>}
                     {renderData.data.babySeat > 0 && <span>Baby Seat: {renderData.data.babySeat}</span>}
