@@ -302,18 +302,23 @@ export default function App() {
     }
   };
 
-  // Cambia el valor de un permiso específico (de true a false o viceversa)
+  // Cambia el valor de un permiso, creando la categoría si es nueva
   const handlePermisoChange = (categoria, llave) => {
-    setUsuarioSeleccionado(prev => ({
-      ...prev,
-      permisos: {
-        ...prev.permisos,
-        [categoria]: {
-          ...prev.permisos[categoria],
-          [llave]: !prev.permisos[categoria][llave]
+    setUsuarioSeleccionado(prev => {
+      // Extraemos la categoría actual o creamos una vacía si no existe
+      const categoriaActual = prev.permisos[categoria] || {};
+
+      return {
+        ...prev,
+        permisos: {
+          ...prev.permisos,
+          [categoria]: {
+            ...categoriaActual,
+            [llave]: !categoriaActual[llave] // Invertimos el valor
+          }
         }
-      }
-    }));
+      };
+    });
   };
 
   // Permite subir a alguien a Administrador o bajarlo a Chofer
@@ -1148,35 +1153,60 @@ export default function App() {
             <BallardLogo className="h-12" />
           </div>
           <div className="flex flex-wrap gap-2 mt-4 sm:mt-0 justify-center">
+            
+            {/* INGRESO / BUSCAR: Siempre visible para todos */}
             <button onClick={() => setActiveTab('form')} className={`px-4 py-2 rounded-md font-medium transition-colors text-sm ${activeTab === 'form' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}>
               Ingresar / Buscar
             </button>
-            <button onClick={() => setActiveTab('callcenter')} className={`px-4 py-2 rounded-md font-bold transition-colors text-sm flex items-center gap-1 ${activeTab === 'callcenter' ? 'bg-purple-600 text-white' : 'bg-purple-100 text-purple-700 hover:bg-purple-200'}`}>
-              <Headset size={16} /> Ingreso CC
-            </button>
-            <button onClick={() => setActiveTab('roll')} className={`px-4 py-2 rounded-md font-medium transition-colors text-sm ${activeTab === 'roll' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}>
-              Rol Diario
-            </button>
-            <button onClick={() => setActiveTab('flota')} className={`px-4 py-2 rounded-md font-bold transition-colors text-sm flex items-center gap-1 ${activeTab === 'flota' ? 'bg-orange-500 text-white' : 'bg-orange-100 text-orange-700 hover:bg-orange-200'}`}>
-              <Fuel size={16} /> Control Flota
-            </button>
-            <button onClick={() => setActiveTab('database')} className={`px-4 py-2 rounded-md font-medium transition-colors text-sm ${activeTab === 'database' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}>
-              Base de Datos
-            </button>
-            <button onClick={() => setActiveTab('cierre')} className={`px-4 py-2 rounded-md font-medium transition-colors text-sm ${activeTab === 'cierre' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}>
-              Cierre
-            </button>
-            {/* --- BOTÓN SECRETO DE ADMIN --- */}
+
+            {/* INGRESO CC: Candado */}
+            {(userProfile?.rol === 'admin' || userProfile?.permisos?.vistas?.ingreso_cc) && (
+              <button onClick={() => setActiveTab('callcenter')} className={`px-4 py-2 rounded-md font-bold transition-colors text-sm flex items-center gap-1 ${activeTab === 'callcenter' ? 'bg-purple-600 text-white' : 'bg-purple-100 text-purple-700 hover:bg-purple-200'}`}>
+                <Headset size={16} /> Ingreso CC
+              </button>
+            )}
+
+            {/* ROL DIARIO: Candado (Usamos el que ya tenías de ver_modulo) */}
+            {(userProfile?.rol === 'admin' || userProfile?.permisos?.rol_diario?.ver_modulo) && (
+              <button onClick={() => setActiveTab('roll')} className={`px-4 py-2 rounded-md font-medium transition-colors text-sm ${activeTab === 'roll' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}>
+                Rol Diario
+              </button>
+            )}
+
+            {/* CONTROL FLOTA: Candado */}
+            {(userProfile?.rol === 'admin' || userProfile?.permisos?.vistas?.control_flota) && (
+              <button onClick={() => setActiveTab('flota')} className={`px-4 py-2 rounded-md font-bold transition-colors text-sm flex items-center gap-1 ${activeTab === 'flota' ? 'bg-orange-500 text-white' : 'bg-orange-100 text-orange-700 hover:bg-orange-200'}`}>
+                <Fuel size={16} /> Control Flota
+              </button>
+            )}
+
+            {/* BASE DE DATOS: Candado */}
+            {(userProfile?.rol === 'admin' || userProfile?.permisos?.vistas?.base_de_datos) && (
+              <button onClick={() => setActiveTab('database')} className={`px-4 py-2 rounded-md font-medium transition-colors text-sm ${activeTab === 'database' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}>
+                Base de Datos
+              </button>
+            )}
+
+            {/* CIERRE: Candado */}
+            {(userProfile?.rol === 'admin' || userProfile?.permisos?.vistas?.cierre) && (
+              <button onClick={() => setActiveTab('cierre')} className={`px-4 py-2 rounded-md font-medium transition-colors text-sm ${activeTab === 'cierre' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}>
+                Cierre
+              </button>
+            )}
+
+            {/* BOTÓN SECRETO DE PERMISOS: Solo Admin */}
             {userProfile?.rol === 'admin' && (
-              <button
-                onClick={() => setActiveTab('usuarios')}
-                className={`px-4 py-2 rounded-md font-bold transition-colors text-sm flex items-center gap-1 ${activeTab === 'usuarios' ? 'bg-red-600 text-white shadow-md' : 'bg-red-100 text-red-700 hover:bg-red-200'}`}
+              <button 
+                onClick={() => setActiveTab('usuarios')} 
+                className={`px-4 py-2 rounded-md font-bold transition-colors text-sm flex items-center gap-1 ml-2 ${activeTab === 'usuarios' ? 'bg-red-600 text-white shadow-md' : 'bg-red-100 text-red-700 hover:bg-red-200'}`}
               >
                 <ShieldCheck size={16} /> Permisos
               </button>
             )}
-            <button
-              onClick={handleLogout}
+
+            {/* CERRAR SESIÓN */}
+            <button 
+              onClick={handleLogout} 
               className="px-4 py-2 rounded-md font-bold transition-colors text-sm flex items-center gap-1 bg-red-100 text-red-700 hover:bg-red-200 ml-4"
             >
               <User size={16} /> Cerrar Sesión
@@ -2235,6 +2265,30 @@ export default function App() {
                                 checked={usuarioSeleccionado.permisos.rol_diario[llave]}
                                 onChange={() => handlePermisoChange('rol_diario', llave)}
                                 className="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
+                              />
+                              <span className="text-sm font-medium text-gray-700 capitalize">
+                                {llave.replace(/_/g, ' ')}
+                              </span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Módulo: Accesos Principales (Pestañas) */}
+                      <div className="border border-gray-200 rounded-lg overflow-hidden shadow-sm">
+                        <div className="bg-purple-100 px-4 py-2 border-b border-purple-200 font-bold text-purple-900 flex items-center gap-2">
+                          <Globe size={18} className="text-purple-600" /> Accesos Principales (Menú Superior)
+                        </div>
+                        <div className="p-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 bg-white">
+                          {/* Generamos los botones manualmente para asegurarnos de que existan */}
+                          {['ingreso_cc', 'control_flota', 'base_de_datos', 'cierre'].map((llave) => (
+                            <label key={llave} className="flex items-center gap-3 cursor-pointer p-2 hover:bg-purple-50 rounded border border-transparent hover:border-purple-200 transition-colors">
+                              <input
+                                type="checkbox"
+                                // Usamos !! para forzar a booleano, y el ? para que no rompa si la vista es nueva
+                                checked={!!usuarioSeleccionado.permisos?.vistas?.[llave]}
+                                onChange={() => handlePermisoChange('vistas', llave)}
+                                className="w-5 h-5 text-purple-600 rounded border-gray-300 focus:ring-purple-500 cursor-pointer"
                               />
                               <span className="text-sm font-medium text-gray-700 capitalize">
                                 {llave.replace(/_/g, ' ')}
