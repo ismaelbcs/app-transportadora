@@ -151,6 +151,9 @@ export default function App() {
   const [cierreFiltroInicio, setCierreFiltroInicio] = useState('');
   const [cierreFiltroFin, setCierreFiltroFin] = useState('');
   const [cierreFiltroVehiculo, setCierreFiltroVehiculo] = useState('');
+  // --- VARIABLES PARA ALIMENTAR EL CIERRE ---
+  const [gastosFlota, setGastosFlota] = useState([]);
+  const [callCenterData, setCallCenterData] = useState([]);
 
   // Nuevo Formulario de ingreso para el Call Center
   const [ccInput, setCcInput] = useState('');
@@ -242,6 +245,20 @@ export default function App() {
         montoQuincenal: parseFloat(d.monto_quincenal), quincenasPagadas: parseInt(d.quincenas_pagadas), activa: d.activa
       }));
       setDeudasChoferes(formattedDeudas);
+
+      // --- DESCARGAR GASTOS DE FLOTA ---
+      const { data: gastosData, error: gastosError } = await supabase
+        .from('gastos_flota')
+        .select('*');
+      if (gastosError) console.error("Error flota:", gastosError);
+      else setGastosFlota(gastosData || []);
+
+      // --- DESCARGAR CALL CENTER ---
+      const { data: ccData, error: ccError } = await supabase
+        .from('call_center')
+        .select('*');
+      if (ccError) console.error("Error CC:", ccError);
+      else setCallCenterData(ccData || []);
 
     } catch (error) {
       console.error("Error descargando datos de Supabase:", error);
