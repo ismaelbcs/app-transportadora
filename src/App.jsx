@@ -1153,11 +1153,13 @@ export default function App() {
             <BallardLogo className="h-12" />
           </div>
           <div className="flex flex-wrap gap-2 mt-4 sm:mt-0 justify-center">
-            
-            {/* INGRESO / BUSCAR: Siempre visible para todos */}
-            <button onClick={() => setActiveTab('form')} className={`px-4 py-2 rounded-md font-medium transition-colors text-sm ${activeTab === 'form' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}>
-              Ingresar / Buscar
-            </button>
+
+            {/* INGRESO / BUSCAR: Candado */}
+            {(userProfile?.rol === 'admin' || userProfile?.permisos?.vistas?.ingresar_reserva) && (
+              <button onClick={() => setActiveTab('form')} className={`px-4 py-2 rounded-md font-medium transition-colors text-sm ${activeTab === 'form' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}>
+                Ingresar / Buscar
+              </button>
+            )}
 
             {/* INGRESO CC: Candado */}
             {(userProfile?.rol === 'admin' || userProfile?.permisos?.vistas?.ingreso_cc) && (
@@ -1196,8 +1198,8 @@ export default function App() {
 
             {/* BOTÓN SECRETO DE PERMISOS: Solo Admin */}
             {userProfile?.rol === 'admin' && (
-              <button 
-                onClick={() => setActiveTab('usuarios')} 
+              <button
+                onClick={() => setActiveTab('usuarios')}
                 className={`px-4 py-2 rounded-md font-bold transition-colors text-sm flex items-center gap-1 ml-2 ${activeTab === 'usuarios' ? 'bg-red-600 text-white shadow-md' : 'bg-red-100 text-red-700 hover:bg-red-200'}`}
               >
                 <ShieldCheck size={16} /> Permisos
@@ -1205,8 +1207,8 @@ export default function App() {
             )}
 
             {/* CERRAR SESIÓN */}
-            <button 
-              onClick={handleLogout} 
+            <button
+              onClick={handleLogout}
               className="px-4 py-2 rounded-md font-bold transition-colors text-sm flex items-center gap-1 bg-red-100 text-red-700 hover:bg-red-200 ml-4"
             >
               <User size={16} /> Cerrar Sesión
@@ -2281,7 +2283,7 @@ export default function App() {
                         </div>
                         <div className="p-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 bg-white">
                           {/* Generamos los botones manualmente para asegurarnos de que existan */}
-                          {['ingreso_cc', 'control_flota', 'base_de_datos', 'cierre'].map((llave) => (
+                          {['ingresar_reserva', 'ingreso_cc', 'control_flota', 'base_de_datos', 'cierre'].map((llave) => (
                             <label key={llave} className="flex items-center gap-3 cursor-pointer p-2 hover:bg-purple-50 rounded border border-transparent hover:border-purple-200 transition-colors">
                               <input
                                 type="checkbox"
