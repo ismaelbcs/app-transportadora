@@ -1104,6 +1104,15 @@ export default function App() {
             <button onClick={() => setActiveTab('cierre')} className={`px-4 py-2 rounded-md font-medium transition-colors text-sm ${activeTab === 'cierre' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}>
               Cierre
             </button>
+            {/* --- BOTÓN SECRETO DE ADMIN --- */}
+            {userProfile?.rol === 'admin' && (
+              <button
+                onClick={() => setActiveTab('usuarios')}
+                className={`px-4 py-2 rounded-md font-bold transition-colors text-sm flex items-center gap-1 ${activeTab === 'usuarios' ? 'bg-red-600 text-white shadow-md' : 'bg-red-100 text-red-700 hover:bg-red-200'}`}
+              >
+                <ShieldCheck size={16} /> Permisos
+              </button>
+            )}
             <button
               onClick={handleLogout}
               className="px-4 py-2 rounded-md font-bold transition-colors text-sm flex items-center gap-1 bg-red-100 text-red-700 hover:bg-red-200 ml-4"
@@ -2071,6 +2080,42 @@ export default function App() {
                   })()}
                 </tbody>
               </table>
+            </div>
+          </div>
+        )}
+        {/* --- NUEVA PESTAÑA: ADMINISTRACIÓN DE USUARIOS --- */}
+        {activeTab === 'usuarios' && userProfile?.rol === 'admin' && (
+          <div className="bg-white rounded-lg shadow-md p-6 border-t-4 border-red-600">
+            <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+              <ShieldCheck className="text-red-600" /> Administración de Usuarios y Permisos
+            </h2>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+              {/* Columna Izquierda: Lista de Usuarios */}
+              <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                <h3 className="font-semibold text-gray-700 border-b pb-2 mb-4">Usuarios del Sistema</h3>
+
+                <div className="text-sm text-gray-500 mb-4 italic">
+                  Aquí cargaremos la lista de choferes...
+                </div>
+
+                <button className="mt-4 w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 text-sm font-medium transition-colors shadow-sm">
+                  + Agregar Nuevo Chofer
+                </button>
+              </div>
+
+              {/* Columna Derecha: Editor de Permisos (Acordeones) */}
+              <div className="lg:col-span-2 bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+                <h3 className="font-semibold text-gray-700 border-b pb-2 mb-4">Ajustes y Permisos</h3>
+
+                <div className="text-center py-12 text-gray-400">
+                  <ShieldCheck size={48} className="mx-auto mb-3 opacity-30" />
+                  <p className="text-lg font-medium text-gray-500">Selecciona un usuario de la lista</p>
+                  <p className="text-sm">Para ver y editar los botones a los que tiene acceso.</p>
+                </div>
+              </div>
+
             </div>
           </div>
         )}
