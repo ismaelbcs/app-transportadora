@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, Save, Download, Send, Printer, Calendar, Clock, MapPin, Users, Car, FileText, CheckCircle, AlertCircle, X, Database, Headset, Fuel, Plane, User, Info, Phone, Mail, Globe, Map, ShieldCheck, Ticket, Play, Flag } from 'lucide-react';
+import { Search, Save, Download, Send, Printer, Calendar, Clock, Wallet, DollarSign, CalendarCheck, MapPin, Users, Car, FileText, CheckCircle, AlertCircle, X, Database, Headset, Fuel, Plane, User, Info, Phone, Mail, Globe, Map, ShieldCheck, Ticket, Play, Flag } from 'lucide-react';
 import { supabase } from './supabaseClient';
 
 const SuvIcon = ({ size = 24, className = "" }) => (
@@ -117,6 +117,7 @@ const LISTA_HOTELES = [
 
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userProfile, setUserProfile] = useState(null);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -139,6 +140,11 @@ export default function App() {
 
   const [callCenterServices, setCallCenterServices] = useState([]);
   const [cierreFilters, setCierreFilters] = useState({ startDate: '', endDate: '', vehiculo: '', isCallCenter: false });
+
+  // --- MÓDULO DE DEUDAS Y PRÉSTAMOS ---
+  const initialDebtState = { chofer: '', concepto: '', montoTotal: '', quincenasTotales: 1, fechaInicio: new Date().toISOString().split('T')[0] };
+  const [driverDebts, setDriverDebts] = useState([]);
+  const [currentDebt, setCurrentDebt] = useState(initialDebtState);
 
   // Nuevo Formulario de ingreso para el Call Center
   const [ccInput, setCcInput] = useState('');
@@ -220,6 +226,16 @@ export default function App() {
       }));
       setFleetExpenses(formattedFleet);
 
+      // 4. Traer Deudas de Choferes
+      const { data: deudasData, error: deudasError } = await supabase.from('deudas_choferes').select('*');
+      if (deudasError) console.error(deudasError);
+      else {
+        setDriverDebts((deudasData || []).map(d => ({
+          id: d.id, chofer: d.chofer, concepto: d.concepto, montoTotal: d.monto_total,
+          quincenasTotales: d.quincenas_totales, quincenasPagadas: d.quincenas_pagadas, fechaInicio: d.fecha_inicio
+        })));
+      }
+
     } catch (error) {
       console.error("Error descargando datos de Supabase:", error);
       showToast('Error al conectar con la base de datos en la nube', 'error');
@@ -280,7 +296,7 @@ export default function App() {
       if (error) throw error;
 
       setUserProfile(data); // Guardamos los permisos en la memoria
-      
+
       // --- SEMÁFORO DE REDIRECCIÓN ---
       // Si es admin o tiene permiso de ingresar reservas, lo mandamos al Formulario
       if (data.rol === 'admin' || data.permisos?.vistas?.ingresar_reserva) {
@@ -1000,6 +1016,46 @@ export default function App() {
     }
   };
 
+  const saveDebt = async () => {
+    if (!currentDebt.chofer || !currentDebt.montoTotal || !currentDebt.concepto) {
+      return showToast('Llena el chofer, concepto y monto', 'error');
+    }
+    const newDebt = {
+      id: `DEUDA-${Date.now().toString().slice(-5)}`,
+      chofer: currentDebt.chofer,
+      concepto: currentDebt.concepto,
+      monto_total: parseFloat(currentDebt.montoTotal),
+      quincenas_totales: parseInt(currentDebt.quincenasTotales) || 1,
+      quincenas_pagadas: 0,
+      fecha_inicio: currentDebt.fechaInicio
+    };
+    try {
+      showToast('Guardando préstamo/deuda...');
+      const { error } = await supabase.from('deudas_choferes').insert([newDebt]);
+      if (error) throw error;
+      showToast('¡Deuda registrada!');
+      setCurrentDebt(initialDebtState);
+      fetchAllData();
+    } catch (error) {
+      console.error(error);
+      showToast('Error al guardar', 'error');
+    }
+  };
+
+  const registrarAbonoQuincena = async (id, pagadasActuales, totales) => {
+    if (pagadasActuales >= totales) return showToast('Esta deuda ya está pagada al 100%', 'success');
+    if (window.confirm('¿Confirmas que el chofer ya pagó la cuota de esta quincena?')) {
+      try {
+        const { error } = await supabase.from('deudas_choferes').update({ quincenas_pagadas: pagadasActuales + 1 }).eq('id', id);
+        if (error) throw error;
+        showToast('¡Abono registrado con éxito!');
+        fetchAllData();
+      } catch (error) {
+        showToast('Error al registrar abono', 'error');
+      }
+    }
+  };
+
   const handleCierreCobroChange = (id, newCobro) => {
     const updated = services.map(s => s.id === id ? { ...s, cobro: newCobro } : s);
     setServices(updated);
@@ -1192,6 +1248,13 @@ export default function App() {
             {(userProfile?.rol === 'admin' || userProfile?.permisos?.vistas?.control_flota) && (
               <button onClick={() => setActiveTab('flota')} className={`px-4 py-2 rounded-md font-bold transition-colors text-sm flex items-center gap-1 ${activeTab === 'flota' ? 'bg-orange-500 text-white' : 'bg-orange-100 text-orange-700 hover:bg-orange-200'}`}>
                 <Fuel size={16} /> Control Flota
+              </button>
+            )}
+
+            {/* NÓMINA / DEUDAS: Candado por Rol o Permiso */}
+            {(userProfile?.rol === 'admin' || userProfile?.permisos?.vistas?.deudas) && (
+              <button onClick={() => setActiveTab('deudas')} className={`px-4 py-2 rounded-md font-bold transition-colors text-sm flex items-center gap-1 ${activeTab === 'deudas' ? 'bg-emerald-600 text-white' : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'}`}>
+                <Wallet size={16} /> Nómina / Deudas
               </button>
             )}
 
@@ -2263,6 +2326,114 @@ export default function App() {
             </div>
           </div>
         )}
+
+        { }
+        {activeTab === 'deudas' && (
+          <div className="bg-white rounded-lg shadow-md p-6 border-t-4 border-emerald-600">
+            <h2 className="text-2xl font-bold text-emerald-900 flex items-center gap-2 mb-6">
+              <Wallet className="text-emerald-600" /> Control de Deudas y Préstamos
+            </h2>
+
+            {/* FORMULARIO DE INGRESO */}
+            <div className="bg-emerald-50 p-6 rounded-lg border border-emerald-100 mb-8">
+              <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Chofer</label>
+                  <input type="text" placeholder="Ej. Juan Pérez" value={currentDebt.chofer} onChange={e => setCurrentDebt({ ...currentDebt, chofer: e.target.value })} className="block w-full border border-gray-300 rounded-md p-2 text-sm" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Concepto</label>
+                  <input type="text" placeholder="Caseta, Día faltado, Préstamo..." value={currentDebt.concepto} onChange={e => setCurrentDebt({ ...currentDebt, concepto: e.target.value })} className="block w-full border border-gray-300 rounded-md p-2 text-sm" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Monto Total ($)</label>
+                  <input type="number" min="0" value={currentDebt.montoTotal} onChange={e => setCurrentDebt({ ...currentDebt, montoTotal: e.target.value })} className="block w-full border border-gray-300 rounded-md p-2 text-sm font-bold text-emerald-700" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Diferir a (Quincenas)</label>
+                  <input type="number" min="1" value={currentDebt.quincenasTotales} onChange={e => setCurrentDebt({ ...currentDebt, quincenasTotales: e.target.value })} className="block w-full border border-gray-300 rounded-md p-2 text-sm" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Fecha de Inicio</label>
+                  <input type="date" value={currentDebt.fechaInicio} onChange={e => setCurrentDebt({ ...currentDebt, fechaInicio: e.target.value })} className="block w-full border border-gray-300 rounded-md p-2 text-sm" />
+                </div>
+              </div>
+              <div className="mt-4 flex justify-end">
+                <button onClick={saveDebt} className="bg-emerald-600 text-white px-6 py-2 rounded-md hover:bg-emerald-700 shadow-sm font-medium transition-colors flex items-center gap-2">
+                  <Save size={18} /> Registrar Deuda
+                </button>
+              </div>
+            </div>
+
+            {/* TABLA DE CONTROL */}
+            <div className="flex-1 overflow-x-auto">
+              <table className="min-w-full text-left text-sm whitespace-nowrap">
+                <thead className="bg-gray-50 border-b text-gray-600">
+                  <tr>
+                    <th className="p-3">Chofer</th><th className="p-3">Concepto</th><th className="p-3 text-center">Progreso</th>
+                    <th className="p-3 text-right">Monto Quincena</th><th className="p-3 text-right">Deuda Restante</th>
+                    <th className="p-3 text-center">Término Estimado</th><th className="p-3 text-center">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {driverDebts.length === 0 ? <tr><td colSpan="7" className="text-center p-8 text-gray-500">No hay deudas activas.</td></tr> : [...driverDebts].reverse().map(row => {
+                    const cuotaQuincenal = row.montoTotal / row.quincenasTotales;
+                    const saldoRestante = row.montoTotal - (cuotaQuincenal * row.quincenasPagadas);
+                    const estaPagado = row.quincenasPagadas >= row.quincenasTotales;
+
+                    // Cálculo de fecha final (Quincenas totales * 15 días)
+                    const fechaFin = new Date(row.fechaInicio);
+                    fechaFin.setDate(fechaFin.getDate() + (row.quincenasTotales * 15));
+                    const terminoStr = fechaFin.toLocaleDateString('es-ES', { month: 'short', day: 'numeric', year: 'numeric' });
+
+                    return (
+                      <tr key={row.id} className={estaPagado ? 'bg-gray-100 opacity-60' : 'hover:bg-emerald-50'}>
+                        <td className="p-3 font-bold uppercase">{row.chofer}</td>
+                        <td className="p-3">
+                          <div>{row.concepto}</div>
+                          <div className="text-xs text-gray-400">Total original: ${row.montoTotal}</div>
+                        </td>
+                        <td className="p-3 text-center font-medium">
+                          <span className={`px-2 py-1 rounded-full text-xs ${estaPagado ? 'bg-green-200 text-green-800' : 'bg-blue-100 text-blue-800'}`}>
+                            {row.quincenasPagadas} de {row.quincenasTotales} Qnas
+                          </span>
+                        </td>
+                        <td className="p-3 text-right font-bold text-orange-600">
+                          {estaPagado ? '--' : `$${cuotaQuincenal.toFixed(2)}`}
+                        </td>
+                        <td className="p-3 text-right font-black text-red-600">
+                          ${saldoRestante.toFixed(2)}
+                        </td>
+                        <td className="p-3 text-center text-xs flex flex-col items-center justify-center">
+                          <CalendarCheck size={14} className="text-gray-400 mb-1" />
+                          {terminoStr}
+                        </td>
+                        <td className="p-3 text-center">
+                          <div className="flex justify-center gap-2">
+                            {!estaPagado && (
+                              <button onClick={() => registrarAbonoQuincena(row.id, row.quincenasPagadas, row.quincenasTotales)} className="bg-emerald-100 text-emerald-700 px-3 py-1 rounded text-xs font-bold hover:bg-emerald-200 transition-colors flex items-center gap-1" title="Marcar quincena actual como pagada">
+                                <DollarSign size={14} /> Cobrar Qna
+                              </button>
+                            )}
+                            <button onClick={async () => {
+                              if (window.confirm('¿Borrar este registro?')) {
+                                await supabase.from('deudas_choferes').delete().eq('id', row.id);
+                                setDriverDebts(driverDebts.filter(d => d.id !== row.id));
+                              }
+                            }} className="p-1 text-red-500 hover:bg-red-100 rounded" title="Eliminar Deuda">
+                              <X size={16} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
         {/* --- NUEVA PESTAÑA: ADMINISTRACIÓN DE USUARIOS --- */}
         {activeTab === 'usuarios' && userProfile?.rol === 'admin' && (
           <div className="bg-white rounded-lg shadow-md p-6 border-t-4 border-red-600">
