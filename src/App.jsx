@@ -140,6 +140,9 @@ export default function App() {
   const [callCenterServices, setCallCenterServices] = useState([]);
   const [cierreFilters, setCierreFilters] = useState({ startDate: '', endDate: '', vehiculo: '', isCallCenter: false });
 
+  const [deudasChoferes, setDeudasChoferes] = useState([]);
+  const [currentDeuda, setCurrentDeuda] = useState({ chofer: '', concepto: 'Préstamo', montoTotal: '', quincenasTotales: 1 });
+
   // Nuevo Formulario de ingreso para el Call Center
   const [ccInput, setCcInput] = useState('');
 
@@ -219,6 +222,17 @@ export default function App() {
         id: g.id, fecha: g.fecha, chofer: g.chofer, vehiculo: g.vehiculo, gasolina: g.gasolina, casetas: g.casetas, gastoTotal: g.gasto_total
       }));
       setFleetExpenses(formattedFleet);
+
+      // 4. Traer Deudas de Choferes
+      const { data: deudasData, error: deudasError } = await supabase.from('deudas_choferes').select('*');
+      if (deudasError) throw deudasError;
+
+      const formattedDeudas = (deudasData || []).map(d => ({
+        id: d.id, fechaRegistro: d.fecha_registro, chofer: d.chofer, concepto: d.concepto,
+        montoTotal: parseFloat(d.monto_total), quincenasTotales: parseInt(d.quincenas_totales),
+        montoQuincenal: parseFloat(d.monto_quincenal), quincenasPagadas: parseInt(d.quincenas_pagadas), activa: d.activa
+      }));
+      setDeudasChoferes(formattedDeudas);
 
     } catch (error) {
       console.error("Error descargando datos de Supabase:", error);
@@ -907,6 +921,80 @@ export default function App() {
     }
   };
 
+  // --- MÓDULO DE DEUDAS ---
+  const handleDeudaChange = (e) => {
+    const { name, value } = e.target;
+    setCurrentDeuda(prev => ({ ...prev, [name]: value }));
+  };
+
+  const saveDeuda = async () => {
+    const total = parseFloat(currentDeuda.montoTotal) || 0;
+    const quincenas = parseInt(currentDeuda.quincenasTotales) || 1;
+
+    if (!currentDeuda.chofer || total <= 0) return showToast('Llena el chofer y un monto válido', 'error');
+
+    const montoQuincenal = total / quincenas;
+
+    const newDeuda = {
+      id: `DEUDA-${Date.now().toString().slice(-5)}`,
+      fecha_registro: new Date().toISOString().split('T')[0],
+      chofer: currentDeuda.chofer,
+      concepto: currentDeuda.concepto,
+      monto_total: total,
+      quincenas_totales: quincenas,
+      monto_quincenal: montoQuincenal,
+      quincenas_pagadas: 0,
+      activa: true
+    };
+
+    try {
+      showToast('Guardando deuda...');
+      const { error } = await supabase.from('deudas_choferes').insert([newDeuda]);
+      if (error) throw error;
+      
+      setCurrentDeuda({ chofer: '', concepto: 'Préstamo', montoTotal: '', quincenasTotales: 1 });
+      fetchAllData(); // Recargamos
+      showToast('¡Deuda registrada con éxito!');
+    } catch (error) {
+      showToast('Error al registrar deuda', 'error');
+    }
+  };
+
+  const registrarAbonoQuincena = async (deuda) => {
+    const nuevasPagadas = deuda.quincenasPagadas + 1;
+    const sigueActiva = nuevasPagadas < deuda.quincenasTotales;
+
+    try {
+      showToast('Registrando pago...');
+      const { error } = await supabase.from('deudas_choferes')
+        .update({ quincenas_pagadas: nuevasPagadas, activa: sigueActiva })
+        .eq('id', deuda.id);
+      
+      if (error) throw error;
+      fetchAllData();
+      showToast(`Abono registrado. ${!sigueActiva ? '¡Deuda saldada!' : ''}`);
+    } catch (error) {
+      showToast('Error al procesar pago', 'error');
+    }
+  };
+
+  // Función matemática para calcular quincenas exactas (Días 15 y Fin de mes)
+  const calcularFechaQuincena = (fechaInicio, quincenasSumar) => {
+    let fecha = new Date(fechaInicio + 'T12:00:00'); // Evitar desfase de zona horaria
+    for (let i = 0; i < quincenasSumar; i++) {
+      let dia = fecha.getDate();
+      if (dia <= 15) {
+        // Si estamos antes del 15, la próxima es fin de mes
+        fecha = new Date(fecha.getFullYear(), fecha.getMonth() + 1, 0); 
+      } else {
+        // Si estamos a fin de mes, la próxima es el 15 del mes siguiente
+        fecha = new Date(fecha.getFullYear(), fecha.getMonth() + 1, 15);
+      }
+    }
+    return fecha.toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' });
+  };
+  // -------------------------
+
   const processCallCenterInput = async () => {
     if (!ccInput.trim()) return showToast('El mensaje está vacío', 'error');
 
@@ -1192,6 +1280,13 @@ export default function App() {
             {(userProfile?.rol === 'admin' || userProfile?.permisos?.vistas?.control_flota) && (
               <button onClick={() => setActiveTab('flota')} className={`px-4 py-2 rounded-md font-bold transition-colors text-sm flex items-center gap-1 ${activeTab === 'flota' ? 'bg-orange-500 text-white' : 'bg-orange-100 text-orange-700 hover:bg-orange-200'}`}>
                 <Fuel size={16} /> Control Flota
+              </button>
+            )}
+
+            {/* CONTROL DEUDAS: Candado */}
+            {(userProfile?.rol === 'admin' || userProfile?.permisos?.vistas?.deudas) && (
+              <button onClick={() => setActiveTab('deudas')} className={`px-4 py-2 rounded-md font-bold transition-colors text-sm flex items-center gap-1 ${activeTab === 'deudas' ? 'bg-emerald-600 text-white' : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'}`}>
+                <Database size={16} /> Deudas y Préstamos
               </button>
             )}
 
@@ -1646,6 +1741,133 @@ export default function App() {
                 </tbody>
               </table>
             </div>
+          </div>
+        )}
+        
+        {/* --- PESTAÑA: DEUDAS Y PRÉSTAMOS --- */}
+        {activeTab === 'deudas' && (
+          <div className="bg-white rounded-lg shadow-md p-6 border-t-4 border-emerald-600">
+            <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2 mb-6">
+              <Database className="text-emerald-600" /> Control de Deudas, Descuentos y Préstamos
+            </h2>
+
+            {/* Formulario de Ingreso */}
+            <div className="bg-emerald-50 p-6 rounded-lg border border-emerald-100 mb-8">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                <div>
+                  <label className="block text-xs font-bold text-emerald-800 mb-1">Chofer</label>
+                  <input type="text" name="chofer" value={currentDeuda.chofer} onChange={handleDeudaChange} placeholder="Nombre del chofer" className="block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm focus:ring-emerald-500 focus:border-emerald-500" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-emerald-800 mb-1">Concepto / Razón</label>
+                  <select name="concepto" value={currentDeuda.concepto} onChange={handleDeudaChange} className="block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm focus:ring-emerald-500 focus:border-emerald-500 bg-white">
+                    <option value="Préstamo Personal">Préstamo Personal</option>
+                    <option value="Día Descontado">Día Descontado</option>
+                    <option value="Caseta no reportada">Caseta no reportada</option>
+                    <option value="Daño a vehículo">Daño a vehículo</option>
+                    <option value="Otro">Otro descuento</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-emerald-800 mb-1">Monto Total a Pagar ($)</label>
+                  <input type="number" name="montoTotal" min="0" step="0.5" value={currentDeuda.montoTotal} onChange={handleDeudaChange} placeholder="Ej. 1500" className="block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm font-bold text-red-600 focus:ring-emerald-500 focus:border-emerald-500" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-emerald-800 mb-1">¿A cuántas quincenas?</label>
+                  <input type="number" name="quincenasTotales" min="1" value={currentDeuda.quincenasTotales} onChange={handleDeudaChange} className="block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm focus:ring-emerald-500 focus:border-emerald-500" />
+                </div>
+              </div>
+              <div className="mt-4 flex flex-col md:flex-row justify-between items-center bg-white p-3 rounded border border-emerald-200">
+                <div className="text-sm font-semibold text-gray-700">
+                  Descuento por quincena: 
+                  <span className="text-lg text-emerald-600 ml-2 font-black">
+                    ${currentDeuda.montoTotal ? (parseFloat(currentDeuda.montoTotal) / parseInt(currentDeuda.quincenasTotales || 1)).toFixed(2) : '0.00'}
+                  </span>
+                </div>
+                <button onClick={saveDeuda} className="mt-3 md:mt-0 bg-emerald-600 text-white px-6 py-2 rounded-md hover:bg-emerald-700 shadow-sm font-bold transition-colors flex items-center gap-2">
+                  <Save size={18} /> Registrar Deuda
+                </button>
+              </div>
+            </div>
+
+            {/* Tabla de Control de Deudas */}
+            <div className="flex-1 overflow-x-auto w-full">
+              <h3 className="text-lg font-bold text-gray-700 mb-4 border-b pb-2">Deudas Activas (Por Cobrar)</h3>
+              <table className="min-w-full text-left text-sm whitespace-nowrap">
+                <thead className="bg-gray-50">
+                  <tr className="text-gray-600 border-b">
+                    <th className="p-3">Chofer</th><th className="p-3">Concepto</th><th className="p-3 text-right">Monto Total</th>
+                    <th className="p-3 text-center">Quincenas</th><th className="p-3 text-right bg-red-50 text-red-800 font-bold">Descuento Próxima Quincena</th>
+                    <th className="p-3">Fecha de Liquidación</th><th className="p-3 text-center">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {deudasChoferes.filter(d => d.activa).length === 0 ? (
+                    <tr><td colSpan="7" className="text-center p-8 text-gray-500 font-medium">No hay deudas activas. ¡Todos al corriente! 🎉</td></tr>
+                  ) : deudasChoferes.filter(d => d.activa).map(row => {
+                    const quincenasRestantes = row.quincenasTotales - row.quincenasPagadas;
+                    // Calculamos la fecha exacta del último pago usando nuestra súper función
+                    const fechaFin = calcularFechaQuincena(row.fechaRegistro, row.quincenasTotales);
+                    
+                    return (
+                      <tr key={row.id} className="hover:bg-emerald-50 transition-colors">
+                        <td className="p-3 font-bold text-gray-800 uppercase">{row.chofer}</td>
+                        <td className="p-3">
+                          <span className="text-xs font-semibold bg-gray-200 px-2 py-1 rounded">{row.concepto}</span>
+                        </td>
+                        <td className="p-3 text-right font-medium text-gray-600">${row.montoTotal.toFixed(2)}</td>
+                        <td className="p-3 text-center">
+                          <div className="text-xs font-bold text-emerald-600">{row.quincenasPagadas} pagadas</div>
+                          <div className="text-xs text-red-500">faltan {quincenasRestantes}</div>
+                        </td>
+                        <td className="p-3 text-right bg-red-50 text-red-700 font-black text-base">
+                          ${row.montoQuincenal.toFixed(2)}
+                        </td>
+                        <td className="p-3 font-medium text-gray-600 text-sm flex items-center gap-1">
+                          <Calendar size={14} className="text-emerald-500"/> {fechaFin}
+                        </td>
+                        <td className="p-3 text-center">
+                          <button
+                            onClick={() => {
+                              if (window.confirm(`¿Confirmas el descuento de $${row.montoQuincenal.toFixed(2)} a ${row.chofer} en esta quincena?`)) {
+                                registrarAbonoQuincena(row);
+                              }
+                            }}
+                            className="bg-emerald-100 text-emerald-700 hover:bg-emerald-200 px-3 py-1 rounded font-bold text-xs shadow-sm transition-colors"
+                          >
+                            ✔️ Registrar Pago Quincena
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            
+            {/* Historial de Pagadas */}
+            <div className="mt-12 flex-1 overflow-x-auto w-full opacity-60 hover:opacity-100 transition-opacity">
+              <h3 className="text-md font-bold text-gray-500 mb-4 border-b pb-2">Historial de Deudas Liquidadas</h3>
+              <table className="min-w-full text-left text-sm whitespace-nowrap">
+                <thead className="bg-gray-50">
+                  <tr className="text-gray-400 border-b">
+                    <th className="p-2">Chofer</th><th className="p-2">Concepto</th><th className="p-2">Monto Total</th><th className="p-2">Estado</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {deudasChoferes.filter(d => !d.activa).length === 0 ? (
+                    <tr><td colSpan="4" className="text-center p-4 text-gray-400">No hay historial.</td></tr>
+                  ) : deudasChoferes.filter(d => !d.activa).map(row => (
+                    <tr key={row.id}>
+                      <td className="p-2 font-medium">{row.chofer}</td><td className="p-2">{row.concepto}</td>
+                      <td className="p-2">${row.montoTotal.toFixed(2)}</td>
+                      <td className="p-2"><span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded font-bold">Pagada</span></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
           </div>
         )}
 
