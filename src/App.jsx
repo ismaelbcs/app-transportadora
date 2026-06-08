@@ -213,10 +213,10 @@ export default function App() {
       setServices(formattedServices);
 
       // 2. Traer Call Center
-      const { data: ccData, error: ccError } = await supabase
-        .from('call_center')
-        .select('*');
+      // --- ASEGÚRATE DE QUE TU BLOQUE ORIGINAL QUEDE ASÍ ---
+      const { data: ccData, error: ccError } = await supabase.from("call_center").select("*");
       if (ccError) throw ccError;
+      setCallCenterData(ccData || []); // <-- Lo más importante es que tenga este setCallCenterData
 
       const formattedCC = (ccData || []).map(cc => ({
         id: cc.id, fechaSistema: cc.fecha_sistema, fechaCliente: cc.fecha_cliente,
@@ -252,13 +252,6 @@ export default function App() {
         .select('*');
       if (gastosError) console.error("Error flota:", gastosError);
       else setGastosFlota(gastosData || []);
-
-      // --- DESCARGAR CALL CENTER ---
-      const { data: ccData, error: ccError } = await supabase
-        .from('call_center')
-        .select('*');
-      if (ccError) console.error("Error CC:", ccError);
-      else setCallCenterData(ccData || []);
 
     } catch (error) {
       console.error("Error descargando datos de Supabase:", error);
