@@ -146,6 +146,12 @@ export default function App() {
   const [deudasChoferes, setDeudasChoferes] = useState([]);
   const [currentDeuda, setCurrentDeuda] = useState({ chofer: '', concepto: 'Préstamo', montoTotal: '', quincenasTotales: 1 });
 
+  // --- VARIABLES DEL CIERRE AVANZADO ---
+  const [cierreFiltroTipo, setCierreFiltroTipo] = useState('general'); // 'general', 'callcenter', 'gastos'
+  const [cierreFiltroInicio, setCierreFiltroInicio] = useState('');
+  const [cierreFiltroFin, setCierreFiltroFin] = useState('');
+  const [cierreFiltroVehiculo, setCierreFiltroVehiculo] = useState('');
+
   // Nuevo Formulario de ingreso para el Call Center
   const [ccInput, setCcInput] = useState('');
 
@@ -2412,122 +2418,197 @@ export default function App() {
         )}
 
         { }
+        {/* --- PESTAÑA: CIERRE Y REPORTES FINANCIEROS --- */}
         {activeTab === 'cierre' && (
-          <div className="bg-white rounded-lg shadow-md flex flex-col h-[80vh]">
-            <div className="p-4 border-b bg-gray-50 rounded-t-lg flex justify-between items-center flex-wrap gap-4">
-              <div className="flex items-center gap-4">
-                <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-                  <Database className="text-blue-600" /> Base de Datos General
-                </h2>
+          <div className="bg-white rounded-lg shadow-md p-6 border-t-4 border-blue-800">
+            <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2 mb-6">
+              <Database className="text-blue-800" /> Reportes y Cierres Financieros
+            </h2>
+
+            {/* PANEL DE FILTROS */}
+            <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 mb-6 flex flex-wrap gap-4 items-end">
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1 uppercase">Origen de Datos</label>
+                <select
+                  value={cierreFiltroTipo}
+                  onChange={(e) => setCierreFiltroTipo(e.target.value)}
+                  className="block w-48 border border-gray-300 rounded-md shadow-sm p-2 text-sm font-bold text-blue-800 focus:ring-blue-500 focus:border-blue-500 cursor-pointer"
+                >
+                  <option value="general">Ingresos: Base General</option>
+                  <option value="callcenter">Ingresos: Call Center</option>
+                  <option value="gastos">Egresos: Gastos de Flota</option>
+                </select>
               </div>
 
-              {/* NUEVO BUSCADOR GLOBAL */}
-              <div className="flex-1 w-full md:max-w-md relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Search className="h-4 w-4 text-gray-400" />
-                </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1 uppercase">Fecha Inicial</label>
                 <input
-                  type="text"
-                  placeholder="Buscar reserva, nombre, hotel, vehículo..."
-                  value={dbSearchTerm}
-                  onChange={(e) => setDbSearchTerm(e.target.value)}
-                  className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm shadow-sm"
+                  type="date"
+                  value={cierreFiltroInicio}
+                  onChange={(e) => setCierreFiltroInicio(e.target.value)}
+                  className="block w-40 border border-gray-300 rounded-md shadow-sm p-2 text-sm focus:ring-blue-500 focus:border-blue-500 cursor-pointer"
                 />
               </div>
 
-              <div className="flex gap-2">
-                <button onClick={descargarRespaldoExcel} className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 flex items-center gap-2 font-medium transition-colors shadow-sm">
-                  <Download size={18} /> Respaldo Excel
-                </button>
-                <button onClick={saveDatabaseUpdates} className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center gap-2 font-medium transition-colors shadow-sm">
-                  <Save size={18} /> Guardar Cambios
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1 uppercase">Fecha Final</label>
+                <input
+                  type="date"
+                  value={cierreFiltroFin}
+                  onChange={(e) => setCierreFiltroFin(e.target.value)}
+                  className="block w-40 border border-gray-300 rounded-md shadow-sm p-2 text-sm focus:ring-blue-500 focus:border-blue-500 cursor-pointer"
+                />
+              </div>
+
+              {/* Filtro de Vehículo (Solo visible para General y Gastos) */}
+              {(cierreFiltroTipo === 'general' || cierreFiltroTipo === 'gastos') && (
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1 uppercase">Vehículo</label>
+                  <select
+                    value={cierreFiltroVehiculo}
+                    onChange={(e) => setCierreFiltroVehiculo(e.target.value)}
+                    className="block w-40 border border-gray-300 rounded-md shadow-sm p-2 text-sm focus:ring-blue-500 focus:border-blue-500 cursor-pointer"
+                  >
+                    <option value="">Todos los vehículos</option>
+                    <option value="Expedition">Expedition</option>
+                    <option value="Hiace">Hiace</option>
+                  </select>
+                </div>
+              )}
+
+              <div className="ml-auto">
+                <button
+                  onClick={() => {
+                    setCierreFiltroInicio(''); setCierreFiltroFin(''); setCierreFiltroVehiculo('');
+                  }}
+                  className="text-xs text-blue-600 hover:text-blue-800 font-bold underline"
+                >
+                  Limpiar Filtros
                 </button>
               </div>
             </div>
 
-            <div id="cierre-container" className="flex-1 overflow-x-auto overflow-y-auto p-4 w-full">
-              <table className="min-w-max w-full text-left text-sm whitespace-nowrap">
-                <thead className="sticky top-0 bg-white shadow-sm z-10">
-                  <tr className={`border-b ${cierreFilters.isCallCenter ? 'text-purple-700 bg-purple-50' : 'text-gray-600 bg-gray-50'}`}>
-                    {cierreFilters.isCallCenter ? (
-                      <>
-                        <th className="p-2">ID Registro</th><th className="p-2">Fecha Sistema</th><th className="p-2">Fecha Cliente</th>
-                        <th className="p-2">Cliente</th><th className="p-2">Reserva</th><th className="p-2">Acción</th>
-                        <th className="p-2">Comisión</th><th className="p-2">Mensaje Crudo</th>
-                      </>
-                    ) : (
-                      <>
-                        <th className="p-2">Fecha</th><th className="p-2">Hora</th><th className="p-2">Reserva</th><th className="p-2">Nombre</th>
-                        <th className="p-2">Tipo</th><th className="p-2">Hotel</th><th className="p-2">Cobro</th><th className="p-2">Vehículo</th><th className="p-2">Chofer</th>
-                      </>
-                    )}
-                  </tr>
-                </thead>
-                <tbody className="divide-y">
-                  {(() => {
-                    const dataSource = cierreFilters.isCallCenter ? callCenterServices : services;
-                    const filtered = dataSource.filter(s => {
-                      let match = true;
-                      if (cierreFilters.isCallCenter) {
-                        // Filtramos usando la fecha exacta en la que se ingresó al sistema (fechaSistema)
-                        if (cierreFilters.startDate && s.fechaSistema < cierreFilters.startDate) match = false;
-                        if (cierreFilters.endDate && s.fechaSistema > cierreFilters.endDate) match = false;
-                      } else {
-                        if (cierreFilters.startDate && s.fecha < cierreFilters.startDate) match = false;
-                        if (cierreFilters.endDate && s.fecha > cierreFilters.endDate) match = false;
-                        if (cierreFilters.vehiculo && !(s.vehiculo || '').toLowerCase().includes(cierreFilters.vehiculo.toLowerCase())) match = false;
-                      }
-                      return match;
-                    });
-                    if (filtered.length === 0) return <tr><td colSpan="9" className="text-center p-8 text-gray-500">No hay registros.</td></tr>;
-                    return filtered.map(row => (
-                      <tr key={row.id} className="hover:bg-gray-50">
-                        {cierreFilters.isCallCenter ? (
-                          <>
-                            <td className="p-2 font-mono text-xs">{row.id}</td><td className="p-2">{row.fechaSistema}</td><td className="p-2 font-medium">{row.fechaCliente}</td>
-                            <td className="p-2 font-bold uppercase">{row.cliente}</td><td className="p-2">{row.reserva}</td>
-                            <td className="p-2"><span className={`px-2 py-1 rounded-full text-xs ${row.accion === 'Venta' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'}`}>{row.accion}</span></td>
-                            <td className="p-2">
-                              <div className="flex items-center">
-                                <span className="text-green-700 font-bold mr-1">$</span>
-                                <input
-                                  type="number"
-                                  value={row.comision}
-                                  onChange={(e) => handleCierreComisionChange(row.id, e.target.value)}
-                                  className="w-16 bg-transparent border-b border-dashed border-gray-400 focus:outline-none focus:border-green-600 font-bold text-green-700"
-                                />
-                              </div>
-                            </td>
-                            <td className="p-2 text-xs text-gray-500 max-w-xs truncate" title={row.rawMessage}>{row.rawMessage}</td>
-                          </>
-                        ) : (
-                          <>
-                            <td className="p-2">{row.fecha}</td><td className="p-2 font-semibold">{row.hora}</td><td className="p-2">{row.reserva}</td>
-                            <td className="p-2 font-bold">{row.nombre} {row.apellido}</td><td className="p-2">{row.tipoServicio}</td>
-                            <td className="p-2">{row.hotel}</td>
-                            <td className="p-2">
-                              <div className="flex items-center">
-                                <span className="text-green-700 font-bold mr-1">$</span>
-                                <input
-                                  type="text"
-                                  value={calcularPrecioCierre(row.hotel, row.cobro, cierreFilters.vehiculo) || ''}
-                                  onChange={(e) => handleCierreCobroChange(row.id, e.target.value)}
-                                  placeholder="0.00"
-                                  readOnly={cierreFilters.vehiculo === 'Expedition'}
-                                  title={cierreFilters.vehiculo === 'Expedition' ? 'Precio automático por zona (No afecta BD)' : 'Precio editable'}
-                                  className={`w-20 bg-transparent focus:outline-none font-bold text-green-700 ${cierreFilters.vehiculo === 'Expedition' ? 'border-transparent cursor-default' : 'border-b border-dashed border-gray-400 focus:border-green-600'}`}
-                                />
-                              </div>
-                            </td>
-                            <td className="p-2 font-medium">{row.vehiculo}</td><td className="p-2">{row.chofer}</td>
-                          </>
-                        )}
-                      </tr>
-                    ));
-                  })()}
-                </tbody>
-              </table>
+            {/* TABLA DINÁMICA DE RESULTADOS */}
+            <div className="overflow-x-auto w-full border border-gray-200 rounded-lg">
+              {(() => {
+                // LÓGICA DE FILTRADO DEPENDIENDO DEL TIPO SELECCIONADO
+                let filteredData = [];
+                let totalAmount = 0;
+
+                if (cierreFiltroTipo === 'general') {
+                  filteredData = services.filter(s => {
+                    const passInicio = !cierreFiltroInicio || s.fecha >= cierreFiltroInicio;
+                    const passFin = !cierreFiltroFin || s.fecha <= cierreFiltroFin;
+                    const passVehiculo = !cierreFiltroVehiculo || s.vehiculo === cierreFiltroVehiculo;
+                    return passInicio && passFin && passVehiculo;
+                  });
+                  totalAmount = filteredData.reduce((sum, s) => sum + (parseFloat(s.cobro) || 0), 0);
+
+                  return (
+                    <table className="min-w-full text-left text-sm whitespace-nowrap">
+                      <thead className="bg-blue-50">
+                        <tr className="text-blue-900 border-b">
+                          <th className="p-3">Fecha</th><th className="p-3">Reserva</th><th className="p-3">Nombre</th>
+                          <th className="p-3">Vehículo</th><th className="p-3">Chofer</th><th className="p-3 text-right">Cobro (Ingreso)</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y">
+                        {filteredData.length === 0 ? <tr><td colSpan="6" className="p-4 text-center text-gray-500">No hay servicios en estas fechas.</td></tr> :
+                          filteredData.map(row => (
+                            <tr key={row.id} className="hover:bg-gray-50">
+                              <td className="p-2 font-medium">{row.fecha}</td><td className="p-2">{row.reserva}</td><td className="p-2 uppercase">{row.nombre} {row.apellido}</td>
+                              <td className="p-2">{row.vehiculo}</td><td className="p-2 uppercase text-gray-600">{row.chofer}</td>
+                              <td className="p-2 text-right font-bold text-green-700">${parseFloat(row.cobro || 0).toFixed(2)}</td>
+                            </tr>
+                          ))
+                        }
+                        <tr className="bg-gray-100 border-t-2 border-gray-300">
+                          <td colSpan="5" className="p-3 text-right font-bold text-gray-700 uppercase">Total Ingresos:</td>
+                          <td className="p-3 text-right font-black text-green-800 text-lg">${totalAmount.toFixed(2)}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  );
+                }
+
+                else if (cierreFiltroTipo === 'callcenter') {
+                  // Asumiendo que tienes una variable de estado para los datos del call center (ej. callCenterData)
+                  // Si no la tienes guardada en memoria general, usa el array vacío por ahora
+                  const dataCC = typeof callCenterData !== 'undefined' ? callCenterData : [];
+                  filteredData = dataCC.filter(c => {
+                    const passInicio = !cierreFiltroInicio || c.fecha_sistema >= cierreFiltroInicio;
+                    const passFin = !cierreFiltroFin || c.fecha_sistema <= cierreFiltroFin;
+                    return passInicio && passFin;
+                  });
+                  totalAmount = filteredData.reduce((sum, c) => sum + (parseFloat(c.comision) || 0), 0);
+
+                  return (
+                    <table className="min-w-full text-left text-sm whitespace-nowrap">
+                      <thead className="bg-purple-50">
+                        <tr className="text-purple-900 border-b">
+                          <th className="p-3">Fecha</th><th className="p-3">Reserva</th><th className="p-3">Cliente</th>
+                          <th className="p-3">Acción</th><th className="p-3 text-right">Comisión</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y">
+                        {filteredData.length === 0 ? <tr><td colSpan="5" className="p-4 text-center text-gray-500">No hay registros de Call Center en estas fechas.</td></tr> :
+                          filteredData.map(row => (
+                            <tr key={row.id} className="hover:bg-gray-50">
+                              <td className="p-2 font-medium">{row.fecha_sistema}</td><td className="p-2">{row.reserva}</td><td className="p-2 uppercase">{row.cliente}</td>
+                              <td className="p-2"><span className="px-2 py-1 rounded bg-gray-200 text-xs font-bold">{row.accion}</span></td>
+                              <td className="p-2 text-right font-bold text-purple-700">${parseFloat(row.comision || 0).toFixed(2)}</td>
+                            </tr>
+                          ))
+                        }
+                        <tr className="bg-gray-100 border-t-2 border-gray-300">
+                          <td colSpan="4" className="p-3 text-right font-bold text-gray-700 uppercase">Total Comisiones:</td>
+                          <td className="p-3 text-right font-black text-purple-800 text-lg">${totalAmount.toFixed(2)}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  );
+                }
+
+                else if (cierreFiltroTipo === 'gastos') {
+                  // Asumiendo que tu variable se llama gastosFlota
+                  const dataGastos = typeof gastosFlota !== 'undefined' ? gastosFlota : [];
+                  filteredData = dataGastos.filter(g => {
+                    const passInicio = !cierreFiltroInicio || g.fecha >= cierreFiltroInicio;
+                    const passFin = !cierreFiltroFin || g.fecha <= cierreFiltroFin;
+                    const passVehiculo = !cierreFiltroVehiculo || g.vehiculo === cierreFiltroVehiculo;
+                    return passInicio && passFin && passVehiculo;
+                  });
+                  totalAmount = filteredData.reduce((sum, g) => sum + (parseFloat(g.gasto_total) || 0), 0);
+
+                  return (
+                    <table className="min-w-full text-left text-sm whitespace-nowrap">
+                      <thead className="bg-orange-50">
+                        <tr className="text-orange-900 border-b">
+                          <th className="p-3">Fecha</th><th className="p-3">Vehículo</th><th className="p-3">Chofer</th>
+                          <th className="p-3 text-right">Gasolina</th><th className="p-3 text-right">Casetas</th><th className="p-3 text-right">Gasto Total (Egreso)</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y">
+                        {filteredData.length === 0 ? <tr><td colSpan="6" className="p-4 text-center text-gray-500">No hay gastos registrados en estas fechas.</td></tr> :
+                          filteredData.map(row => (
+                            <tr key={row.id} className="hover:bg-gray-50">
+                              <td className="p-2 font-medium">{row.fecha}</td><td className="p-2">{row.vehiculo}</td><td className="p-2 uppercase">{row.chofer}</td>
+                              <td className="p-2 text-right">${parseFloat(row.gasolina || 0).toFixed(2)}</td><td className="p-2 text-right">${parseFloat(row.casetas || 0).toFixed(2)}</td>
+                              <td className="p-2 text-right font-bold text-red-700">${parseFloat(row.gasto_total || 0).toFixed(2)}</td>
+                            </tr>
+                          ))
+                        }
+                        <tr className="bg-gray-100 border-t-2 border-gray-300">
+                          <td colSpan="5" className="p-3 text-right font-bold text-gray-700 uppercase">Total Egresos:</td>
+                          <td className="p-3 text-right font-black text-red-800 text-lg">${totalAmount.toFixed(2)}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  );
+                }
+              })()}
             </div>
+
           </div>
         )}
         {/* --- NUEVA PESTAÑA: ADMINISTRACIÓN DE USUARIOS --- */}
