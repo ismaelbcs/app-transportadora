@@ -289,9 +289,9 @@ export default function App() {
       showToast('Ingresa tu correo y contraseña', 'error');
       return;
     }
-    
+
     setIsLoading(true);
-    
+
     try {
       // 1. Validar credenciales en Supabase
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -302,15 +302,26 @@ export default function App() {
       if (error) throw error;
 
       showToast('¡Acceso concedido!', 'success');
-      
+
       // 2. Descargar los permisos de este usuario
       await cargarPerfilUsuario(data.user.id);
-      
+
     } catch (error) {
       console.error("Error de login:", error);
       showToast('Correo o contraseña incorrectos', 'error');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+      setIsLoggedIn(false);
+      setUserProfile(null);
+      showToast('Sesión cerrada correctamente', 'success');
+    } catch (error) {
+      console.error("Error al salir:", error);
     }
   };
 
@@ -746,7 +757,7 @@ export default function App() {
     // Si tenemos las 4 coordenadas (Inicio y Fin), trazamos la ruta de A hacia B
     if (latInicio && lonInicio && latFin && lonFin) {
       urlMapa = `https://www.google.com/maps/dir/?api=1&origin=${latInicio},${lonInicio}&destination=${latFin},${lonFin}`;
-    } 
+    }
     // Si solo tenemos el inicio, mostramos un marcador en esa ubicación
     else {
       urlMapa = `https://www.google.com/maps/search/?api=1&query=${latInicio},${lonInicio}`;
@@ -1013,35 +1024,49 @@ export default function App() {
 
   if (!isLoggedIn) {
     return (
-      <div className="min-h-screen bg-gray-200 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gray-200 flex items-center justify-center p-4 font-sans">
         <div className="bg-white p-8 rounded-xl shadow-xl w-full max-w-md flex flex-col items-center border-t-4 border-blue-600">
-          <img src="/logo-oficial.png" alt="Logo Ballard" className="h-24 w-auto mb-6" />
-          <h2 className="text-xl font-bold text-gray-800 mb-6">Acceso al Sistema</h2>
+          <BallardLogo className="h-24 w-auto mb-6" />
+          <h2 className="text-xl font-bold text-gray-800 mb-2">Acceso al Sistema</h2>
+          <p className="text-sm text-gray-500 mb-6">Ingresa tus credenciales para continuar</p>
+
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="Correo electrónico"
+            className="w-full border border-gray-300 rounded-lg p-3 mb-4 text-center focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 shadow-sm"
+            disabled={isLoading}
+          />
 
           <input
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder="Ingresa la contraseña"
-            className="w-full border border-gray-300 rounded-lg p-3 mb-4 text-center text-lg focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 shadow-sm"
+            placeholder="Contraseña"
+            className="w-full border border-gray-300 rounded-lg p-3 mb-6 text-center focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 shadow-sm"
             onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                if (password === 'Ballard2026') setIsLoggedIn(true);
-                else alert('Contraseña incorrecta');
-              }
+              if (e.key === 'Enter') handleLogin();
             }}
+            disabled={isLoading}
           />
 
           <button
-            onClick={() => {
-              if (password === 'Ballard2026') setIsLoggedIn(true);
-              else alert('Contraseña incorrecta');
-            }}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition-colors shadow-md"
+            onClick={handleLogin}
+            disabled={isLoading}
+            className={`w-full text-white font-bold py-3 px-4 rounded-lg transition-colors shadow-md flex justify-center items-center gap-2 ${isLoading ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'}`}
           >
-            Entrar
+            {isLoading ? 'Verificando...' : 'Entrar al Sistema'}
           </button>
         </div>
+
+        {/* Mantenemos el sistema de Toasts visible en la pantalla de Login */}
+        {toast.show && (
+          <div className={`fixed top-4 right-4 z-50 p-4 rounded shadow-lg flex items-center gap-2 text-white ${toast.type === 'error' ? 'bg-red-600' : 'bg-green-600'} transition-opacity`}>
+            {toast.type === 'error' ? <AlertCircle size={20} /> : <CheckCircle size={20} />}
+            <span>{toast.message}</span>
+          </div>
+        )}
       </div>
     );
   }
@@ -1078,6 +1103,12 @@ export default function App() {
             </button>
             <button onClick={() => setActiveTab('cierre')} className={`px-4 py-2 rounded-md font-medium transition-colors text-sm ${activeTab === 'cierre' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}>
               Cierre
+            </button>
+            <button
+              onClick={handleLogout}
+              className="px-4 py-2 rounded-md font-bold transition-colors text-sm flex items-center gap-1 bg-red-100 text-red-700 hover:bg-red-200 ml-4"
+            >
+              <User size={16} /> Cerrar Sesión
             </button>
           </div>
         </div>
