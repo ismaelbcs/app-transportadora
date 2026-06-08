@@ -280,6 +280,17 @@ export default function App() {
       if (error) throw error;
 
       setUserProfile(data); // Guardamos los permisos en la memoria
+      
+      // --- SEMÁFORO DE REDIRECCIÓN ---
+      // Si es admin o tiene permiso de ingresar reservas, lo mandamos al Formulario
+      if (data.rol === 'admin' || data.permisos?.vistas?.ingresar_reserva) {
+        setActiveTab('form');
+      } else {
+        // Si es chofer sin ese permiso, aterriza directo en su Rol Diario
+        setActiveTab('roll');
+      }
+      // -------------------------------
+
       setIsLoggedIn(true);  // Abrimos la puerta
     } catch (error) {
       console.error("Error al cargar perfil:", error);
@@ -387,6 +398,7 @@ export default function App() {
       await supabase.auth.signOut();
       setIsLoggedIn(false);
       setUserProfile(null);
+      setActiveTab('form'); // <-- Regresamos la pestaña al inicio para el siguiente que entre
       showToast('Sesión cerrada correctamente', 'success');
     } catch (error) {
       console.error("Error al salir:", error);
@@ -1954,14 +1966,29 @@ export default function App() {
                 <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
                   <Database className="text-blue-600" /> Base de Datos General
                 </h2>
-                <span className="text-sm text-gray-500">{services.length} registros en total</span>
+                <span className="text-sm text-gray-500 hidden md:inline-block">{services.length} registros</span>
               </div>
+
+              {/* NUEVO BUSCADOR GLOBAL */}
+              <div className="flex-1 w-full md:max-w-md relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Search className="h-4 w-4 text-gray-400" />
+                </div>
+                <input
+                  type="text"
+                  placeholder="Buscar reserva, nombre, hotel, vehículo..."
+                  value={dbSearchTerm}
+                  onChange={(e) => setDbSearchTerm(e.target.value)}
+                  className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm shadow-sm"
+                />
+              </div>
+
               <div className="flex gap-2">
-                <button onClick={descargarRespaldoExcel} className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 flex items-center gap-2 font-medium transition-colors shadow-sm">
-                  <Download size={18} /> Respaldo Excel
+                <button onClick={descargarRespaldoExcel} className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 flex items-center gap-2 font-medium transition-colors shadow-sm text-sm">
+                  <Download size={16} /> Excel
                 </button>
-                <button onClick={saveDatabaseUpdates} className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center gap-2 font-medium transition-colors shadow-sm">
-                  <Save size={18} /> Guardar Cambios
+                <button onClick={saveDatabaseUpdates} className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center gap-2 font-medium transition-colors shadow-sm text-sm">
+                  <Save size={16} /> Guardar
                 </button>
               </div>
             </div>
