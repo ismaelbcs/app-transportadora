@@ -302,6 +302,50 @@ export default function App() {
     }
   };
 
+  // Cambia el valor de un permiso específico (de true a false o viceversa)
+  const handlePermisoChange = (categoria, llave) => {
+    setUsuarioSeleccionado(prev => ({
+      ...prev,
+      permisos: {
+        ...prev.permisos,
+        [categoria]: {
+          ...prev.permisos[categoria],
+          [llave]: !prev.permisos[categoria][llave]
+        }
+      }
+    }));
+  };
+
+  // Permite subir a alguien a Administrador o bajarlo a Chofer
+  const handleRolChange = (nuevoRol) => {
+    setUsuarioSeleccionado(prev => ({ ...prev, rol: nuevoRol }));
+  };
+
+  // Envía los cambios a la base de datos
+  const guardarPermisosUsuario = async () => {
+    try {
+      showToast('Guardando configuración...');
+      const { error } = await supabase
+        .from('perfiles_usuarios')
+        .update({
+          permisos: usuarioSeleccionado.permisos,
+          rol: usuarioSeleccionado.rol
+        })
+        .eq('id', usuarioSeleccionado.id);
+
+      if (error) throw error;
+
+      showToast('¡Permisos actualizados con éxito!');
+
+      // Actualizamos la lista local izquierda para que refleje los cambios sin recargar
+      setListaUsuarios(prev => prev.map(u => u.id === usuarioSeleccionado.id ? usuarioSeleccionado : u));
+
+    } catch (error) {
+      console.error("Error al guardar permisos:", error);
+      showToast('Error al guardar en la nube', 'error');
+    }
+  };
+
   const handleLogin = async () => {
     if (!email || !password) {
       showToast('Ingresa tu correo y contraseña', 'error');
@@ -2143,15 +2187,98 @@ export default function App() {
                 </button>
               </div>
 
-              {/* Columna Derecha: Editor de Permisos (Acordeones) */}
-              <div className="lg:col-span-2 bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+              {/* Columna Derecha: Editor de Permisos */}
+              <div className="lg:col-span-2 bg-white p-4 rounded-lg border border-gray-200 shadow-sm flex flex-col h-full">
                 <h3 className="font-semibold text-gray-700 border-b pb-2 mb-4">Ajustes y Permisos</h3>
 
-                <div className="text-center py-12 text-gray-400">
-                  <ShieldCheck size={48} className="mx-auto mb-3 opacity-30" />
-                  <p className="text-lg font-medium text-gray-500">Selecciona un usuario de la lista</p>
-                  <p className="text-sm">Para ver y editar los botones a los que tiene acceso.</p>
-                </div>
+                {!usuarioSeleccionado ? (
+                  <div className="text-center py-12 text-gray-400 flex-1 flex flex-col justify-center">
+                    <ShieldCheck size={48} className="mx-auto mb-3 opacity-30" />
+                    <p className="text-lg font-medium text-gray-500">Selecciona un usuario de la lista</p>
+                    <p className="text-sm">Para ver y editar los botones a los que tiene acceso.</p>
+                  </div>
+                ) : (
+                  <div className="flex flex-col flex-1">
+
+                    {/* Cabecera del Editor */}
+                    <div className="mb-6 flex flex-wrap gap-4 justify-between items-center bg-gray-50 p-4 rounded-md border">
+                      <div>
+                        <p className="text-sm text-gray-500 font-semibold uppercase">Editando perfil de:</p>
+                        <p className="text-xl font-bold text-gray-800">{usuarioSeleccionado.email}</p>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Nivel de Acceso General</label>
+                        <select
+                          value={usuarioSeleccionado.rol}
+                          onChange={(e) => handleRolChange(e.target.value)}
+                          className={`border rounded-md p-2 font-bold focus:outline-none cursor-pointer shadow-sm ${usuarioSeleccionado.rol === 'admin' ? 'bg-red-100 text-red-700 border-red-300' : 'bg-blue-100 text-blue-700 border-blue-300'}`}
+                        >
+                          <option value="chofer">Chofer / Staff</option>
+                          <option value="admin">Administrador Supremo</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    {/* ZONA DE INTERRUPTORES */}
+                    <div className="flex-1 overflow-y-auto space-y-6 pr-2">
+
+                      {/* Módulo: Rol Diario */}
+                      <div className="border border-gray-200 rounded-lg overflow-hidden shadow-sm">
+                        <div className="bg-gray-100 px-4 py-2 border-b font-bold text-gray-700 flex items-center gap-2">
+                          <Calendar size={18} className="text-blue-600" /> Módulo: Rol Diario
+                        </div>
+                        <div className="p-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 bg-white">
+                          {Object.keys(usuarioSeleccionado.permisos?.rol_diario || {}).map((llave) => (
+                            <label key={llave} className="flex items-center gap-3 cursor-pointer p-2 hover:bg-gray-50 rounded border border-transparent hover:border-gray-200 transition-colors">
+                              <input
+                                type="checkbox"
+                                checked={usuarioSeleccionado.permisos.rol_diario[llave]}
+                                onChange={() => handlePermisoChange('rol_diario', llave)}
+                                className="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
+                              />
+                              <span className="text-sm font-medium text-gray-700 capitalize">
+                                {llave.replace(/_/g, ' ')}
+                              </span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Módulo: Catálogos */}
+                      <div className="border border-gray-200 rounded-lg overflow-hidden shadow-sm">
+                        <div className="bg-gray-100 px-4 py-2 border-b font-bold text-gray-700 flex items-center gap-2">
+                          <Database size={18} className="text-orange-500" /> Módulo: Catálogos
+                        </div>
+                        <div className="p-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 bg-white">
+                          {Object.keys(usuarioSeleccionado.permisos?.catalogos || {}).map((llave) => (
+                            <label key={llave} className="flex items-center gap-3 cursor-pointer p-2 hover:bg-gray-50 rounded border border-transparent hover:border-gray-200 transition-colors">
+                              <input
+                                type="checkbox"
+                                checked={usuarioSeleccionado.permisos.catalogos[llave]}
+                                onChange={() => handlePermisoChange('catalogos', llave)}
+                                className="w-5 h-5 text-orange-600 rounded border-gray-300 focus:ring-orange-500 cursor-pointer"
+                              />
+                              <span className="text-sm font-medium text-gray-700 capitalize">
+                                {llave.replace(/_/g, ' ')}
+                              </span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+
+                    </div>
+
+                    {/* Botón Guardar */}
+                    <div className="mt-6 pt-4 border-t flex justify-end gap-3">
+                      <button
+                        onClick={guardarPermisosUsuario}
+                        className="bg-green-600 text-white px-6 py-2 rounded-md hover:bg-green-700 font-bold shadow-md flex items-center gap-2 transition-colors"
+                      >
+                        <Save size={18} /> Guardar Configuración
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
 
             </div>
