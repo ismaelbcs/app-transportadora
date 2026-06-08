@@ -1584,6 +1584,23 @@ export default function App() {
                       <td className="p-2"><input type="text" value={row.comentario} onChange={(e) => handleRollChange(row.id, 'comentario', e.target.value)} className="w-32 bg-transparent border-b border-dashed focus:outline-none text-xs" /></td>
                       <td className="p-2">
                         <div className="flex justify-center items-center gap-2">
+                          {/* --- BOTONES GPS INICIO Y FIN --- */}
+                          <button 
+                            onClick={() => registrarUbicacionGPS(row.id, 'inicio')}
+                            className="p-1 text-green-600 hover:bg-green-100 rounded transition-colors"
+                            title="Iniciar Viaje (GPS)"
+                          >
+                            <Play size={18} className="fill-current" />
+                          </button>
+                          <button 
+                            onClick={() => registrarUbicacionGPS(row.id, 'fin')}
+                            className="p-1 text-red-600 hover:bg-red-100 rounded transition-colors"
+                            title="Finalizar Viaje (GPS)"
+                          >
+                            <Flag size={18} className="fill-current" />
+                          </button>
+                          {/* --------------------------------- */}
+                          
                           <button onClick={() => generateSharePNG(row)} className="p-1 text-blue-600 hover:bg-blue-100 rounded" title="Compartir">
                             <Send size={18} />
                           </button>
