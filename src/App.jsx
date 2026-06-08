@@ -117,7 +117,10 @@ const LISTA_HOTELES = [
 
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [userProfile, setUserProfile] = useState(null); // Aquí vivirán los permisos
   const [services, setServices] = useState([]);
   const [currentService, setCurrentService] = useState(initialServiceState);
   const [activeTab, setActiveTab] = useState('form');
@@ -261,6 +264,67 @@ export default function App() {
     setToast({ show: true, message, type });
     setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 3000);
   };
+
+  // --- SISTEMA DE AUTENTICACIÓN Y PERMISOS ---
+  const cargarPerfilUsuario = async (userId) => {
+    try {
+      const { data, error } = await supabase
+        .from('perfiles_usuarios')
+        .select('*')
+        .eq('id', userId)
+        .single();
+
+      if (error) throw error;
+
+      setUserProfile(data); // Guardamos los permisos en la memoria
+      setIsLoggedIn(true);  // Abrimos la puerta
+    } catch (error) {
+      console.error("Error al cargar perfil:", error);
+      showToast('Error al descargar permisos', 'error');
+    }
+  };
+
+  const handleLogin = async () => {
+    if (!email || !password) {
+      showToast('Ingresa tu correo y contraseña', 'error');
+      return;
+    }
+    
+    setIsLoading(true);
+    
+    try {
+      // 1. Validar credenciales en Supabase
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email,
+        password: password,
+      });
+
+      if (error) throw error;
+
+      showToast('¡Acceso concedido!', 'success');
+      
+      // 2. Descargar los permisos de este usuario
+      await cargarPerfilUsuario(data.user.id);
+      
+    } catch (error) {
+      console.error("Error de login:", error);
+      showToast('Correo o contraseña incorrectos', 'error');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // 3. Revisar si el usuario ya había iniciado sesión antes (para no pedir clave cada vez que recargue la página)
+  useEffect(() => {
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        await cargarPerfilUsuario(session.user.id);
+      }
+    };
+    checkSession();
+  }, []);
+  // ---------------------------------------------
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
