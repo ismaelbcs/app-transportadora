@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, Save, Download, Send, Printer, Calendar, Clock, MapPin, Users, Car, FileText, CheckCircle, AlertCircle, X, Database, Headset, Fuel, Plane, User, Info, Phone, Mail, Globe, Map, ShieldCheck, Ticket } from 'lucide-react';
+import { Search, Save, Download, Send, Printer, Calendar, Clock, MapPin, Users, Car, FileText, CheckCircle, AlertCircle, X, Database, Headset, Fuel, Plane, User, Info, Phone, Mail, Globe, Map, ShieldCheck, Ticket, Play, Flag } from 'lucide-react';
 import { supabase } from './supabaseClient';
 
 const SuvIcon = ({ size = 24, className = "" }) => (
@@ -621,6 +621,48 @@ export default function App() {
       console.error("Error al guardar BD:", error);
       showToast('Error al guardar en la nube', 'error');
     }
+  };
+
+  const registrarUbicacionGPS = async (idServicio, tipoEvento) => {
+    if (!navigator.geolocation) {
+      showToast('Tu dispositivo no soporta GPS', 'error');
+      return;
+    }
+
+    showToast(`📍 Obteniendo GPS para ${tipoEvento}...`);
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+
+        try {
+          showToast('📡 Guardando en la nube...');
+
+          // Preparamos qué columnas vamos a llenar dependiendo del botón que se presionó
+          const datosActualizar = tipoEvento === 'inicio'
+            ? { lat_inicio: latitude, lon_inicio: longitude }
+            : { lat_fin: latitude, lon_fin: longitude };
+
+          const { error } = await supabase
+            .from('servicios')
+            .update(datosActualizar)
+            .eq('id', idServicio);
+
+          if (error) throw error;
+
+          showToast(`¡Viaje ${tipoEvento === 'inicio' ? 'iniciado' : 'finalizado'} con éxito!`, 'success');
+
+        } catch (error) {
+          console.error("Error GPS:", error);
+          showToast('Error al conectar con la base de datos', 'error');
+        }
+      },
+      (error) => {
+        console.warn("Error de GPS:", error.message);
+        showToast('Error de GPS. Asegúrate de tener la ubicación encendida y permitir el acceso.', 'error');
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
   };
 
   const descargarRespaldoExcel = () => {
@@ -1404,25 +1446,69 @@ export default function App() {
                 <table className="w-full text-left text-sm border-collapse">
                   <thead>
                     <tr className="bg-gray-200">
-                      <th className="border p-2">Hora</th><th className="border p-2">Chofer</th><th className="border p-2">Nombre</th>
-                      <th className="border p-2">Apellido</th><th className="border p-2">Vuelo</th><th className="border p-2">Hotel</th>
-                      <th className="border p-2">Pax</th><th className="border p-2">Teléfono</th><th className="border p-2">Tipo</th>
-                      <th className="border p-2">Vehículo</th><th className="border p-2 border-b ocultar-en-foto">Proveedor</th><th className="border p-2 border-b ocultar-en-foto">Cantidad</th>
-                      <th className="border p-2">Extras</th><th className="border p-2 w-48">Comentario</th>
+                      <th className="border p-2">Hora</th>
+                      <th className="border p-2">Chofer</th>
+                      <th className="border p-2">Nombre</th>
+                      <th className="border p-2">Apellido</th>
+                      <th className="border p-2">Vuelo</th>
+                      <th className="border p-2">Hotel</th>
+                      <th className="border p-2">Pax</th>
+                      <th className="border p-2">Teléfono</th>
+                      <th className="border p-2">Tipo</th>
+                      <th className="border p-2">Vehículo</th>
+                      <th className="border p-2 border-b ocultar-en-foto">Proveedor</th>
+                      <th className="border p-2 border-b ocultar-en-foto">Cantidad</th>
+
+                      {/* NUEVO ENCABEZADO: Necesario para mantener la estructura HTML válida */}
+                      <th className="border p-2 ocultar-en-foto">GPS</th>
+
+                      <th className="border p-2">Extras</th>
+                      <th className="border p-2 w-48">Comentario</th>
                     </tr>
                   </thead>
                   <tbody>
                     {rollData.map(row => (
                       <tr key={row.id} className="border-b">
-                        <td className="border p-2 font-bold">{row.hora}</td><td className="border p-2">{row.chofer}</td>
-                        <td className="border p-2 uppercase">{row.nombre}</td><td className="border p-2 uppercase">{row.apellido}</td>
-                        <td className="border p-2">{row.vuelo}</td><td className="border p-2 text-xs">{row.hotel}</td>
-                        <td className="border p-2 text-center">{row.pax}</td><td className="border p-2 text-xs">{row.telefono}</td>
-                        <td className="border p-2 text-xs">{row.tipoServicio}</td><td className="border p-2">{row.vehiculo}</td>
-                        <td className="border p-2 text-xs border-b ocultar-en-foto">{row.proveedor}</td><td className="border p-2 text-xs font-bold">{row.costoProveedor ? `$${row.costoProveedor}` : ''}</td>
+                        <td className="border p-2 font-bold">{row.hora}</td>
+                        <td className="border p-2">{row.chofer}</td>
+                        <td className="border p-2 uppercase">{row.nombre}</td>
+                        <td className="border p-2 uppercase">{row.apellido}</td>
+                        <td className="border p-2">{row.vuelo}</td>
+                        <td className="border p-2 text-xs">{row.hotel}</td>
+                        <td className="border p-2 text-center">{row.pax}</td>
+                        <td className="border p-2 text-xs">{row.telefono}</td>
+                        <td className="border p-2 text-xs">{row.tipoServicio}</td>
+                        <td className="border p-2">{row.vehiculo}</td>
+                        <td className="border p-2 text-xs border-b ocultar-en-foto">{row.proveedor}</td>
+                        <td className="border p-2 text-xs font-bold">
+                          {row.costoProveedor ? `$${row.costoProveedor}` : ''}
+                        </td>
+
+                        {/* NUEVO BLOQUE: Botones GPS insertados justo después del cobro/cantidad */}
+                        <td className="p-2 text-center ocultar-en-foto">
+                          <div className="flex gap-2 justify-center">
+                            <button
+                              onClick={() => registrarUbicacionGPS(row.id, 'inicio')}
+                              className="bg-green-100 text-green-700 p-1.5 rounded-full hover:bg-green-200 transition-colors shadow-sm"
+                              title="Iniciar Viaje (GPS)"
+                            >
+                              <Play size={16} className="fill-current" />
+                            </button>
+                            <button
+                              onClick={() => registrarUbicacionGPS(row.id, 'fin')}
+                              className="bg-red-100 text-red-700 p-1.5 rounded-full hover:bg-red-200 transition-colors shadow-sm"
+                              title="Finalizar Viaje (GPS)"
+                            >
+                              <Flag size={16} className="fill-current" />
+                            </button>
+                          </div>
+                        </td>
+
                         <td className="border p-2 text-xs">
-                          {row.carSeat > 0 && `Car:${row.carSeat} `}{row.babySeat > 0 && `Baby:${row.babySeat} `}
-                          {row.booster > 0 && `Bstr:${row.booster} `}{row.paradaCompras && `Compras`}
+                          {row.carSeat > 0 && `Car:${row.carSeat} `}
+                          {row.babySeat > 0 && `Baby:${row.babySeat} `}
+                          {row.booster > 0 && `Bstr:${row.booster} `}
+                          {row.paradaCompras && `Compras`}
                         </td>
                         <td className="border p-2 text-xs break-words">{row.comentario}</td>
                       </tr>
@@ -1582,6 +1668,7 @@ export default function App() {
                     <th className="p-2">Vuelo</th><th className="p-2">PickUp</th><th className="p-2">PAX</th><th className="p-2">Teléfono</th>
                     <th className="p-2">Cobro</th><th className="p-2">Método Pago</th><th className="p-2">Chofer</th><th className="p-2">Vehículo</th>
                     <th className="p-2">Proveedor</th><th className="p-2">Cantidad</th><th className="p-2">Extras</th><th className="p-2">Comentarios</th>
+                    <th className="p-2 text-center ocultar-en-foto">GPS / Viaje</th>
                     <th className="p-2 text-center">Acciones</th>
                   </tr>
                 </thead>
@@ -2035,8 +2122,8 @@ export default function App() {
                         $
                       </span>
                       {/* Lógica: Si hay cobro lo muestra con su método, si está vacío o es 0 dice PREPAGADO */}
-                      {ticketDataToPrint.cobro && ticketDataToPrint.cobro !== '0' 
-                        ? `$${ticketDataToPrint.cobro} ${ticketDataToPrint.metodoPago ? `(${ticketDataToPrint.metodoPago})` : ''}` 
+                      {ticketDataToPrint.cobro && ticketDataToPrint.cobro !== '0'
+                        ? `$${ticketDataToPrint.cobro} ${ticketDataToPrint.metodoPago ? `(${ticketDataToPrint.metodoPago})` : ''}`
                         : (ticketLang === 'EN' ? 'PREPAID' : 'PREPAGADO')}
                     </p>
                   </div>
