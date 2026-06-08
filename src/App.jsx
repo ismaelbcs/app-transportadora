@@ -121,6 +121,8 @@ export default function App() {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [userProfile, setUserProfile] = useState(null); // Aquí vivirán los permisos
+  const [listaUsuarios, setListaUsuarios] = useState([]);
+  const [usuarioSeleccionado, setUsuarioSeleccionado] = useState(null);
   const [services, setServices] = useState([]);
   const [currentService, setCurrentService] = useState(initialServiceState);
   const [activeTab, setActiveTab] = useState('form');
@@ -281,6 +283,22 @@ export default function App() {
     } catch (error) {
       console.error("Error al cargar perfil:", error);
       showToast('Error al descargar permisos', 'error');
+    }
+  };
+
+  const descargarListaUsuarios = async () => {
+    try {
+      showToast('Cargando usuarios...');
+      const { data, error } = await supabase
+        .from('perfiles_usuarios')
+        .select('*')
+        .order('rol', { ascending: true }); // Los admins saldrán arriba
+
+      if (error) throw error;
+      setListaUsuarios(data || []);
+    } catch (error) {
+      console.error("Error al descargar usuarios:", error);
+      showToast('Error al cargar la lista de usuarios', 'error');
     }
   };
 
@@ -2093,15 +2111,35 @@ export default function App() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
               {/* Columna Izquierda: Lista de Usuarios */}
-              <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                <h3 className="font-semibold text-gray-700 border-b pb-2 mb-4">Usuarios del Sistema</h3>
-
-                <div className="text-sm text-gray-500 mb-4 italic">
-                  Aquí cargaremos la lista de choferes...
+              <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 flex flex-col">
+                <div className="flex justify-between items-center border-b pb-2 mb-4">
+                  <h3 className="font-semibold text-gray-700">Usuarios del Sistema</h3>
+                  <button onClick={descargarListaUsuarios} className="text-xs text-blue-600 hover:text-blue-800 font-bold" title="Recargar lista">
+                    🔄 Actualizar
+                  </button>
                 </div>
 
-                <button className="mt-4 w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 text-sm font-medium transition-colors shadow-sm">
-                  + Agregar Nuevo Chofer
+                <div className="flex-1 overflow-y-auto space-y-2 mb-4 max-h-96">
+                  {listaUsuarios.length === 0 ? (
+                    <div className="text-sm text-gray-500 text-center py-4">Presiona actualizar para ver la lista</div>
+                  ) : (
+                    listaUsuarios.map((usr) => (
+                      <button
+                        key={usr.id}
+                        onClick={() => setUsuarioSeleccionado(usr)}
+                        className={`w-full text-left p-3 rounded-md border transition-colors flex flex-col ${usuarioSeleccionado?.id === usr.id ? 'bg-red-50 border-red-300' : 'bg-white border-gray-200 hover:bg-gray-100'}`}
+                      >
+                        <span className="font-bold text-gray-800 text-sm truncate">{usr.email || 'Usuario sin correo'}</span>
+                        <span className={`text-xs font-semibold mt-1 w-max px-2 rounded-full ${usr.rol === 'admin' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}`}>
+                          {usr.rol === 'admin' ? 'Administrador' : 'Chofer / Staff'}
+                        </span>
+                      </button>
+                    ))
+                  )}
+                </div>
+
+                <button className="mt-auto w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 text-sm font-medium transition-colors shadow-sm">
+                  + Agregar Nuevo Usuario
                 </button>
               </div>
 
