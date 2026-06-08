@@ -2540,7 +2540,7 @@ export default function App() {
                         </div>
                         <div className="p-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 bg-white">
                           {/* Generamos los botones manualmente para asegurarnos de que existan */}
-                          {['ingresar_reserva', 'ingreso_cc', 'control_flota', 'base_de_datos', 'cierre'].map((llave) => (
+                          {['ingresar_reserva', 'ingreso_cc', 'control_flota', 'base_de_datos', 'cierre', 'deudas'].map((llave) => (
                             <label key={llave} className="flex items-center gap-3 cursor-pointer p-2 hover:bg-purple-50 rounded border border-transparent hover:border-purple-200 transition-colors">
                               <input
                                 type="checkbox"
