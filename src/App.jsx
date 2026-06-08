@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, Save, Download, Send, Printer, Calendar, Clock, Wallet, DollarSign, CalendarCheck,MapPin, Users, Car, FileText, CheckCircle, AlertCircle, X, Database, Headset, Fuel, Plane, User, Info, Phone, Mail, Globe, Map, ShieldCheck, Ticket, Play, Flag } from 'lucide-react';
+import { Search, Save, Download, Send, Printer, Calendar, Clock, Wallet, DollarSign, CalendarCheck, MapPin, Users, Car, FileText, CheckCircle, AlertCircle, X, Database, Headset, Fuel, Plane, User, Info, Phone, Mail, Globe, Map, ShieldCheck, Ticket, Play, Flag } from 'lucide-react';
 import { supabase } from './supabaseClient';
 
 const SuvIcon = ({ size = 24, className = "" }) => (
@@ -297,7 +297,7 @@ export default function App() {
       if (error) throw error;
 
       setUserProfile(data); // Guardamos los permisos en la memoria
-      
+
       // --- SEMÁFORO DE REDIRECCIÓN ---
       // Si es admin o tiene permiso de ingresar reservas, lo mandamos al Formulario
       if (data.rol === 'admin' || data.permisos?.vistas?.ingresar_reserva) {
@@ -954,7 +954,7 @@ export default function App() {
       showToast('Guardando deuda...');
       const { error } = await supabase.from('deudas_choferes').insert([newDeuda]);
       if (error) throw error;
-      
+
       setCurrentDeuda({ chofer: '', concepto: 'Préstamo', montoTotal: '', quincenasTotales: 1 });
       fetchAllData(); // Recargamos
       showToast('¡Deuda registrada con éxito!');
@@ -972,12 +972,32 @@ export default function App() {
       const { error } = await supabase.from('deudas_choferes')
         .update({ quincenas_pagadas: nuevasPagadas, activa: sigueActiva })
         .eq('id', deuda.id);
-      
+
       if (error) throw error;
       fetchAllData();
       showToast(`Abono registrado. ${!sigueActiva ? '¡Deuda saldada!' : ''}`);
     } catch (error) {
       showToast('Error al procesar pago', 'error');
+    }
+  };
+
+  const eliminarDeuda = async (id) => {
+    if (window.confirm('¿Estás seguro de que deseas eliminar este registro de deuda permanentemente? Esta acción no se puede deshacer.')) {
+      try {
+        showToast('Eliminando registro...', 'success');
+        const { error } = await supabase
+          .from('deudas_choferes')
+          .delete()
+          .eq('id', id);
+
+        if (error) throw error;
+
+        fetchAllData(); // Recargamos las tablas
+        showToast('¡Registro eliminado correctamente!');
+      } catch (error) {
+        console.error("Error al eliminar deuda:", error);
+        showToast('Error al eliminar en la nube', 'error');
+      }
     }
   };
 
@@ -988,7 +1008,7 @@ export default function App() {
       let dia = fecha.getDate();
       if (dia <= 15) {
         // Si estamos antes del 15, la próxima es fin de mes
-        fecha = new Date(fecha.getFullYear(), fecha.getMonth() + 1, 0); 
+        fecha = new Date(fecha.getFullYear(), fecha.getMonth() + 1, 0);
       } else {
         // Si estamos a fin de mes, la próxima es el 15 del mes siguiente
         fecha = new Date(fecha.getFullYear(), fecha.getMonth() + 1, 15);
@@ -1782,7 +1802,7 @@ export default function App() {
               </div>
               <div className="mt-4 flex flex-col md:flex-row justify-between items-center bg-white p-3 rounded border border-emerald-200">
                 <div className="text-sm font-semibold text-gray-700">
-                  Descuento por quincena: 
+                  Descuento por quincena:
                   <span className="text-lg text-emerald-600 ml-2 font-black">
                     ${currentDeuda.montoTotal ? (parseFloat(currentDeuda.montoTotal) / parseInt(currentDeuda.quincenasTotales || 1)).toFixed(2) : '0.00'}
                   </span>
@@ -1811,7 +1831,7 @@ export default function App() {
                     const quincenasRestantes = row.quincenasTotales - row.quincenasPagadas;
                     // Calculamos la fecha exacta del último pago usando nuestra súper función
                     const fechaFin = calcularFechaQuincena(row.fechaRegistro, row.quincenasTotales);
-                    
+
                     return (
                       <tr key={row.id} className="hover:bg-emerald-50 transition-colors">
                         <td className="p-3 font-bold text-gray-800 uppercase">{row.chofer}</td>
@@ -1827,9 +1847,9 @@ export default function App() {
                           ${row.montoQuincenal.toFixed(2)}
                         </td>
                         <td className="p-3 font-medium text-gray-600 text-sm flex items-center gap-1">
-                          <Calendar size={14} className="text-emerald-500"/> {fechaFin}
+                          <Calendar size={14} className="text-emerald-500" /> {fechaFin}
                         </td>
-                        <td className="p-3 text-center">
+                        <td className="p-3 text-center flex justify-center items-center gap-2">
                           <button
                             onClick={() => {
                               if (window.confirm(`¿Confirmas el descuento de $${row.montoQuincenal.toFixed(2)} a ${row.chofer} en esta quincena?`)) {
@@ -1840,6 +1860,17 @@ export default function App() {
                           >
                             ✔️ Registrar Pago Quincena
                           </button>
+
+                          {/* BOTÓN ELIMINAR (Solo Admin) */}
+                          {userProfile?.rol === 'admin' && (
+                            <button
+                              onClick={() => eliminarDeuda(row.id)}
+                              className="p-1 bg-red-50 text-red-500 hover:bg-red-100 hover:text-red-700 rounded transition-colors"
+                              title="Eliminar Deuda"
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>
+                            </button>
+                          )}
                         </td>
                       </tr>
                     );
@@ -1847,7 +1878,7 @@ export default function App() {
                 </tbody>
               </table>
             </div>
-            
+
             {/* Historial de Pagadas */}
             <div className="mt-12 flex-1 overflow-x-auto w-full opacity-60 hover:opacity-100 transition-opacity">
               <h3 className="text-md font-bold text-gray-500 mb-4 border-b pb-2">Historial de Deudas Liquidadas</h3>
@@ -1868,6 +1899,17 @@ export default function App() {
                     </tr>
                   ))}
                 </tbody>
+                <td className="p-2 text-center">
+                  {userProfile?.rol === 'admin' && (
+                    <button
+                      onClick={() => eliminarDeuda(row.id)}
+                      className="p-1 text-red-400 hover:bg-red-50 hover:text-red-600 rounded transition-colors"
+                      title="Eliminar del historial"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>
+                    </button>
+                  )}
+                </td>
               </table>
             </div>
 
