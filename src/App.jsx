@@ -670,10 +670,8 @@ export default function App() {
   };
 
   const abrirMapaGPS = (row) => {
-    // Extraemos las coordenadas de la fila
     const { latInicio, lonInicio, latFin, lonFin } = row;
 
-    // Si no hay ni siquiera coordenadas de inicio, avisamos al usuario
     if (!latInicio || !lonInicio) {
       showToast('El chofer aún no ha iniciado el viaje (Sin GPS)', 'error');
       return;
@@ -681,16 +679,16 @@ export default function App() {
 
     let urlMapa = '';
 
-    // Si tenemos las 4 coordenadas (Inicio y Fin), trazamos la ruta
+    // Si tenemos las 4 coordenadas (Inicio y Fin), trazamos la ruta de A hacia B
     if (latInicio && lonInicio && latFin && lonFin) {
       urlMapa = `https://www.google.com/maps/dir/?api=1&origin=${latInicio},${lonInicio}&destination=${latFin},${lonFin}`;
-    }
-    // Si solo tenemos el inicio, mostramos un pin en esa ubicación
+    } 
+    // Si solo tenemos el inicio, mostramos un marcador en esa ubicación
     else {
-      urlMapa = `https://www.google.com/maps?q=${latInicio},${lonInicio}`;
+      urlMapa = `https://www.google.com/maps/search/?api=1&query=${latInicio},${lonInicio}`;
     }
 
-    // Abrimos Google Maps en una pestaña nueva
+    // Abrimos Google Maps
     window.open(urlMapa, '_blank');
   };
 
