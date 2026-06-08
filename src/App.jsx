@@ -51,6 +51,7 @@ const LISTA_HOTELES = [
   { nombre: "Le Blanc Spa Resort", zona: 2 },
   { nombre: "Marquis Los Cabos", zona: 2 },
   { nombre: "Hilton Los Cabos", zona: 2 },
+  { nombre: "Villa La Valencia", zona: 2 },
   { nombre: "Dreams Los Cabos", zona: 2 },
   { nombre: "Garza Blanca Resort", zona: 2 },
   { nombre: "Casa del Mar / Zoëtry", zona: 2 },
@@ -94,6 +95,8 @@ const LISTA_HOTELES = [
   { nombre: "The Cape, a Thompson Hotel", zona: 3 },
   { nombre: "Misiones del Cabo", zona: 3 },
   { nombre: "Cabo Bello", zona: 3 },
+  { nombre: "Grand Solmar", zona: 3 },
+  { nombre: "Solmar", zona: 3 },
   { nombre: "Villas de Cabo Bello", zona: 3 },
   { nombre: "Sirena del Mar (Hyatt Vacation Club)", zona: 3 },
   { nombre: "Esperanza, Auberge Resorts Collection", zona: 3 },
@@ -1743,7 +1746,7 @@ export default function App() {
             </div>
           </div>
         )}
-        
+
         {/* --- PESTAÑA: DEUDAS Y PRÉSTAMOS --- */}
         {activeTab === 'deudas' && (
           <div className="bg-white rounded-lg shadow-md p-6 border-t-4 border-emerald-600">
