@@ -130,6 +130,7 @@ export default function App() {
   const [ticketLang, setTicketLang] = useState('EN');
 
   const [searchTerm, setSearchTerm] = useState('');
+  const [dbSearchTerm, setDbSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [isEditing, setIsEditing] = useState(false);
 
@@ -1645,9 +1646,12 @@ export default function App() {
                 <span className="text-sm text-gray-500">{rollData.length} servicio(s) encontrado(s)</span>
               </div>
               <div className="flex gap-2">
-                <button onClick={saveRollUpdates} className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 flex items-center gap-2 text-sm font-medium transition-colors">
-                  <Save size={16} /> Guardar
-                </button>
+                {/* Candado: Solo el Admin ve el botón de Guardar */}
+                {userProfile?.rol === 'admin' && (
+                  <button onClick={saveRollUpdates} className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 flex items-center gap-2 text-sm font-medium transition-colors">
+                    <Save size={16} /> Guardar
+                  </button>
+                )}
                 <button
                   onClick={downloadRolPNG}
                   className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 flex items-center gap-2 shadow-sm"
@@ -1681,8 +1685,12 @@ export default function App() {
                       <th className="border p-2">Teléfono</th>
                       <th className="border p-2">Tipo</th>
                       <th className="border p-2">Vehículo</th>
-                      <th className="border p-2 border-b ocultar-en-foto">Proveedor</th>
-                      <th className="border p-2 border-b ocultar-en-foto">Cantidad</th>
+                      {userProfile?.rol === 'admin' && (
+                        <>
+                          <th className="border p-2 border-b ocultar-en-foto">Proveedor</th>
+                          <th className="border p-2 border-b ocultar-en-foto">Cantidad</th>
+                        </>
+                      )}
 
                       {/* NUEVO ENCABEZADO: Necesario para mantener la estructura HTML válida */}
                       <th className="border p-2 ocultar-en-foto">GPS</th>
@@ -1704,10 +1712,14 @@ export default function App() {
                         <td className="border p-2 text-xs">{row.telefono}</td>
                         <td className="border p-2 text-xs">{row.tipoServicio}</td>
                         <td className="border p-2">{row.vehiculo}</td>
-                        <td className="border p-2 text-xs border-b ocultar-en-foto">{row.proveedor}</td>
-                        <td className="border p-2 text-xs font-bold">
-                          {row.costoProveedor ? `$${row.costoProveedor}` : ''}
-                        </td>
+                        {userProfile?.rol === 'admin' && (
+                          <>
+                            <td className="border p-2 text-xs border-b ocultar-en-foto">{row.proveedor}</td>
+                            <td className="border p-2 text-xs font-bold">
+                              {row.costoProveedor ? `$${row.costoProveedor}` : ''}
+                            </td>
+                          </>
+                        )}
 
                         {/* NUEVO BLOQUE: Botones GPS insertados justo después del cobro/cantidad */}
                         <td className="p-2 text-center ocultar-en-foto">
@@ -1761,22 +1773,53 @@ export default function App() {
                 </thead>
                 <tbody className="divide-y">
                   {rollData.length === 0 ? <tr><td colSpan="15" className="text-center p-8 text-gray-500">No hay servicios programados.</td></tr> : rollData.map(row => (
-                    <tr key={row.id} className="hover:bg-gray-50 transition-colors">
-                      <td className="p-2"><input type="time" value={row.hora} onChange={(e) => handleRollChange(row.id, 'hora', e.target.value)} className="w-full bg-transparent border-b border-dashed focus:outline-none focus:border-blue-500" /></td>
-                      <td className="p-2"><input type="text" value={row.chofer} onChange={(e) => handleRollChange(row.id, 'chofer', e.target.value)} className="w-24 bg-transparent border-b border-dashed focus:outline-none" /></td>
-                      <td className="p-2 font-medium">{row.nombre}</td><td className="p-2 font-medium">{row.apellido}</td>
-                      <td className="p-2"><input type="text" value={row.vuelo} onChange={(e) => handleRollChange(row.id, 'vuelo', e.target.value)} className="w-20 bg-transparent border-b border-dashed focus:outline-none" /></td>
+                    <tr key={row.id} className="hover:bg-gray-50 transition-colors border-b">
+
+                      {/* Hora */}
                       <td className="p-2">
-                        <input
-                          type="text"
-                          list="hoteles-rol-list"
-                          value={row.hotel}
-                          onChange={(e) => handleRollChange(row.id, 'hotel', e.target.value)}
-                          className="w-32 bg-transparent border-b border-dashed focus:outline-none cursor-pointer"
-                          placeholder="Elegir..."
-                        />
+                        {userProfile?.rol === 'admin' ? (
+                          <input type="time" value={row.hora || ''} onChange={(e) => handleRollChange(row.id, 'hora', e.target.value)} className="w-full bg-transparent border-b border-dashed focus:outline-none focus:border-blue-500" />
+                        ) : (
+                          <span className="font-bold text-gray-800">{row.hora}</span>
+                        )}
                       </td>
-                      <td className="p-2 text-center">{row.pax}</td><td className="p-2 text-xs">{row.telefono}</td>
+
+                      {/* Chofer */}
+                      <td className="p-2">
+                        {userProfile?.rol === 'admin' ? (
+                          <input type="text" value={row.chofer || ''} onChange={(e) => handleRollChange(row.id, 'chofer', e.target.value)} className="w-24 bg-transparent border-b border-dashed focus:outline-none" />
+                        ) : (
+                          <span className="text-gray-700">{row.chofer}</span>
+                        )}
+                      </td>
+
+                      {/* Nombre y Apellido (Siempre fijos) */}
+                      <td className="p-2 font-medium uppercase">{row.nombre}</td>
+                      <td className="p-2 font-medium uppercase">{row.apellido}</td>
+
+                      {/* Vuelo */}
+                      <td className="p-2">
+                        {userProfile?.rol === 'admin' ? (
+                          <input type="text" value={row.vuelo || ''} onChange={(e) => handleRollChange(row.id, 'vuelo', e.target.value)} className="w-20 bg-transparent border-b border-dashed focus:outline-none" />
+                        ) : (
+                          <span className="text-gray-700">{row.vuelo}</span>
+                        )}
+                      </td>
+
+                      {/* Hotel */}
+                      <td className="p-2">
+                        {userProfile?.rol === 'admin' ? (
+                          <input type="text" list="hoteles-rol-list" value={row.hotel || ''} onChange={(e) => handleRollChange(row.id, 'hotel', e.target.value)} className="w-32 bg-transparent border-b border-dashed focus:outline-none cursor-pointer" placeholder="Elegir..." />
+                        ) : (
+                          <span className="text-xs text-gray-700">{row.hotel}</span>
+                        )}
+                      </td>
+
+                      {/* PAX y Teléfono (Siempre fijos) */}
+                      <td className="p-2 text-center">{row.pax}</td>
+                      <td className="p-2 text-xs">{row.telefono}</td>
+
+                      {/* Tipo de Servicio */}
                       <td className="p-2">
                         <span className={`px-2 py-1 rounded-full text-xs font-bold ${row.tipoServicio === 'Llegada' ? 'bg-green-100 text-green-800' :
                           row.tipoServicio === 'Salida' ? 'bg-red-100 text-red-800' :
@@ -1787,99 +1830,112 @@ export default function App() {
                           {row.tipoServicio}
                         </span>
                       </td>
+
+                      {/* Vehículo */}
                       <td className="p-2">
-                        <select
-                          value={row.vehiculo || ''}
-                          onChange={(e) => handleRollChange(row.id, 'vehiculo', e.target.value)}
-                          className="w-24 bg-transparent border-b border-dashed focus:outline-none text-sm cursor-pointer"
-                        >
-                          <option value=""></option>
-                          <option value="Expedition">Expedition</option>
-                          <option value="Hiace">Hiace</option>
-                        </select>
+                        {userProfile?.rol === 'admin' ? (
+                          <select value={row.vehiculo || ''} onChange={(e) => handleRollChange(row.id, 'vehiculo', e.target.value)} className="w-24 bg-transparent border-b border-dashed focus:outline-none text-sm cursor-pointer">
+                            <option value=""></option>
+                            <option value="Expedition">Expedition</option>
+                            <option value="Hiace">Hiace</option>
+                          </select>
+                        ) : (
+                          <span className="text-sm text-gray-700">{row.vehiculo}</span>
+                        )}
                       </td>
-                      <td className="p-2"><input type="text" value={row.proveedor || ''} onChange={(e) => handleRollChange(row.id, 'proveedor', e.target.value)} className="w-24 bg-transparent border-b border-dashed focus:outline-none" /></td>
-                      <td className="p-2"><input type="number" value={row.costoProveedor || ''} onChange={(e) => handleRollChange(row.id, 'costoProveedor', e.target.value)} className="w-16 bg-transparent border-b border-dashed focus:outline-none font-bold text-red-700" /></td>
+
+                      {/* PROVEEDOR Y COSTO (Condicionados al rol de Admin) */}
+                      {userProfile?.rol === 'admin' && (
+                        <>
+                          <td className="p-2"><input type="text" value={row.proveedor || ''} onChange={(e) => handleRollChange(row.id, 'proveedor', e.target.value)} className="w-24 bg-transparent border-b border-dashed focus:outline-none" /></td>
+                          <td className="p-2"><input type="number" value={row.costoProveedor || ''} onChange={(e) => handleRollChange(row.id, 'costoProveedor', e.target.value)} className="w-16 bg-transparent border-b border-dashed focus:outline-none font-bold text-red-700" /></td>
+                        </>
+                      )}
+
+                      {/* Extras (Fijos) */}
                       <td className="p-2 text-xs text-gray-600">
                         <div className="flex gap-1 flex-col">
                           {row.carSeat > 0 && <span>Car: {row.carSeat}</span>}{row.babySeat > 0 && <span>Baby: {row.babySeat}</span>}
                           {row.booster > 0 && <span>Bstr: {row.booster}</span>}{row.paradaCompras && <span className="text-blue-600 font-semibold">Compras</span>}
                         </div>
                       </td>
-                      <td className="p-2"><input type="text" value={row.comentario} onChange={(e) => handleRollChange(row.id, 'comentario', e.target.value)} className="w-32 bg-transparent border-b border-dashed focus:outline-none text-xs" /></td>
+
+                      {/* Comentarios */}
                       <td className="p-2">
+                        {userProfile?.rol === 'admin' ? (
+                          <input type="text" value={row.comentario || ''} onChange={(e) => handleRollChange(row.id, 'comentario', e.target.value)} className="w-32 bg-transparent border-b border-dashed focus:outline-none text-xs" />
+                        ) : (
+                          <span className="text-xs break-words text-gray-600">{row.comentario}</span>
+                        )}
+                      </td>
+
+                      {/* ACCIONES Y BOTONES (Ya cuentan con sus candados previos) */}
+                      <td className="p-2 text-center">
                         <div className="flex justify-center items-center gap-2">
 
-                          {/* --- BOTONES GPS INICIO Y FIN --- */}
-                          <button
-                            onClick={() => registrarUbicacionGPS(row.id, 'inicio')}
-                            className="p-1 text-green-600 hover:bg-green-100 rounded transition-colors"
-                            title="Iniciar Viaje (GPS)"
-                          >
-                            <Play size={18} className="fill-current" />
-                          </button>
-                          <button
-                            onClick={() => registrarUbicacionGPS(row.id, 'fin')}
-                            className="p-1 text-red-600 hover:bg-red-100 rounded transition-colors"
-                            title="Finalizar Viaje (GPS)"
-                          >
-                            <Flag size={18} className="fill-current" />
-                          </button>
+                          {/* --- BOTÓN GPS INICIO: Candado --- */}
+                          {(userProfile?.rol === 'admin' || userProfile?.permisos?.rol_diario?.inicio_viaje) && (
+                            <button
+                              onClick={() => registrarUbicacionGPS(row.id, 'inicio')}
+                              className="p-1 text-green-600 hover:bg-green-100 rounded transition-colors"
+                              title="Iniciar Viaje (GPS)"
+                            >
+                              <Play size={18} className="fill-current" />
+                            </button>
+                          )}
 
-                          {/* --- NUEVO BOTÓN: VER MAPA --- */}
-                          <button
-                            onClick={() => abrirMapaGPS(row)}
-                            className="p-1 text-blue-500 hover:bg-blue-100 rounded transition-colors"
-                            title="Ver Ruta en Google Maps"
-                          >
+                          {/* --- BOTÓN GPS FIN: Candado --- */}
+                          {(userProfile?.rol === 'admin' || userProfile?.permisos?.rol_diario?.viaje_finalizado) && (
+                            <button
+                              onClick={() => registrarUbicacionGPS(row.id, 'fin')}
+                              className="p-1 text-red-600 hover:bg-red-100 rounded transition-colors"
+                              title="Finalizar Viaje (GPS)"
+                            >
+                              <Flag size={18} className="fill-current" />
+                            </button>
+                          )}
+
+                          {/* BOTÓN VER MAPA */}
+                          <button onClick={() => abrirMapaGPS(row)} className="p-1 text-blue-500 hover:bg-blue-100 rounded transition-colors" title="Ver Ruta en Google Maps">
                             <Map size={18} className="fill-current" />
                           </button>
-                          {/* --------------------------------- */}
 
-                          <button
-                            onClick={() => generateSharePNG(row)}
-                            className="p-1 text-blue-600 hover:bg-blue-100 rounded"
-                            title="Compartir"
-                          >
+                          {/* BOTÓN COMPARTIR */}
+                          <button onClick={() => generateSharePNG(row)} className="p-1 text-blue-600 hover:bg-blue-100 rounded" title="Compartir">
                             <Send size={18} />
                           </button>
 
-                          {row.tipoServicio === 'Llegada' && (
-                            <button
-                              onClick={() => generateWelcomeSign(row)}
-                              className="p-1 text-gray-600 hover:bg-gray-200 rounded"
-                              title="Imprimir Letrero"
-                            >
+                          {/* --- BOTÓN IMPRIMIR LETRERO: Candado --- */}
+                          {row.tipoServicio === 'Llegada' && (userProfile?.rol === 'admin' || userProfile?.permisos?.rol_diario?.imprimir_letrero) && (
+                            <button onClick={() => generateWelcomeSign(row)} className="p-1 text-gray-600 hover:bg-gray-200 rounded" title="Imprimir Letrero">
                               <Printer size={18} />
                             </button>
                           )}
 
-                          <button
-                            onClick={async () => {
-                              if (window.confirm('¿Estás seguro de que deseas eliminar este servicio permanentemente de la nube?')) {
-                                try {
-                                  showToast('Eliminando...', 'success');
-
-                                  // 1. Le disparamos la orden a Supabase para que lo borre de verdad
-                                  const { error } = await supabase.from('servicios').delete().eq('id', row.id);
-                                  if (error) throw error;
-
-                                  // 2. Lo borramos de la pantalla para que no tengas que recargar la página
-                                  setServices(services.filter(s => s.id !== row.id));
-                                  setRollData(rollData.filter(r => r.id !== row.id));
-
-                                  showToast('¡Servicio eliminado de la nube!');
-                                } catch (error) {
-                                  console.error("Error al eliminar:", error);
-                                  showToast('Error al eliminar en la nube', 'error');
+                          {/* --- BOTÓN ELIMINAR: Candado --- */}
+                          {(userProfile?.rol === 'admin' || userProfile?.permisos?.rol_diario?.eliminar_servicio) && (
+                            <button
+                              onClick={async () => {
+                                if (window.confirm('¿Estás seguro de que deseas eliminar este servicio permanentemente de la nube?')) {
+                                  try {
+                                    showToast('Eliminando...', 'success');
+                                    const { error } = await supabase.from('servicios').delete().eq('id', row.id);
+                                    if (error) throw error;
+                                    setServices(services.filter(s => s.id !== row.id));
+                                    setRollData(rollData.filter(r => r.id !== row.id));
+                                    showToast('¡Servicio eliminado de la nube!');
+                                  } catch (error) {
+                                    console.error("Error al eliminar:", error);
+                                    showToast('Error al eliminar en la nube', 'error');
+                                  }
                                 }
-                              }
-                            }}
-                            className="p-1 text-red-500 hover:bg-red-100 rounded"
-                            title="Eliminar Servicio"
-                          >
-                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>
-                          </button>
+                              }}
+                              className="p-1 text-red-500 hover:bg-red-100 rounded"
+                              title="Eliminar Servicio"
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -1927,106 +1983,134 @@ export default function App() {
                     <th className="p-2">Fecha</th><th className="p-2">Hora</th><th className="p-2">Tipo</th><th className="p-2">Hotel</th>
                     <th className="p-2">Vuelo</th><th className="p-2">PickUp</th><th className="p-2">PAX</th><th className="p-2">Teléfono</th>
                     <th className="p-2">Cobro</th><th className="p-2">Método Pago</th><th className="p-2">Chofer</th><th className="p-2">Vehículo</th>
-                    <th className="p-2">Proveedor</th><th className="p-2">Cantidad</th><th className="p-2">Extras</th><th className="p-2">Comentarios</th>
+                    {userProfile?.rol === 'admin' && (
+                      <>
+                        <th className="p-2">Proveedor</th>
+                        <th className="p-2">Cantidad</th>
+                      </>
+                    )}<th className="p-2">Extras</th><th className="p-2">Comentarios</th>
                     <th className="p-2 text-center ocultar-en-foto">GPS / Viaje</th>
                     <th className="p-2 text-center">Acciones</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
-                  {services.length === 0 ? <tr><td colSpan="20" className="text-center p-8 text-gray-500">No hay servicios registrados.</td></tr> : services.map(row => (
-                    <tr key={row.id} className="hover:bg-blue-50 transition-colors">
-                      <td className="p-2"><input type="text" value={row.reserva || ''} onChange={e => handleDatabaseChange(row.id, 'reserva', e.target.value)} className="w-16 bg-transparent border-b border-dashed focus:outline-none" /></td>
-                      <td className="p-2"><input type="text" value={row.agencia || ''} onChange={e => handleDatabaseChange(row.id, 'agencia', e.target.value)} className="w-20 bg-transparent border-b border-dashed focus:outline-none" /></td>
-                      <td className="p-2 flex gap-1">
-                        <input type="text" value={row.nombre || ''} onChange={e => handleDatabaseChange(row.id, 'nombre', e.target.value)} className="w-20 bg-transparent border-b border-dashed focus:outline-none" placeholder="Nombre" />
-                        <input type="text" value={row.apellido || ''} onChange={e => handleDatabaseChange(row.id, 'apellido', e.target.value)} className="w-24 bg-transparent border-b border-dashed focus:outline-none" placeholder="Apellido" />
-                      </td>
-                      <td className="p-2"><input type="date" value={row.fecha || ''} onChange={e => handleDatabaseChange(row.id, 'fecha', e.target.value)} className="w-28 bg-transparent border-b border-dashed focus:outline-none text-xs" /></td>
-                      <td className="p-2"><input type="time" value={row.hora || ''} onChange={e => handleDatabaseChange(row.id, 'hora', e.target.value)} className="w-20 bg-transparent border-b border-dashed focus:outline-none font-semibold text-xs" /></td>
-                      <td className="p-2">
-                        <select value={row.tipoServicio || ''} onChange={e => handleDatabaseChange(row.id, 'tipoServicio', e.target.value)} className={`w-24 bg-transparent border-b border-dashed focus:outline-none text-xs font-bold cursor-pointer ${row.tipoServicio === 'Llegada' ? 'text-green-700' : row.tipoServicio === 'Salida' ? 'text-red-700' : row.tipoServicio === 'Traslado' ? 'text-yellow-700' : 'text-blue-700'}`}>
-                          <option value="Llegada">Llegada</option>
-                          <option value="Salida">Salida</option>
-                          <option value="Traslado">Traslado</option>
-                          <option value="Actividad">Actividad</option>
-                        </select>
-                      </td>
-                      <td className="p-2"><input type="text" list="hoteles-bd-list" value={row.hotel || ''} onChange={e => handleDatabaseChange(row.id, 'hotel', e.target.value)} className="w-28 bg-transparent border-b border-dashed focus:outline-none text-xs cursor-pointer" placeholder="Elegir..." /></td>
-                      <td className="p-2"><input type="text" value={row.vuelo || ''} onChange={e => handleDatabaseChange(row.id, 'vuelo', e.target.value)} className="w-16 bg-transparent border-b border-dashed focus:outline-none text-xs" /></td>
-                      <td className="p-2"><input type="time" value={row.pickUp || ''} onChange={e => handleDatabaseChange(row.id, 'pickUp', e.target.value)} className="w-20 bg-transparent border-b border-dashed focus:outline-none text-blue-600 font-medium text-xs" /></td>
-                      <td className="p-2"><input type="number" value={row.pax || ''} onChange={e => handleDatabaseChange(row.id, 'pax', e.target.value)} className="w-12 bg-transparent border-b border-dashed focus:outline-none text-center" /></td>
-                      <td className="p-2"><input type="text" value={row.telefono || ''} onChange={e => handleDatabaseChange(row.id, 'telefono', e.target.value)} className="w-24 bg-transparent border-b border-dashed focus:outline-none text-xs" /></td>
-                      <td className="p-2">
-                        <div className="flex items-center">
-                          <span className="text-green-700 font-bold mr-1">$</span>
-                          <input type="text" value={row.cobro || ''} onChange={e => handleDatabaseChange(row.id, 'cobro', e.target.value)} className="w-16 bg-transparent border-b border-dashed focus:outline-none font-bold text-green-700" />
-                        </div>
-                      </td>
-                      <td className="p-2">
-                        <select value={row.metodoPago || ''} onChange={e => handleDatabaseChange(row.id, 'metodoPago', e.target.value)} className="w-24 bg-transparent border-b border-dashed focus:outline-none text-xs cursor-pointer">
-                          <option value=""></option>
-                          <option value="Efectivo">Efectivo</option>
-                          <option value="Tarjeta">Tarjeta</option>
-                          <option value="PayPal">PayPal</option>
-                        </select>
-                      </td>
-                      <td className="p-2"><input type="text" value={row.chofer || ''} onChange={e => handleDatabaseChange(row.id, 'chofer', e.target.value)} className="w-20 bg-transparent border-b border-dashed focus:outline-none text-gray-600 text-xs" /></td>
-                      <td className="p-2">
-                        <select value={row.vehiculo || ''} onChange={e => handleDatabaseChange(row.id, 'vehiculo', e.target.value)} className="w-24 bg-transparent border-b border-dashed focus:outline-none text-xs text-gray-600 cursor-pointer">
-                          <option value=""></option>
-                          <option value="Expedition">Expedition</option>
-                          <option value="Hiace">Hiace</option>
-                        </select>
-                      </td>
-                      <td className="p-2"><input type="text" value={row.proveedor || ''} onChange={e => handleDatabaseChange(row.id, 'proveedor', e.target.value)} className="w-20 bg-transparent border-b border-dashed focus:outline-none text-xs font-medium" /></td>
-                      <td className="p-2">
-                        <div className="flex items-center">
-                          <span className="text-red-700 font-bold mr-1">$</span>
-                          <input type="text" value={row.costoProveedor || ''} onChange={e => handleDatabaseChange(row.id, 'costoProveedor', e.target.value)} className="w-16 bg-transparent border-b border-dashed focus:outline-none font-bold text-red-700" />
-                        </div>
-                      </td>
-                      <td className="p-2 text-xs">
-                        <div className="flex flex-col gap-1 w-16">
-                          <input type="text" placeholder="Car" value={row.carSeat > 0 ? row.carSeat : ''} onChange={e => handleDatabaseChange(row.id, 'carSeat', e.target.value)} className="w-full bg-transparent border-b border-dashed focus:outline-none" title="Car Seat" />
-                          <input type="text" placeholder="Baby" value={row.babySeat > 0 ? row.babySeat : ''} onChange={e => handleDatabaseChange(row.id, 'babySeat', e.target.value)} className="w-full bg-transparent border-b border-dashed focus:outline-none" title="Baby Seat" />
-                          <input type="text" placeholder="Bstr" value={row.booster > 0 ? row.booster : ''} onChange={e => handleDatabaseChange(row.id, 'booster', e.target.value)} className="w-full bg-transparent border-b border-dashed focus:outline-none" title="Booster" />
-                        </div>
-                      </td>
-                      <td className="p-2"><input type="text" value={row.comentario || ''} onChange={e => handleDatabaseChange(row.id, 'comentario', e.target.value)} className="w-32 bg-transparent border-b border-dashed focus:outline-none text-xs text-gray-500" /></td>
-                      <td className="p-2 text-center">
-                        <button
-                          onClick={() => {
-                            setTicketDataToPrint(row);
-                            setTicketLang('EN');
-                          }}
-                          className="p-1 text-slate-500 hover:bg-slate-200 rounded mr-1"
-                          title="Generar Ticket"
-                        >
-                          <Ticket size={18} />
-                        </button>
-                        <button
-                          onClick={async () => {
-                            if (window.confirm('¿Estás seguro de que deseas eliminar este servicio de la Base de Datos permanentemente?')) {
-                              try {
-                                showToast('Eliminando...', 'success');
-                                const { error } = await supabase.from('servicios').delete().eq('id', row.id);
-                                if (error) throw error;
-                                setServices(services.filter(s => s.id !== row.id));
-                                showToast('¡Servicio eliminado!');
-                              } catch (error) {
-                                console.error("Error al eliminar:", error);
-                                showToast('Error al eliminar', 'error');
+                  {(() => {
+                    // 1. Filtramos los datos en tiempo real
+                    const filteredDatabase = services.filter(s => {
+                      if (!dbSearchTerm) return true; // Si está vacío, mostramos todo
+
+                      const term = dbSearchTerm.toLowerCase();
+                      return (
+                        (s.nombre || '').toLowerCase().includes(term) ||
+                        (s.apellido || '').toLowerCase().includes(term) ||
+                        (s.reserva || '').toLowerCase().includes(term) ||
+                        (s.hotel || '').toLowerCase().includes(term) ||
+                        (s.vehiculo || '').toLowerCase().includes(term) ||
+                        (s.chofer || '').toLowerCase().includes(term)
+                      );
+                    });
+
+                    // 2. Pintamos los datos ya filtrados
+                    if (filteredDatabase.length === 0) return <tr><td colSpan="20" className="text-center p-8 text-gray-500">No se encontraron servicios con "{dbSearchTerm}".</td></tr>;
+
+                    return filteredDatabase.map(row => (
+                      <tr key={row.id} className="hover:bg-blue-50 transition-colors">
+                        <td className="p-2"><input type="text" value={row.reserva || ''} onChange={e => handleDatabaseChange(row.id, 'reserva', e.target.value)} className="w-16 bg-transparent border-b border-dashed focus:outline-none" /></td>
+                        <td className="p-2"><input type="text" value={row.agencia || ''} onChange={e => handleDatabaseChange(row.id, 'agencia', e.target.value)} className="w-20 bg-transparent border-b border-dashed focus:outline-none" /></td>
+                        <td className="p-2 flex gap-1">
+                          <input type="text" value={row.nombre || ''} onChange={e => handleDatabaseChange(row.id, 'nombre', e.target.value)} className="w-20 bg-transparent border-b border-dashed focus:outline-none" placeholder="Nombre" />
+                          <input type="text" value={row.apellido || ''} onChange={e => handleDatabaseChange(row.id, 'apellido', e.target.value)} className="w-24 bg-transparent border-b border-dashed focus:outline-none" placeholder="Apellido" />
+                        </td>
+                        <td className="p-2"><input type="date" value={row.fecha || ''} onChange={e => handleDatabaseChange(row.id, 'fecha', e.target.value)} className="w-28 bg-transparent border-b border-dashed focus:outline-none text-xs" /></td>
+                        <td className="p-2"><input type="time" value={row.hora || ''} onChange={e => handleDatabaseChange(row.id, 'hora', e.target.value)} className="w-20 bg-transparent border-b border-dashed focus:outline-none font-semibold text-xs" /></td>
+                        <td className="p-2">
+                          <select value={row.tipoServicio || ''} onChange={e => handleDatabaseChange(row.id, 'tipoServicio', e.target.value)} className={`w-24 bg-transparent border-b border-dashed focus:outline-none text-xs font-bold cursor-pointer ${row.tipoServicio === 'Llegada' ? 'text-green-700' : row.tipoServicio === 'Salida' ? 'text-red-700' : row.tipoServicio === 'Traslado' ? 'text-yellow-700' : 'text-blue-700'}`}>
+                            <option value="Llegada">Llegada</option>
+                            <option value="Salida">Salida</option>
+                            <option value="Traslado">Traslado</option>
+                            <option value="Actividad">Actividad</option>
+                          </select>
+                        </td>
+                        <td className="p-2"><input type="text" list="hoteles-bd-list" value={row.hotel || ''} onChange={e => handleDatabaseChange(row.id, 'hotel', e.target.value)} className="w-28 bg-transparent border-b border-dashed focus:outline-none text-xs cursor-pointer" placeholder="Elegir..." /></td>
+                        <td className="p-2"><input type="text" value={row.vuelo || ''} onChange={e => handleDatabaseChange(row.id, 'vuelo', e.target.value)} className="w-16 bg-transparent border-b border-dashed focus:outline-none text-xs" /></td>
+                        <td className="p-2"><input type="time" value={row.pickUp || ''} onChange={e => handleDatabaseChange(row.id, 'pickUp', e.target.value)} className="w-20 bg-transparent border-b border-dashed focus:outline-none text-blue-600 font-medium text-xs" /></td>
+                        <td className="p-2"><input type="number" value={row.pax || ''} onChange={e => handleDatabaseChange(row.id, 'pax', e.target.value)} className="w-12 bg-transparent border-b border-dashed focus:outline-none text-center" /></td>
+                        <td className="p-2"><input type="text" value={row.telefono || ''} onChange={e => handleDatabaseChange(row.id, 'telefono', e.target.value)} className="w-24 bg-transparent border-b border-dashed focus:outline-none text-xs" /></td>
+                        <td className="p-2">
+                          <div className="flex items-center">
+                            <span className="text-green-700 font-bold mr-1">$</span>
+                            <input type="text" value={row.cobro || ''} onChange={e => handleDatabaseChange(row.id, 'cobro', e.target.value)} className="w-16 bg-transparent border-b border-dashed focus:outline-none font-bold text-green-700" />
+                          </div>
+                        </td>
+                        <td className="p-2">
+                          <select value={row.metodoPago || ''} onChange={e => handleDatabaseChange(row.id, 'metodoPago', e.target.value)} className="w-24 bg-transparent border-b border-dashed focus:outline-none text-xs cursor-pointer">
+                            <option value=""></option>
+                            <option value="Efectivo">Efectivo</option>
+                            <option value="Tarjeta">Tarjeta</option>
+                            <option value="PayPal">PayPal</option>
+                          </select>
+                        </td>
+                        <td className="p-2"><input type="text" value={row.chofer || ''} onChange={e => handleDatabaseChange(row.id, 'chofer', e.target.value)} className="w-20 bg-transparent border-b border-dashed focus:outline-none text-gray-600 text-xs" /></td>
+                        <td className="p-2">
+                          <select value={row.vehiculo || ''} onChange={e => handleDatabaseChange(row.id, 'vehiculo', e.target.value)} className="w-24 bg-transparent border-b border-dashed focus:outline-none text-xs text-gray-600 cursor-pointer">
+                            <option value=""></option>
+                            <option value="Expedition">Expedition</option>
+                            <option value="Hiace">Hiace</option>
+                          </select>
+                        </td>
+                        {userProfile?.rol === 'admin' && (
+                          <>
+                            <td className="p-2">
+                              <input type="text" value={row.proveedor || ''} onChange={(e) => handleRollChange(row.id, 'proveedor', e.target.value)} className="w-24 bg-transparent border-b border-dashed focus:outline-none" />
+                            </td>
+                            <td className="p-2">
+                              <input type="number" value={row.costoProveedor || ''} onChange={(e) => handleRollChange(row.id, 'costoProveedor', e.target.value)} className="w-16 bg-transparent border-b border-dashed focus:outline-none font-bold text-red-700" />
+                            </td>
+                          </>
+                        )}
+                        <td className="p-2 text-xs">
+                          <div className="flex flex-col gap-1 w-16">
+                            <input type="text" placeholder="Car" value={row.carSeat > 0 ? row.carSeat : ''} onChange={e => handleDatabaseChange(row.id, 'carSeat', e.target.value)} className="w-full bg-transparent border-b border-dashed focus:outline-none" title="Car Seat" />
+                            <input type="text" placeholder="Baby" value={row.babySeat > 0 ? row.babySeat : ''} onChange={e => handleDatabaseChange(row.id, 'babySeat', e.target.value)} className="w-full bg-transparent border-b border-dashed focus:outline-none" title="Baby Seat" />
+                            <input type="text" placeholder="Bstr" value={row.booster > 0 ? row.booster : ''} onChange={e => handleDatabaseChange(row.id, 'booster', e.target.value)} className="w-full bg-transparent border-b border-dashed focus:outline-none" title="Booster" />
+                          </div>
+                        </td>
+                        <td className="p-2"><input type="text" value={row.comentario || ''} onChange={e => handleDatabaseChange(row.id, 'comentario', e.target.value)} className="w-32 bg-transparent border-b border-dashed focus:outline-none text-xs text-gray-500" /></td>
+                        <td className="p-2 text-center">
+                          <button
+                            onClick={() => {
+                              setTicketDataToPrint(row);
+                              setTicketLang('EN');
+                            }}
+                            className="p-1 text-slate-500 hover:bg-slate-200 rounded mr-1"
+                            title="Generar Ticket"
+                          >
+                            <Ticket size={18} />
+                          </button>
+                          <button
+                            onClick={async () => {
+                              if (window.confirm('¿Estás seguro de que deseas eliminar este servicio de la Base de Datos permanentemente?')) {
+                                try {
+                                  showToast('Eliminando...', 'success');
+                                  const { error } = await supabase.from('servicios').delete().eq('id', row.id);
+                                  if (error) throw error;
+                                  setServices(services.filter(s => s.id !== row.id));
+                                  showToast('¡Servicio eliminado!');
+                                } catch (error) {
+                                  console.error("Error al eliminar:", error);
+                                  showToast('Error al eliminar', 'error');
+                                }
                               }
-                            }
-                          }}
-                          className="p-1 text-red-500 hover:bg-red-100 rounded"
-                          title="Eliminar Servicio"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
+                            }}
+                            className="p-1 text-red-500 hover:bg-red-100 rounded"
+                            title="Eliminar Servicio"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>
+                          </button>
+                        </td>
+                      </tr>
+                    ));
+                  })()}
                 </tbody>
               </table>
             </div>
@@ -2036,59 +2120,34 @@ export default function App() {
         { }
         {activeTab === 'cierre' && (
           <div className="bg-white rounded-lg shadow-md flex flex-col h-[80vh]">
-            <div className="p-4 border-b bg-gray-50 rounded-t-lg">
-              <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-                <Calendar className="text-blue-600" /> Módulo de Cierre
-              </h2>
-              <div className="flex flex-col md:flex-row gap-4 items-end">
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">Fecha Inicial</label>
-                  <input type="date" value={cierreFilters.startDate} onChange={e => setCierreFilters({ ...cierreFilters, startDate: e.target.value })} className="border border-gray-300 rounded-md p-2 shadow-sm text-sm" />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">Fecha Final</label>
-                  <input type="date" value={cierreFilters.endDate} onChange={e => setCierreFilters({ ...cierreFilters, endDate: e.target.value })} className="border border-gray-300 rounded-md p-2 shadow-sm text-sm" />
-                </div>
-                {!cierreFilters.isCallCenter && (
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">Vehículo (Opcional)</label>
-                    <select
-                      value={cierreFilters.vehiculo}
-                      onChange={e => setCierreFilters({ ...cierreFilters, vehiculo: e.target.value })}
-                      className="border border-gray-300 rounded-md p-2 shadow-sm text-sm w-full bg-white cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                      <option value="">Todos (Sin filtro)</option>
-                      <option value="Expedition">Expedition</option>
-                      <option value="Hiace">Hiace</option>
-                    </select>
-                  </div>
-                )}
+            <div className="p-4 border-b bg-gray-50 rounded-t-lg flex justify-between items-center flex-wrap gap-4">
+              <div className="flex items-center gap-4">
+                <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                  <Database className="text-blue-600" /> Base de Datos General
+                </h2>
+              </div>
 
-                <div className="flex-1 text-center md:text-left">
-                  {cierreFilters.isCallCenter && (
-                    <div className="md:ml-4 bg-purple-100 border border-purple-300 px-4 py-2 rounded-lg inline-block shadow-sm">
-                      <span className="text-sm font-medium text-purple-800">Total Acumulado de Comisión: </span>
-                      <span className="text-xl font-bold text-purple-900">
-                        ${callCenterServices.filter(s => {
-                          let match = true;
-                          if (cierreFilters.startDate && s.fechaSistema < cierreFilters.startDate) match = false;
-                          if (cierreFilters.endDate && s.fechaSistema > cierreFilters.endDate) match = false;
-                          return match;
-                        }).reduce((sum, item) => sum + (parseFloat(item.comision) || 0), 0).toFixed(2)}
-                      </span>
-                    </div>
-                  )}
+              {/* NUEVO BUSCADOR GLOBAL */}
+              <div className="flex-1 w-full md:max-w-md relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Search className="h-4 w-4 text-gray-400" />
                 </div>
+                <input
+                  type="text"
+                  placeholder="Buscar reserva, nombre, hotel, vehículo..."
+                  value={dbSearchTerm}
+                  onChange={(e) => setDbSearchTerm(e.target.value)}
+                  className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm shadow-sm"
+                />
+              </div>
 
-                <div className="flex gap-2">
-                  <button onClick={descargarCierrePDF} className="bg-red-600 text-white px-4 py-2 rounded-md font-bold shadow-sm flex items-center gap-2 hover:bg-red-700 transition-colors">
-                    <Download size={18} /> Descargar PDF
-                  </button>
-                  <button onClick={() => setCierreFilters({ ...cierreFilters, isCallCenter: !cierreFilters.isCallCenter })} className={`px-4 py-2 rounded-md font-bold shadow-sm flex items-center gap-2 transition-colors ${cierreFilters.isCallCenter ? 'bg-purple-600 text-white hover:bg-purple-700' : 'bg-blue-600 text-white hover:bg-blue-700'}`}>
-                    {cierreFilters.isCallCenter ? <Headset size={18} /> : <Users size={18} />}
-                    {cierreFilters.isCallCenter ? 'Viendo: CALL CENTER' : 'Viendo: NORMALES'}
-                  </button>
-                </div>
+              <div className="flex gap-2">
+                <button onClick={descargarRespaldoExcel} className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 flex items-center gap-2 font-medium transition-colors shadow-sm">
+                  <Download size={18} /> Respaldo Excel
+                </button>
+                <button onClick={saveDatabaseUpdates} className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center gap-2 font-medium transition-colors shadow-sm">
+                  <Save size={18} /> Guardar Cambios
+                </button>
               </div>
             </div>
 
