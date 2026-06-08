@@ -2509,7 +2509,7 @@ export default function App() {
                   filteredData = services.filter(s => {
                     const passInicio = !cierreFiltroInicio || s.fecha >= cierreFiltroInicio;
                     const passFin = !cierreFiltroFin || s.fecha <= cierreFiltroFin;
-                    const passVehiculo = !cierreFiltroVehiculo || s.vehiculo === cierreFiltroVehiculo;
+                    const passVehiculo = !cierreFiltroVehiculo || (s.vehiculo && s.vehiculo.toLowerCase() === cierreFiltroVehiculo.toLowerCase());
                     return passInicio && passFin && passVehiculo;
                   });
                   totalAmount = filteredData.reduce((sum, s) => sum + (parseFloat(s.cobro) || 0), 0);
@@ -2585,7 +2585,7 @@ export default function App() {
                   filteredData = dataGastos.filter(g => {
                     const passInicio = !cierreFiltroInicio || g.fecha >= cierreFiltroInicio;
                     const passFin = !cierreFiltroFin || g.fecha <= cierreFiltroFin;
-                    const passVehiculo = !cierreFiltroVehiculo || g.vehiculo === cierreFiltroVehiculo;
+                    const passVehiculo = !cierreFiltroVehiculo || (g.vehiculo && g.vehiculo.toLowerCase() === cierreFiltroVehiculo.toLowerCase());
                     return passInicio && passFin && passVehiculo;
                   });
                   totalAmount = filteredData.reduce((sum, g) => sum + (parseFloat(g.gasto_total) || 0), 0);
