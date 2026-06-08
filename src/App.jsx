@@ -669,6 +669,31 @@ export default function App() {
     );
   };
 
+  const abrirMapaGPS = (row) => {
+    // Extraemos las coordenadas de la fila
+    const { latInicio, lonInicio, latFin, lonFin } = row;
+
+    // Si no hay ni siquiera coordenadas de inicio, avisamos al usuario
+    if (!latInicio || !lonInicio) {
+      showToast('El chofer aún no ha iniciado el viaje (Sin GPS)', 'error');
+      return;
+    }
+
+    let urlMapa = '';
+
+    // Si tenemos las 4 coordenadas (Inicio y Fin), trazamos la ruta
+    if (latInicio && lonInicio && latFin && lonFin) {
+      urlMapa = `https://www.google.com/maps/dir/?api=1&origin=${latInicio},${lonInicio}&destination=${latFin},${lonFin}`;
+    }
+    // Si solo tenemos el inicio, mostramos un pin en esa ubicación
+    else {
+      urlMapa = `https://www.google.com/maps?q=${latInicio},${lonInicio}`;
+    }
+
+    // Abrimos Google Maps en una pestaña nueva
+    window.open(urlMapa, '_blank');
+  };
+
   const descargarRespaldoExcel = () => {
     if (!window.XLSX) return showToast('Librería Excel cargando...', 'error');
 
@@ -1603,6 +1628,15 @@ export default function App() {
                             title="Finalizar Viaje (GPS)"
                           >
                             <Flag size={18} className="fill-current" />
+                          </button>
+
+                          {/* --- NUEVO BOTÓN: VER MAPA --- */}
+                          <button
+                            onClick={() => abrirMapaGPS(row)}
+                            className="p-1 text-blue-500 hover:bg-blue-100 rounded transition-colors"
+                            title="Ver Ruta en Google Maps"
+                          >
+                            <Map size={18} className="fill-current" />
                           </button>
                           {/* --------------------------------- */}
 
