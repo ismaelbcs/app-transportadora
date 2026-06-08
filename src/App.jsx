@@ -186,7 +186,8 @@ export default function App() {
         tipoServicio: s.tipo_servicio, pax: s.pax, telefono: s.telefono, fecha: s.fecha,
         vuelo: s.vuelo, pickUp: s.pick_up, tipoViaje: s.tipo_viaje, hora: s.hora, hotel: s.hotel, cobro: s.cobro,
         metodoPago: s.metodo_pago, carSeat: s.car_seat, babySeat: s.baby_seat, booster: s.booster, paradaCompras: s.parada_compras,
-        comentario: s.comentario, chofer: s.chofer, vehiculo: s.vehiculo, proveedor: s.proveedor, costoProveedor: s.costo_proveedor
+        comentario: s.comentario, chofer: s.chofer, vehiculo: s.vehiculo, proveedor: s.proveedor, costoProveedor: s.costo_proveedor,
+        latInicio: s.lat_inicio, lonInicio: s.lon_inicio, latFin: s.lat_fin, lonFin: s.lon_fin
       }));
       setServices(formattedServices);
 
@@ -651,6 +652,9 @@ export default function App() {
           if (error) throw error;
 
           showToast(`¡Viaje ${tipoEvento === 'inicio' ? 'iniciado' : 'finalizado'} con éxito!`, 'success');
+
+          // NUEVA LÍNEA: Recargar los datos inmediatamente para actualizar la vista
+          fetchAllData();
 
         } catch (error) {
           console.error("Error GPS:", error);
@@ -1584,15 +1588,16 @@ export default function App() {
                       <td className="p-2"><input type="text" value={row.comentario} onChange={(e) => handleRollChange(row.id, 'comentario', e.target.value)} className="w-32 bg-transparent border-b border-dashed focus:outline-none text-xs" /></td>
                       <td className="p-2">
                         <div className="flex justify-center items-center gap-2">
+
                           {/* --- BOTONES GPS INICIO Y FIN --- */}
-                          <button 
+                          <button
                             onClick={() => registrarUbicacionGPS(row.id, 'inicio')}
                             className="p-1 text-green-600 hover:bg-green-100 rounded transition-colors"
                             title="Iniciar Viaje (GPS)"
                           >
                             <Play size={18} className="fill-current" />
                           </button>
-                          <button 
+                          <button
                             onClick={() => registrarUbicacionGPS(row.id, 'fin')}
                             className="p-1 text-red-600 hover:bg-red-100 rounded transition-colors"
                             title="Finalizar Viaje (GPS)"
@@ -1600,13 +1605,21 @@ export default function App() {
                             <Flag size={18} className="fill-current" />
                           </button>
                           {/* --------------------------------- */}
-                          
-                          <button onClick={() => generateSharePNG(row)} className="p-1 text-blue-600 hover:bg-blue-100 rounded" title="Compartir">
+
+                          <button
+                            onClick={() => generateSharePNG(row)}
+                            className="p-1 text-blue-600 hover:bg-blue-100 rounded"
+                            title="Compartir"
+                          >
                             <Send size={18} />
                           </button>
 
                           {row.tipoServicio === 'Llegada' && (
-                            <button onClick={() => generateWelcomeSign(row)} className="p-1 text-gray-600 hover:bg-gray-200 rounded" title="Imprimir Letrero">
+                            <button
+                              onClick={() => generateWelcomeSign(row)}
+                              className="p-1 text-gray-600 hover:bg-gray-200 rounded"
+                              title="Imprimir Letrero"
+                            >
                               <Printer size={18} />
                             </button>
                           )}
