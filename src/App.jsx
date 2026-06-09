@@ -1246,7 +1246,7 @@ export default function App() {
       if (item.concepto === 'Gasolina') sumGasolina += item.monto;
       if (item.concepto === 'Casetas') sumCasetas += item.monto;
       sumTotal += item.monto;
-      
+
       // LA MAGIA: Guardamos el concepto junto con su precio, separados por un "|"
       // Ejemplo: "Gasolina|800"
       nombresConceptos.push(`${item.concepto}|${item.monto}`);
@@ -1264,10 +1264,34 @@ export default function App() {
       gasto_total: sumTotal
     };
 
+    // --- FUNCIONES DE EXPORTACIÓN DEL CIERRE ---
+    const exportarCierreExcel = () => {
+      // Buscamos la tabla que está activa en pantalla usando su ID
+      const tabla = document.getElementById('tabla-cierre-financiero');
+      if (!tabla) return showToast('No hay datos para exportar', 'error');
+
+      const html = tabla.outerHTML;
+      // Creamos el archivo en memoria con formato Excel
+      const blob = new Blob([html], { type: 'application/vnd.ms-excel' });
+      const url = URL.createObjectURL(blob);
+
+      const a = document.createElement('a');
+      a.href = url;
+      // Bautizamos el archivo con el tipo de reporte y la fecha de hoy
+      a.download = `Reporte_${cierreFiltroTipo}_${new Date().toISOString().split('T')[0]}.xls`;
+      a.click();
+      showToast('¡Excel descargado con éxito!');
+    };
+
+    const exportarCierrePDF = () => {
+      // Abrimos la ventana de impresión nativa del sistema
+      window.print();
+    };
+
     try {
       const { error } = await supabase.from('gastos_flota').insert([nuevoRegistro]);
       if (error) throw error;
-      
+
       // Limpiamos la pantalla para el siguiente registro
       setCarritoGastos([]);
       setMontoTemp('');
@@ -1915,9 +1939,9 @@ export default function App() {
                         {/* Concepto Dinámico (Llantas, Gasolina, etc.) */}
                         <td className="p-3">
                           <span className={`px-2 py-1 rounded text-xs font-bold ${row.concepto === 'Gasolina' ? 'bg-orange-100 text-orange-800' :
-                              row.concepto === 'Casetas' ? 'bg-blue-100 text-blue-800' :
-                                row.concepto === 'Llantas' ? 'bg-gray-200 text-gray-800' :
-                                  'bg-purple-100 text-purple-800'
+                            row.concepto === 'Casetas' ? 'bg-blue-100 text-blue-800' :
+                              row.concepto === 'Llantas' ? 'bg-gray-200 text-gray-800' :
+                                'bg-purple-100 text-purple-800'
                             }`}>
                             {row.concepto || (row.gasolina > 0 ? 'Gasolina' : row.casetas > 0 ? 'Casetas' : 'Varios')}
                           </span>
@@ -2029,39 +2053,38 @@ export default function App() {
                       <tr key={row.id} className="hover:bg-emerald-50 transition-colors">
                         <td className="p-3 font-bold text-gray-800 uppercase">{row.chofer}</td>
                         {/* Concepto Dinámico Apilado (Múltiples Etiquetas con Precio) */}
-                      <td className="p-3">
-                        <div className="flex flex-col gap-1 items-start">
-                          {(() => {
-                            let lista = [];
-                            if (row.concepto === 'Varios' || !row.concepto) {
-                              if (row.gasolina > 0) lista.push('Gasolina');
-                              if (row.casetas > 0) lista.push('Casetas');
-                              if (lista.length === 0) lista.push('Varios');
-                            } else {
-                              lista = row.concepto.split(',');
-                            }
+                        <td className="p-3">
+                          <div className="flex flex-col gap-1 items-start">
+                            {(() => {
+                              let lista = [];
+                              if (row.concepto === 'Varios' || !row.concepto) {
+                                if (row.gasolina > 0) lista.push('Gasolina');
+                                if (row.casetas > 0) lista.push('Casetas');
+                                if (lista.length === 0) lista.push('Varios');
+                              } else {
+                                lista = row.concepto.split(',');
+                              }
 
-                            return lista.map((c, idx) => {
-                              // Separamos el nombre del precio
-                              const nombreReal = c.includes('|') ? c.split('|')[0] : c;
-                              const precioReal = c.includes('|') ? `$${parseFloat(c.split('|')[1]).toFixed(2)}` : '';
+                              return lista.map((c, idx) => {
+                                // Separamos el nombre del precio
+                                const nombreReal = c.includes('|') ? c.split('|')[0] : c;
+                                const precioReal = c.includes('|') ? `$${parseFloat(c.split('|')[1]).toFixed(2)}` : '';
 
-                              return (
-                                <span key={idx} className={`px-2 py-1 rounded text-xs font-bold shadow-sm flex gap-3 justify-between min-w-[130px] ${
-                                  nombreReal === 'Gasolina' ? 'bg-orange-100 text-orange-800 border border-orange-200' :
-                                  nombreReal === 'Casetas' ? 'bg-blue-100 text-blue-800 border border-blue-200' :
-                                  nombreReal === 'Llantas' ? 'bg-gray-700 text-white border border-gray-800' :
-                                  nombreReal === 'Aceite' ? 'bg-yellow-100 text-yellow-800 border border-yellow-300' :
-                                  nombreReal === 'Dua' ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' :
-                                  'bg-purple-100 text-purple-800 border border-purple-200'
-                                }`}>
-                                  <span>{nombreReal}</span> <span>{precioReal}</span>
-                                </span>
-                              );
-                            });
-                          })()}
-                        </div>
-                      </td>
+                                return (
+                                  <span key={idx} className={`px-2 py-1 rounded text-xs font-bold shadow-sm flex gap-3 justify-between min-w-[130px] ${nombreReal === 'Gasolina' ? 'bg-orange-100 text-orange-800 border border-orange-200' :
+                                    nombreReal === 'Casetas' ? 'bg-blue-100 text-blue-800 border border-blue-200' :
+                                      nombreReal === 'Llantas' ? 'bg-gray-700 text-white border border-gray-800' :
+                                        nombreReal === 'Aceite' ? 'bg-yellow-100 text-yellow-800 border border-yellow-300' :
+                                          nombreReal === 'Dua' ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' :
+                                            'bg-purple-100 text-purple-800 border border-purple-200'
+                                    }`}>
+                                    <span>{nombreReal}</span> <span>{precioReal}</span>
+                                  </span>
+                                );
+                              });
+                            })()}
+                          </div>
+                        </td>
                         <td className="p-3 text-right font-medium text-gray-600">${row.montoTotal.toFixed(2)}</td>
                         <td className="p-3 text-center">
                           <div className="text-xs font-bold text-emerald-600">{row.quincenasPagadas} pagadas</div>
@@ -2639,9 +2662,30 @@ export default function App() {
         {/* --- PESTAÑA: CIERRE Y REPORTES FINANCIEROS --- */}
         {activeTab === 'cierre' && (
           <div className="bg-white rounded-lg shadow-md p-6 border-t-4 border-blue-800">
-            <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2 mb-6">
-              <Database className="text-blue-800" /> Reportes y Cierres Financieros
-            </h2>
+
+            {/* NUEVA CABECERA CON BOTONES */}
+            <div className="flex justify-between items-center flex-wrap gap-4 mb-6">
+              <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+                <Database className="text-blue-800" /> Reportes y Cierres Financieros
+              </h2>
+
+              {/* BOTONES CHICOS DE EXPORTACIÓN */}
+              <div className="flex gap-2 print:hidden"> {/* print:hidden hace que NO salgan los botones en el PDF */}
+                <button
+                  onClick={exportarCierrePDF}
+                  className="bg-red-50 text-red-700 border border-red-200 px-3 py-1 rounded text-xs font-bold hover:bg-red-100 transition-colors flex items-center gap-1 shadow-sm"
+                >
+                  📄 Exportar PDF
+                </button>
+                <button
+                  onClick={exportarCierreExcel}
+                  className="bg-green-50 text-green-700 border border-green-200 px-3 py-1 rounded text-xs font-bold hover:bg-green-100 transition-colors flex items-center gap-1 shadow-sm"
+                >
+                  📊 Exportar Excel
+                </button>
+              </div>
+            </div>
+            {/* FIN DE LA NUEVA CABECERA */}
 
             {/* PANEL DE FILTROS */}
             <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 mb-6 flex flex-wrap gap-4 items-end">
@@ -2723,7 +2767,7 @@ export default function App() {
                   totalAmount = filteredData.reduce((sum, s) => sum + (parseFloat(s.cobro) || 0), 0);
 
                   return (
-                    <table className="min-w-full text-left text-sm whitespace-nowrap">
+                    <table id="tabla-cierre-financiero" className="min-w-full text-left text-sm whitespace-nowrap">
                       <thead className="bg-blue-50">
                         <tr className="text-blue-900 border-b">
                           <th className="p-3">Fecha</th><th className="p-3">Reserva</th><th className="p-3">Nombre</th>
@@ -2761,7 +2805,7 @@ export default function App() {
                   totalAmount = filteredData.reduce((sum, c) => sum + (parseFloat(c.comision) || 0), 0);
 
                   return (
-                    <table className="min-w-full text-left text-sm whitespace-nowrap">
+                    <table id="tabla-cierre-financiero" className="min-w-full text-left text-sm whitespace-nowrap">
                       <thead className="bg-purple-50">
                         <tr className="text-purple-900 border-b">
                           <th className="p-3">Fecha</th><th className="p-3">Reserva</th><th className="p-3">Cliente</th>
@@ -2798,7 +2842,7 @@ export default function App() {
                   totalAmount = filteredData.reduce((sum, g) => sum + (parseFloat(g.gasto_total) || 0), 0);
 
                   return (
-                    <table className="min-w-full text-left text-sm whitespace-nowrap">
+                    <table id="tabla-cierre-financiero" className="min-w-full text-left text-sm whitespace-nowrap">
                       <thead className="bg-orange-50">
                         <tr className="text-orange-900 border-b">
                           <th className="p-3">Fecha</th><th className="p-3">Vehículo</th><th className="p-3">Chofer</th>
@@ -2806,11 +2850,11 @@ export default function App() {
                         </tr>
                       </thead>
                       <tbody className="divide-y">
-                        {filteredData.length === 0 ? <tr><td colSpan="5" className="p-4 text-center text-gray-500">No hay gastos registrados en estas fechas.</td></tr> : 
+                        {filteredData.length === 0 ? <tr><td colSpan="5" className="p-4 text-center text-gray-500">No hay gastos registrados en estas fechas.</td></tr> :
                           filteredData.map(row => (
                             <tr key={row.id} className="hover:bg-gray-50">
                               <td className="p-2 font-medium">{row.fecha}</td><td className="p-2">{row.vehiculo}</td><td className="p-2 uppercase">{row.chofer}</td>
-                              
+
                               {/* NUEVA CELDA DINÁMICA DE CONCEPTOS */}
                               <td className="p-2">
                                 <div className="flex flex-col gap-1 text-xs">

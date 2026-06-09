@@ -182,3 +182,31 @@
     border-right-color: var(--border);
   }
 }
+
+/* ==========================================================================
+   ESTILOS PARA IMPRESIÓN Y EXPORTACIÓN A PDF
+   ========================================================================== */
+@media print {
+  /* Escondemos la cabecera de la app, el menú morado, los botones de filtro y los botones de acción */
+  header, nav, .print\:hidden, button, select, input[type="date"], .bg-gray-50 {
+    display: none !important;
+  }
+  
+  /* Hacemos que el recuadro blanco ocupe toda la página sin márgenes grises */
+  body {
+    background: white !important;
+    color: black !important;
+  }
+  
+  .bg-white {
+    box-shadow: none !important;
+    border: none !important;
+    padding: 0 !important;
+  }
+  
+  /* Forzamos a que los colores de las tablas y letras se sigan viendo bonitos en el PDF */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+}
