@@ -1284,15 +1284,15 @@ export default function App() {
     };
 
     const exportarCierrePDF = () => {
-    // 1. Buscamos la tabla que está activa en pantalla
-    const tabla = document.getElementById('tabla-cierre-financiero');
-    if (!tabla) return showToast('No hay datos para exportar', 'error');
+      // 1. Buscamos la tabla que está activa en pantalla
+      const tabla = document.getElementById('tabla-cierre-financiero');
+      if (!tabla) return showToast('No hay datos para exportar', 'error');
 
-    // 2. Abrimos una pestaña nueva en blanco en el navegador
-    const ventanaImpresion = window.open('', '_blank');
+      // 2. Abrimos una pestaña nueva en blanco en el navegador
+      const ventanaImpresion = window.open('', '_blank');
 
-    // 3. Escribimos un HTML 100% limpio y nativo dentro de esa pestaña
-    ventanaImpresion.document.write(`
+      // 3. Escribimos un HTML 100% limpio y nativo dentro de esa pestaña
+      ventanaImpresion.document.write(`
       <html>
         <head>
           <title>Reporte Financiero - ${cierreFiltroTipo.toUpperCase()}</title>
@@ -1363,8 +1363,8 @@ export default function App() {
       </html>
     `);
 
-    ventanaImpresion.document.close();
-  };
+      ventanaImpresion.document.close();
+    };
 
     try {
       const { error } = await supabase.from('gastos_flota').insert([nuevoRegistro]);
@@ -1390,7 +1390,7 @@ export default function App() {
     const html = tabla.outerHTML;
     const blob = new Blob([html], { type: 'application/vnd.ms-excel' });
     const url = URL.createObjectURL(blob);
-    
+
     const a = document.createElement('a');
     a.href = url;
     a.download = `Reporte_${cierreFiltroTipo}_${new Date().toISOString().split('T')[0]}.xls`;
@@ -3252,10 +3252,59 @@ export default function App() {
               <Printer size={20} /> Imprimir / PDF
             </button>
             <button
-              onClick={() => setTicketDataToPrint(null)}
-              className="bg-slate-900 hover:bg-slate-800 text-white font-bold py-2 px-6 rounded-xl flex items-center gap-2 transition-colors shadow-md"
+              onClick={() => {
+                // 1. Conseguimos el folio real del ticket actual (ej. BTS00006)
+                // Cambia "currentTicket.folio" o "service.reserva" por la variable exacta donde guardas el folio
+                const numeroTicket = currentService?.folio || currentService?.reserva || "00000";
+
+                // 2. Guardamos el título original de la pestaña de tu app
+                const tituloOriginal = document.title;
+
+                // 3. LE CAMBIAMOS EL NOMBRE AL ARCHIVO AUTOMÁTICAMENTE
+                // Al hacer esto, el navegador usará este texto exacto como nombre por defecto del PDF
+                document.title = `TICKET-${numeroTicket}`;
+
+                // 4. EL TRUCO CONTRA LA SEGUNDA HOJA: Creamos un estilo temporal ultra-estricto para la impresión
+                const estiloImpresion = document.createElement('style');
+                estiloImpresion.innerHTML = `
+      @media print {
+        @page {
+          size: letter !important; /* Forzamos tamaño carta */
+          margin: 0mm !important;  /* Cero márgenes del navegador */
+        }
+        body, html, #root {
+          height: 100% !important;
+          max-height: 297mm !important; /* Límite físico de la hoja */
+          overflow: hidden !important;
+          background: white !important;
+          -webkit-print-color-adjust: exact !important;
+          print-color-adjust: exact !important;
+        }
+        /* Buscamos el contenedor del boleto y lo obligamos a ajustarse perfectamente */
+        /* Reemplaza '.max-w-md' por la clase contenedora principal de tu boleto si es diferente */
+        .max-w-md, .bg-white, main { 
+          max-height: 280mm !important;
+          margin: 0 auto !important;
+          box-shadow: none !important;
+          page-break-inside: avoid !important;
+          page-break-after: avoid !important;
+        }
+      }
+    `;
+                document.head.appendChild(estiloImpresion);
+
+                // 5. Mandamos a imprimir / Guardar PDF
+                window.print();
+
+                // 6. LIMPIEZA: Cuando se cierre el asistente de PDF, regresamos todo a la normalidad
+                setTimeout(() => {
+                  document.title = tituloOriginal; // Regresa el nombre normal de tu app a la pestaña
+                  document.head.removeChild(estiloImpresion); // Quitamos el parche de impresión temporal
+                }, 1000);
+              }}
+              className="bg-amber-500 hover:bg-amber-600 text-white font-bold py-2 px-4 rounded shadow flex items-center gap-2 text-sm transition-colors"
             >
-              <X size={20} /> Cerrar
+              🖨️ Imprimir / PDF
             </button>
           </div>
 
