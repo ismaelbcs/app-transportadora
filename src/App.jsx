@@ -1242,12 +1242,6 @@ export default function App() {
     let sumTotal = 0;
     let nombresConceptos = [];
 
-    // Sumamos los totales y juntamos los nombres de todos los conceptos de la lista
-    let sumGasolina = 0;
-    let sumCasetas = 0;
-    let sumTotal = 0;
-    let nombresConceptos = [];
-
     carritoGastos.forEach(item => {
       if (item.concepto === 'Gasolina') sumGasolina += item.monto;
       if (item.concepto === 'Casetas') sumCasetas += item.monto;
@@ -1260,11 +1254,11 @@ export default function App() {
 
     // Creamos UN SOLO registro maestro para la tabla
     const nuevoRegistro = {
-      id: `GASTO-${Date.now().toString().slice(-6)}`,
+      id: `GASTO-${Date.now().toString().slice(-6)}-${Math.floor(Math.random() * 1000)}`,
       fecha: currentExpense.fecha || new Date().toISOString().split('T')[0],
       chofer: currentExpense.chofer,
       vehiculo: currentExpense.vehiculo,
-      concepto: nombresConceptos.join(','), // Se guarda en la nube como: "Gasolina,Llantas,Otros"
+      concepto: nombresConceptos.join(','), // Se guarda en la nube como: "Gasolina|800,Llantas|4000"
       gasolina: sumGasolina,
       casetas: sumCasetas,
       gasto_total: sumTotal
@@ -1273,8 +1267,8 @@ export default function App() {
     try {
       const { error } = await supabase.from('gastos_flota').insert([nuevoRegistro]);
       if (error) throw error;
-
-      // Limpiamos la pantalla
+      
+      // Limpiamos la pantalla para el siguiente registro
       setCarritoGastos([]);
       setMontoTemp('');
       setConceptoTemp('Gasolina');
