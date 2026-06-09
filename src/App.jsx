@@ -137,6 +137,11 @@ export default function App() {
   const [searchResults, setSearchResults] = useState([]);
   const [isEditing, setIsEditing] = useState(false);
 
+  // --- FILTROS BASE DE DATOS GENERAL ---
+  const [filtroAgenciaGeneral, setFiltroAgenciaGeneral] = useState('');
+  const [filtroFechaInicioGeneral, setFiltroFechaInicioGeneral] = useState('');
+  const [filtroFechaFinGeneral, setFiltroFechaFinGeneral] = useState('');
+
   const [rollDate, setRollDate] = useState(new Date().toISOString().split('T')[0]);
   const [rollData, setRollData] = useState([]);
 
@@ -1410,6 +1415,26 @@ export default function App() {
     />
   );
 
+  // --- LÓGICA DE FILTRADO MAESTRO (BASE DE DATOS GENERAL) ---
+  const serviciosFiltrados = services.filter(service => {
+    // 1. Filtro de búsqueda de texto (el que ya tenías)
+    // Nota: Cambia "searchTerm" por el nombre de tu variable de búsqueda si se llama diferente
+    const pasaBusqueda = !searchTerm ||
+      Object.values(service).some(val =>
+        String(val).toLowerCase().includes(searchTerm.toLowerCase())
+      );
+
+    // 2. Filtro de Agencia (Ignora mayúsculas/minúsculas para no fallar)
+    const pasaAgencia = !filtroAgenciaGeneral ||
+      (service.agencia && service.agencia.toLowerCase() === filtroAgenciaGeneral.toLowerCase());
+
+    // 3. Filtros de Rango de Fechas
+    const pasaFechaInicio = !filtroFechaInicioGeneral || service.fecha >= filtroFechaInicioGeneral;
+    const pasaFechaFin = !filtroFechaFinGeneral || service.fecha <= filtroFechaFinGeneral;
+
+    return pasaBusqueda && pasaAgencia && pasaFechaInicio && pasaFechaFin;
+  });
+
   if (!isLoggedIn) {
     return (
       <div className="min-h-screen bg-gray-200 flex items-center justify-center p-4 font-sans">
@@ -2607,6 +2632,59 @@ export default function App() {
 
             <div className="flex-1 overflow-x-auto overflow-y-auto p-4 w-full">
 
+              {/* --- BARRA DE FILTROS AVANZADOS --- */}
+              <div className="flex flex-wrap gap-4 mb-4 bg-gray-50 p-3 rounded-lg border border-gray-200 shadow-sm items-end">
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1 uppercase">Agencia</label>
+                  <select
+                    value={filtroAgenciaGeneral}
+                    onChange={(e) => setFiltroAgenciaGeneral(e.target.value)}
+                    className="block w-40 border border-gray-300 rounded-md shadow-sm p-2 text-sm focus:ring-blue-500 focus:border-blue-500 cursor-pointer"
+                  >
+                    <option value="">Todas las Agencias</option>
+                    <option value="USA">USA</option>
+                    <option value="EXPEDIA">Expedia</option>
+                    <option value="BOOKING">Booking</option>
+                    <option value="DIRECTO">Directo</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1 uppercase">Desde (Fecha)</label>
+                  <input
+                    type="date"
+                    value={filtroFechaInicioGeneral}
+                    onChange={(e) => setFiltroFechaInicioGeneral(e.target.value)}
+                    className="block w-40 border border-gray-300 rounded-md shadow-sm p-2 text-sm focus:ring-blue-500 focus:border-blue-500 cursor-pointer"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1 uppercase">Hasta (Fecha)</label>
+                  <input
+                    type="date"
+                    value={filtroFechaFinGeneral}
+                    onChange={(e) => setFiltroFechaFinGeneral(e.target.value)}
+                    className="block w-40 border border-gray-300 rounded-md shadow-sm p-2 text-sm focus:ring-blue-500 focus:border-blue-500 cursor-pointer"
+                  />
+                </div>
+
+                <div className="pb-1 ml-auto">
+                  <button
+                    onClick={() => {
+                      setFiltroAgenciaGeneral('');
+                      setFiltroFechaInicioGeneral('');
+                      setFiltroFechaFinGeneral('');
+                      setDbSearchTerm(''); // Limpia también la barra de búsqueda escrita
+                    }}
+                    className="text-xs text-blue-600 hover:text-blue-800 font-bold underline transition-colors"
+                  >
+                    Limpiar Filtros
+                  </button>
+                </div>
+              </div>
+              {/* --- FIN BARRA DE FILTROS AVANZADOS --- */}
+
               <datalist id="hoteles-bd-list">
                 {LISTA_HOTELES.map((hotel, index) => (
                   <option key={`bd-${index}`} value={hotel.nombre}>
@@ -2634,9 +2712,22 @@ export default function App() {
                 </thead>
                 <tbody className="divide-y">
                   {(() => {
-                    // 1. Filtramos los datos en tiempo real
+                    // 1. Filtramos los datos en tiempo real (AHORA CONECTADO A LOS NUEVOS FILTROS)
                     const filteredDatabase = services.filter(s => {
-                      if (!dbSearchTerm) return true; // Si está vacío, mostramos todo
+                      // Filtro por Agencia
+                      if (filtroAgenciaGeneral && (s.agencia || '').toUpperCase() !== filtroAgenciaGeneral.toUpperCase()) {
+                        return false;
+                      }
+                      // Filtro por Fechas
+                      if (filtroFechaInicioGeneral && s.fecha < filtroFechaInicioGeneral) {
+                        return false;
+                      }
+                      if (filtroFechaFinGeneral && s.fecha > filtroFechaFinGeneral) {
+                        return false;
+                      }
+
+                      // Filtro del Buscador Global de texto
+                      if (!dbSearchTerm) return true; // Si la barra de búsqueda está vacía, pasa.
 
                       const term = dbSearchTerm.toLowerCase();
                       return (
@@ -2650,7 +2741,7 @@ export default function App() {
                     });
 
                     // 2. Pintamos los datos ya filtrados
-                    if (filteredDatabase.length === 0) return <tr><td colSpan="20" className="text-center p-8 text-gray-500">No se encontraron servicios con "{dbSearchTerm}".</td></tr>;
+                    if (filteredDatabase.length === 0) return <tr><td colSpan="20" className="text-center p-8 text-gray-500">No se encontraron servicios con los filtros actuales.</td></tr>;
 
                     return filteredDatabase.map(row => (
                       <tr key={row.id} className="hover:bg-blue-50 transition-colors">
