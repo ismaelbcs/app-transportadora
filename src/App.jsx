@@ -1701,12 +1701,29 @@ export default function App() {
                   <input type="date" name="fecha" value={currentExpense.fecha} onChange={handleExpenseChange} className="block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm focus:ring-orange-500 focus:border-orange-500" />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">Chofer</label>
-                  <input type="text" name="chofer" placeholder="Ej. Juan Pérez" value={currentExpense.chofer} onChange={handleExpenseChange} className="block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm focus:ring-orange-500 focus:border-orange-500" />
+                  <label className="block text-xs font-bold text-orange-800 mb-1 uppercase">Chofer</label>
+                  <select
+                    name="chofer"
+                    value={nuevoGasto.chofer} /* NOTA: Si tu variable se llama distinto, solo cambia "nuevoGasto.chofer" por la tuya */
+                    onChange={handleGastoChange} /* Asegúrate de usar la misma función onChange que ya tenías */
+                    className="block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 cursor-pointer uppercase"
+                  >
+                    <option value="">Selecciona...</option>
+                    <option value="IGNACIO">Ignacio</option>
+                  </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">Vehículo</label>
-                  <input type="text" name="vehiculo" placeholder="Ej. Sprinter 01" value={currentExpense.vehiculo} onChange={handleExpenseChange} className="block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm focus:ring-orange-500 focus:border-orange-500" />
+                  <label className="block text-xs font-bold text-orange-800 mb-1 uppercase">Vehículo</label>
+                  <select
+                    name="vehiculo"
+                    value={nuevoGasto.vehiculo} /* Igual aquí, usa tu variable actual */
+                    onChange={handleGastoChange}
+                    className="block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 cursor-pointer"
+                  >
+                    <option value="">Selecciona...</option>
+                    <option value="Expedition">Expedition</option>
+                    <option value="Hiace">Hiace</option>
+                  </select>
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-gray-700 mb-1">Gasolina ($)</label>
@@ -1749,7 +1766,15 @@ export default function App() {
                       <td className="p-2">
                         <input type="date" value={row.fecha || ''} onChange={e => handleFleetChange(row.id, 'fecha', e.target.value)} className="bg-transparent border-b border-dashed border-gray-400 focus:outline-none focus:border-orange-500 text-gray-700" />
                       </td>
-                      <td className="p-2">{row.chofer}</td><td className="p-2">{row.vehiculo}</td>
+                      <select
+                        value={row.vehiculo || ''}
+                        onChange={e => handleTablaFlotaChange(row.id, 'vehiculo', e.target.value)}
+                        className="w-24 bg-transparent border-b border-dashed focus:outline-none text-xs text-gray-600 cursor-pointer"
+                      >
+                        <option value=""></option>
+                        <option value="Expedition">Expedition</option>
+                        <option value="Hiace">Hiace</option>
+                      </select>
                       <td className="p-2 text-right text-gray-600">${parseFloat(row.gasolina || 0).toFixed(2)}</td>
                       <td className="p-2 text-right text-gray-600">${parseFloat(row.casetas || 0).toFixed(2)}</td>
                       <td className="p-2 text-right font-bold text-red-700">${parseFloat(row.gastoTotal || 0).toFixed(2)}</td>
