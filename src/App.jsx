@@ -1704,20 +1704,21 @@ export default function App() {
                   <label className="block text-xs font-bold text-orange-800 mb-1 uppercase">Chofer</label>
                   <select
                     name="chofer"
-                    value={nuevoGasto.chofer} /* NOTA: Si tu variable se llama distinto, solo cambia "nuevoGasto.chofer" por la tuya */
-                    onChange={handleGastoChange} /* Asegúrate de usar la misma función onChange que ya tenías */
+                    value={currentExpense.chofer || ''}
+                    onChange={handleExpenseChange}
                     className="block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 cursor-pointer uppercase"
                   >
                     <option value="">Selecciona...</option>
                     <option value="IGNACIO">Ignacio</option>
                   </select>
                 </div>
+
                 <div>
                   <label className="block text-xs font-bold text-orange-800 mb-1 uppercase">Vehículo</label>
                   <select
                     name="vehiculo"
-                    value={nuevoGasto.vehiculo} /* Igual aquí, usa tu variable actual */
-                    onChange={handleGastoChange}
+                    value={currentExpense.vehiculo || ''}
+                    onChange={handleExpenseChange}
                     className="block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 cursor-pointer"
                   >
                     <option value="">Selecciona...</option>
