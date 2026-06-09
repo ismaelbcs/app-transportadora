@@ -1242,11 +1242,20 @@ export default function App() {
     let sumTotal = 0;
     let nombresConceptos = [];
 
+    // Sumamos los totales y juntamos los nombres de todos los conceptos de la lista
+    let sumGasolina = 0;
+    let sumCasetas = 0;
+    let sumTotal = 0;
+    let nombresConceptos = [];
+
     carritoGastos.forEach(item => {
       if (item.concepto === 'Gasolina') sumGasolina += item.monto;
       if (item.concepto === 'Casetas') sumCasetas += item.monto;
       sumTotal += item.monto;
-      nombresConceptos.push(item.concepto);
+      
+      // LA MAGIA: Guardamos el concepto junto con su precio, separados por un "|"
+      // Ejemplo: "Gasolina|800"
+      nombresConceptos.push(`${item.concepto}|${item.monto}`);
     });
 
     // Creamos UN SOLO registro maestro para la tabla
@@ -2025,38 +2034,40 @@ export default function App() {
                     return (
                       <tr key={row.id} className="hover:bg-emerald-50 transition-colors">
                         <td className="p-3 font-bold text-gray-800 uppercase">{row.chofer}</td>
-                        {/* Concepto Dinámico Apilado (Múltiples Etiquetas) */}
-                        <td className="p-3">
-                          <div className="flex flex-col gap-1 items-start">
-                            {(() => {
-                              let lista = [];
+                        {/* Concepto Dinámico Apilado (Múltiples Etiquetas con Precio) */}
+                      <td className="p-3">
+                        <div className="flex flex-col gap-1 items-start">
+                          {(() => {
+                            let lista = [];
+                            if (row.concepto === 'Varios' || !row.concepto) {
+                              if (row.gasolina > 0) lista.push('Gasolina');
+                              if (row.casetas > 0) lista.push('Casetas');
+                              if (lista.length === 0) lista.push('Varios');
+                            } else {
+                              lista = row.concepto.split(',');
+                            }
 
-                              // 1. Rescate de registros viejos (Si dice 'Varios', vemos en qué gastó realmente)
-                              if (row.concepto === 'Varios' || !row.concepto) {
-                                if (row.gasolina > 0) lista.push('Gasolina');
-                                if (row.casetas > 0) lista.push('Casetas');
-                                if (lista.length === 0) lista.push('Varios');
-                              }
-                              // 2. Registros nuevos (Separamos por coma lo que guardamos en el Paso 1)
-                              else {
-                                lista = row.concepto.split(',');
-                              }
+                            return lista.map((c, idx) => {
+                              // Separamos el nombre del precio
+                              const nombreReal = c.includes('|') ? c.split('|')[0] : c;
+                              const precioReal = c.includes('|') ? `$${parseFloat(c.split('|')[1]).toFixed(2)}` : '';
 
-                              // Dibujamos cada palabra de la lista una arriba de otra (flex-col)
-                              return lista.map((c, idx) => (
-                                <span key={idx} className={`px-2 py-1 rounded text-xs font-bold shadow-sm ${c === 'Gasolina' ? 'bg-orange-100 text-orange-800 border border-orange-200' :
-                                    c === 'Casetas' ? 'bg-blue-100 text-blue-800 border border-blue-200' :
-                                      c === 'Llantas' ? 'bg-gray-700 text-white border border-gray-800' :
-                                        c === 'Aceite' ? 'bg-yellow-100 text-yellow-800 border border-yellow-300' :
-                                          c === 'Dua' ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' :
-                                            'bg-purple-100 text-purple-800 border border-purple-200'
-                                  }`}>
-                                  {c}
+                              return (
+                                <span key={idx} className={`px-2 py-1 rounded text-xs font-bold shadow-sm flex gap-3 justify-between min-w-[130px] ${
+                                  nombreReal === 'Gasolina' ? 'bg-orange-100 text-orange-800 border border-orange-200' :
+                                  nombreReal === 'Casetas' ? 'bg-blue-100 text-blue-800 border border-blue-200' :
+                                  nombreReal === 'Llantas' ? 'bg-gray-700 text-white border border-gray-800' :
+                                  nombreReal === 'Aceite' ? 'bg-yellow-100 text-yellow-800 border border-yellow-300' :
+                                  nombreReal === 'Dua' ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' :
+                                  'bg-purple-100 text-purple-800 border border-purple-200'
+                                }`}>
+                                  <span>{nombreReal}</span> <span>{precioReal}</span>
                                 </span>
-                              ));
-                            })()}
-                          </div>
-                        </td>
+                              );
+                            });
+                          })()}
+                        </div>
+                      </td>
                         <td className="p-3 text-right font-medium text-gray-600">${row.montoTotal.toFixed(2)}</td>
                         <td className="p-3 text-center">
                           <div className="text-xs font-bold text-emerald-600">{row.quincenasPagadas} pagadas</div>
@@ -2783,7 +2794,6 @@ export default function App() {
                 }
 
                 else if (cierreFiltroTipo === 'gastos') {
-                  // Asumiendo que tu variable se llama gastosFlota
                   const dataGastos = typeof gastosFlota !== 'undefined' ? gastosFlota : [];
                   filteredData = dataGastos.filter(g => {
                     const passInicio = !cierreFiltroInicio || g.fecha >= cierreFiltroInicio;
@@ -2798,21 +2808,46 @@ export default function App() {
                       <thead className="bg-orange-50">
                         <tr className="text-orange-900 border-b">
                           <th className="p-3">Fecha</th><th className="p-3">Vehículo</th><th className="p-3">Chofer</th>
-                          <th className="p-3 text-right">Gasolina</th><th className="p-3 text-right">Casetas</th><th className="p-3 text-right">Gasto Total (Egreso)</th>
+                          <th className="p-3">Detalle de Gastos (Sub-total)</th><th className="p-3 text-right">Gasto Total (Egreso)</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y">
-                        {filteredData.length === 0 ? <tr><td colSpan="6" className="p-4 text-center text-gray-500">No hay gastos registrados en estas fechas.</td></tr> :
+                        {filteredData.length === 0 ? <tr><td colSpan="5" className="p-4 text-center text-gray-500">No hay gastos registrados en estas fechas.</td></tr> : 
                           filteredData.map(row => (
                             <tr key={row.id} className="hover:bg-gray-50">
                               <td className="p-2 font-medium">{row.fecha}</td><td className="p-2">{row.vehiculo}</td><td className="p-2 uppercase">{row.chofer}</td>
-                              <td className="p-2 text-right">${parseFloat(row.gasolina || 0).toFixed(2)}</td><td className="p-2 text-right">${parseFloat(row.casetas || 0).toFixed(2)}</td>
+                              
+                              {/* NUEVA CELDA DINÁMICA DE CONCEPTOS */}
+                              <td className="p-2">
+                                <div className="flex flex-col gap-1 text-xs">
+                                  {row.concepto && row.concepto.includes('|') ? (
+                                    // 1. Lógica para los registros nuevos (Ej. Dua|4000,Gasolina|800)
+                                    row.concepto.split(',').map((item, idx) => {
+                                      const partes = item.split('|');
+                                      return (
+                                        <div key={idx} className="flex justify-between w-48 border-b border-gray-100 border-dashed pb-1">
+                                          <span className="font-semibold text-gray-600 uppercase">{partes[0]}</span>
+                                          <span className="font-bold text-gray-800">${parseFloat(partes[1]).toFixed(2)}</span>
+                                        </div>
+                                      )
+                                    })
+                                  ) : (
+                                    // 2. Rescate visual para registros viejos (Antes de la actualización)
+                                    <>
+                                      {row.gasolina > 0 && <div className="flex justify-between w-48 border-b border-gray-100 border-dashed pb-1"><span className="font-semibold text-gray-600 uppercase">GASOLINA</span><span className="font-bold text-gray-800">${parseFloat(row.gasolina).toFixed(2)}</span></div>}
+                                      {row.casetas > 0 && <div className="flex justify-between w-48 border-b border-gray-100 border-dashed pb-1"><span className="font-semibold text-gray-600 uppercase">CASETAS</span><span className="font-bold text-gray-800">${parseFloat(row.casetas).toFixed(2)}</span></div>}
+                                      {(!row.gasolina && !row.casetas && row.gasto_total > 0) && <div className="flex justify-between w-48 border-b border-gray-100 border-dashed pb-1"><span className="font-semibold text-gray-600 uppercase">{row.concepto || 'VARIOS'}</span><span className="font-bold text-gray-800">${parseFloat(row.gasto_total).toFixed(2)}</span></div>}
+                                    </>
+                                  )}
+                                </div>
+                              </td>
+
                               <td className="p-2 text-right font-bold text-red-700">${parseFloat(row.gasto_total || 0).toFixed(2)}</td>
                             </tr>
                           ))
                         }
                         <tr className="bg-gray-100 border-t-2 border-gray-300">
-                          <td colSpan="5" className="p-3 text-right font-bold text-gray-700 uppercase">Total Egresos:</td>
+                          <td colSpan="4" className="p-3 text-right font-bold text-gray-700 uppercase">Total Egresos:</td>
                           <td className="p-3 text-right font-black text-red-800 text-lg">${totalAmount.toFixed(2)}</td>
                         </tr>
                       </tbody>
