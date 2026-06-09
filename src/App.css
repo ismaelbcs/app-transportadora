@@ -187,43 +187,28 @@
    ESTILOS PARA IMPRESIÓN Y EXPORTACIÓN A PDF
    ========================================================================== */
 @media print {
-  /* 1. Escondemos la interfaz de la app */
-  header, nav, .print\:hidden, button, select, input[type="date"], .bg-gray-50 {
-    display: none !important;
-  }
-  
-  /* 2. EL TRUCO ANTI-FOTO: Apagamos todos los efectos que confunden al navegador */
-  * {
-    box-shadow: none !important;
-    text-shadow: none !important;
-    filter: none !important;
-    backdrop-filter: none !important;
-    transition: none !important;
-    transform: none !important;
-    opacity: 1 !important;
-  }
-  
-  /* 3. Limpiamos el fondo para que la hoja sea 100% blanca */
-  body, html, #root {
-    background: white !important;
-    color: black !important;
-    margin: 0 !important;
-    padding: 0 !important;
-  }
-  
-  .bg-white {
-    border: none !important;
-    padding: 0 !important;
-  }
-  
-  /* 4. Evitamos que las filas se partan a la mitad entre dos páginas */
-  tr, td, th {
-    page-break-inside: avoid !important;
-  }
-  
-  /* 5. Mantenemos los colores de fondo de las etiquetas (Gasolina, Casetas, etc.) */
+  /* 1. Mantiene los colores originales de tu boleto (azul marino, naranja, etc.) */
   * {
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+
+  /* 2. ELIMINA LA SEGUNDA HOJA BLANCA quitando los márgenes del navegador */
+  @page {
+    margin: 0.5cm; /* Un margen muy pequeñito y controlado */
+  }
+
+  /* 3. Evitamos que cualquier sombra o margen invisible empuje el contenido hacia abajo */
+  body, html, #root {
+    margin: 0 !important;
+    padding: 0 !important;
+    height: auto !important;
+    overflow: hidden !important; 
+  }
+
+  /* 4. Ocultamos los botones de "Cambiar a Español", "Imprimir" y "Cerrar" en el PDF */
+  .print\:hidden {
+    display: none !important;
   }
 }
