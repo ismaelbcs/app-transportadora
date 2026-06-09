@@ -187,24 +187,41 @@
    ESTILOS PARA IMPRESIÓN Y EXPORTACIÓN A PDF
    ========================================================================== */
 @media print {
-  /* Escondemos la cabecera de la app, el menú morado, los botones de filtro y los botones de acción */
+  /* 1. Escondemos la interfaz de la app */
   header, nav, .print\:hidden, button, select, input[type="date"], .bg-gray-50 {
     display: none !important;
   }
   
-  /* Hacemos que el recuadro blanco ocupe toda la página sin márgenes grises */
-  body {
+  /* 2. EL TRUCO ANTI-FOTO: Apagamos todos los efectos que confunden al navegador */
+  * {
+    box-shadow: none !important;
+    text-shadow: none !important;
+    filter: none !important;
+    backdrop-filter: none !important;
+    transition: none !important;
+    transform: none !important;
+    opacity: 1 !important;
+  }
+  
+  /* 3. Limpiamos el fondo para que la hoja sea 100% blanca */
+  body, html, #root {
     background: white !important;
     color: black !important;
+    margin: 0 !important;
+    padding: 0 !important;
   }
   
   .bg-white {
-    box-shadow: none !important;
     border: none !important;
     padding: 0 !important;
   }
   
-  /* Forzamos a que los colores de las tablas y letras se sigan viendo bonitos en el PDF */
+  /* 4. Evitamos que las filas se partan a la mitad entre dos páginas */
+  tr, td, th {
+    page-break-inside: avoid !important;
+  }
+  
+  /* 5. Mantenemos los colores de fondo de las etiquetas (Gasolina, Casetas, etc.) */
   * {
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
