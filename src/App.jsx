@@ -1858,59 +1858,90 @@ export default function App() {
                   <Save size={16} /> Guardar Cambios
                 </button>
               </div>
-              <table className="min-w-full text-left text-sm whitespace-nowrap">
-                <thead className="sticky top-0 bg-white shadow-sm z-10">
-                  <tr className="text-gray-600 border-b bg-gray-50">
-                    <th className="p-2">ID Gasto</th><th className="p-2">Fecha</th><th className="p-2">Chofer</th><th className="p-2">Vehículo</th>
-                    <th className="p-2 text-right">Gasolina</th><th className="p-2 text-right">Casetas</th><th className="p-2 text-right font-bold">Gasto Total</th>
-                    <th className="p-2 text-center">Acciones</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y">
-                  {fleetExpenses.length === 0 ? <tr><td colSpan="8" className="text-center p-8 text-gray-500">No hay gastos registrados.</td></tr> : [...fleetExpenses].reverse().map(row => (
+              <table className="min-w-full text-left text-sm whitespace-nowrap mt-4">
+              <thead className="bg-gray-50">
+                <tr className="text-gray-600 border-b">
+                  <th className="p-3">ID Gasto</th>
+                  <th className="p-3">Fecha</th>
+                  <th className="p-3">Chofer</th>
+                  <th className="p-3">Vehículo</th>
+                  <th className="p-3">Concepto</th>
+                  <th className="p-3 text-right">Monto Total</th>
+                  <th className="p-3 text-center">Acciones</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {typeof gastosFlota !== 'undefined' && gastosFlota.length === 0 ? (
+                  <tr><td colSpan="7" className="p-8 text-center text-gray-500 font-medium">No hay historial de gastos.</td></tr>
+                ) : (
+                  (typeof gastosFlota !== 'undefined' ? gastosFlota : []).map(row => (
                     <tr key={row.id} className="hover:bg-orange-50 transition-colors">
-                      <td className="p-2 font-medium text-gray-500">{row.id}</td>
-                      <td className="p-2">
-                        <input type="date" value={row.fecha || ''} onChange={e => handleFleetChange(row.id, 'fecha', e.target.value)} className="bg-transparent border-b border-dashed border-gray-400 focus:outline-none focus:border-orange-500 text-gray-700" />
+                      
+                      {/* ID Gasto */}
+                      <td className="p-3 text-gray-400 text-xs font-mono">
+                        {row.id?.substring(0, 8)}...
                       </td>
-                      <select
-                        value={row.vehiculo || ''}
-                        onChange={e => handleTablaFlotaChange(row.id, 'vehiculo', e.target.value)}
-                        className="w-24 bg-transparent border-b border-dashed focus:outline-none text-xs text-gray-600 cursor-pointer"
-                      >
-                        <option value=""></option>
-                        <option value="Expedition">Expedition</option>
-                        <option value="Hiace">Hiace</option>
-                      </select>
-                      <td className="p-2 text-right text-gray-600">${parseFloat(row.gasolina || 0).toFixed(2)}</td>
-                      <td className="p-2 text-right text-gray-600">${parseFloat(row.casetas || 0).toFixed(2)}</td>
-                      <td className="p-2 text-right font-bold text-red-700">${parseFloat(row.gastoTotal || 0).toFixed(2)}</td>
-                      <td className="p-2 text-center">
-                        <button
-                          onClick={async () => {
-                            if (window.confirm('¿Estás seguro de que deseas eliminar este gasto de la nube?')) {
-                              try {
-                                showToast('Eliminando...', 'success');
-                                const { error } = await supabase.from('gastos_flota').delete().eq('id', row.id);
-                                if (error) throw error;
-                                setFleetExpenses(fleetExpenses.filter(g => g.id !== row.id));
-                                showToast('¡Gasto eliminado!');
-                              } catch (error) {
-                                console.error("Error al eliminar gasto:", error);
-                                showToast('Error al eliminar', 'error');
+                      
+                      {/* Fecha */}
+                      <td className="p-3 font-medium text-gray-700">
+                        {row.fecha}
+                      </td>
+                      
+                      {/* Chofer */}
+                      <td className="p-3 font-bold text-gray-800 uppercase">
+                        {row.chofer}
+                      </td>
+                      
+                      {/* Vehículo */}
+                      <td className="p-3 text-gray-700">
+                        {row.vehiculo}
+                      </td>
+                      
+                      {/* Concepto Dinámico (Llantas, Gasolina, etc.) */}
+                      <td className="p-3">
+                        <span className={`px-2 py-1 rounded text-xs font-bold ${
+                          row.concepto === 'Gasolina' ? 'bg-orange-100 text-orange-800' :
+                          row.concepto === 'Casetas' ? 'bg-blue-100 text-blue-800' :
+                          row.concepto === 'Llantas' ? 'bg-gray-200 text-gray-800' :
+                          'bg-purple-100 text-purple-800'
+                        }`}>
+                          {row.concepto || (row.gasolina > 0 ? 'Gasolina' : row.casetas > 0 ? 'Casetas' : 'Varios')}
+                        </span>
+                      </td>
+                      
+                      {/* Monto Total */}
+                      <td className="p-3 text-right font-black text-red-600">
+                        ${parseFloat(row.gasto_total || 0).toFixed(2)}
+                      </td>
+                      
+                      {/* Acciones (Basurero) */}
+                      <td className="p-3 text-center">
+                        {userProfile?.rol === 'admin' && (
+                          <button
+                            onClick={async () => {
+                              if (window.confirm('¿Eliminar este gasto permanentemente?')) {
+                                try {
+                                  // Usamos supabase directamente para borrar
+                                  await supabase.from('gastos_flota').delete().eq('id', row.id);
+                                  fetchAllData(); // Recarga la tabla
+                                } catch (error) {
+                                  console.error("Error al borrar", error);
+                                }
                               }
-                            }
-                          }}
-                          className="p-1 text-red-500 hover:bg-red-100 rounded"
-                          title="Eliminar Gasto"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>
-                        </button>
+                            }}
+                            className="p-1 text-red-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                            title="Eliminar Gasto"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>
+                          </button>
+                        )}
                       </td>
+
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  ))
+                )}
+              </tbody>
+            </table>
             </div>
           </div>
         )}
