@@ -1284,9 +1284,87 @@ export default function App() {
     };
 
     const exportarCierrePDF = () => {
-      // Abrimos la ventana de impresión nativa del sistema
-      window.print();
-    };
+    // 1. Buscamos la tabla que está activa en pantalla
+    const tabla = document.getElementById('tabla-cierre-financiero');
+    if (!tabla) return showToast('No hay datos para exportar', 'error');
+
+    // 2. Abrimos una pestaña nueva en blanco en el navegador
+    const ventanaImpresion = window.open('', '_blank');
+
+    // 3. Escribimos un HTML 100% limpio y nativo dentro de esa pestaña
+    ventanaImpresion.document.write(`
+      <html>
+        <head>
+          <title>Reporte Financiero - ${cierreFiltroTipo.toUpperCase()}</title>
+          <style>
+            body { 
+              font-family: 'Helvetica Neue', Arial, sans-serif; 
+              color: #333; 
+              padding: 20px;
+              margin: 0;
+            }
+            h2 { 
+              color: #1e3a8a; 
+              border-bottom: 2px solid #1e3a8a; 
+              padding-bottom: 8px;
+              text-transform: uppercase;
+              font-size: 20px;
+            }
+            /* Estilos nativos para forzar al navegador a usar TEXTO REAL */
+            table { 
+              width: 100%; 
+              border-collapse: collapse; 
+              margin-top: 20px; 
+              font-size: 12px;
+            }
+            th, td { 
+              border: 1px solid #e5e7eb; 
+              padding: 10px; 
+              text-align: left; 
+            }
+            th { 
+              background-color: #f3f4f6; 
+              color: #1f2937; 
+              font-weight: bold; 
+            }
+            tr:nth-child(even) { background-color: #f9fafb; }
+            .text-right { text-align: right; }
+            .font-bold { font-weight: bold; }
+            
+            /* Apagamos cualquier intento de renderizar como imagen */
+            * {
+              box-shadow: none !important;
+              text-shadow: none !important;
+              filter: none !important;
+            }
+            
+            /* Configuración de impresión */
+            @media print {
+              body { padding: 0; }
+              tr { page-break-inside: avoid; }
+            }
+          </style>
+        </head>
+        <body>
+          <h2>Reporte de Cierre: ${cierreFiltroTipo === 'general' ? 'Base General' : cierreFiltroTipo === 'callcenter' ? 'Call Center' : 'Gastos de Flota'}</h2>
+          <p style="font-size: 12px; color: #666;">Fecha de generación: ${new Date().toLocaleDateString()}</p>
+          
+          ${tabla.outerHTML}
+          
+          <script>
+            // En cuanto cargue el texto, abre el asistente de PDF automáticamente
+            window.onload = function() {
+              window.print();
+              // Opcional: cierra la pestaña automáticamente después de guardar
+              setTimeout(function() { window.close(); }, 500);
+            };
+          </script>
+        </body>
+      </html>
+    `);
+
+    ventanaImpresion.document.close();
+  };
 
     try {
       const { error } = await supabase.from('gastos_flota').insert([nuevoRegistro]);
