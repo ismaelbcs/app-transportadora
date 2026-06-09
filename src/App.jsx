@@ -162,6 +162,11 @@ export default function App() {
   const [fleetExpenses, setFleetExpenses] = useState([]);
   const [currentExpense, setCurrentExpense] = useState(initialExpenseState);
 
+  // --- VARIABLES PARA EL CARRITO DE GASTOS ---
+  const [conceptoTemp, setConceptoTemp] = useState('Gasolina');
+  const [montoTemp, setMontoTemp] = useState('');
+  const [carritoGastos, setCarritoGastos] = useState([]);
+
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
   const [libsLoaded, setLibsLoaded] = useState(false);
   const [renderData, setRenderData] = useState(null);
@@ -1221,6 +1226,45 @@ export default function App() {
     }
   };
 
+  const guardarCarritoGastos = async () => {
+    if (!currentExpense.chofer || !currentExpense.vehiculo) {
+      return showToast('Selecciona el chofer y el vehículo primero', 'error');
+    }
+    if (carritoGastos.length === 0) {
+      return showToast('Agrega al menos un gasto a la lista con el botón +', 'error');
+    }
+
+    showToast('Guardando lista de gastos...');
+
+    // Transformamos el carrito en el formato exacto que pide Supabase
+    const nuevosRegistros = carritoGastos.map(item => ({
+      id: `GASTO-${Date.now().toString().slice(-6)}-${Math.floor(Math.random() * 1000)}`,
+      fecha: currentExpense.fecha || new Date().toISOString().split('T')[0],
+      chofer: currentExpense.chofer,
+      vehiculo: currentExpense.vehiculo,
+      concepto: item.concepto,
+      // TRUCO DE COMPATIBILIDAD: Mantenemos estas columnas para que el "Cierre" siga sumando bien
+      gasolina: item.concepto === 'Gasolina' ? item.monto : 0,
+      casetas: item.concepto === 'Casetas' ? item.monto : 0,
+      gasto_total: item.monto
+    }));
+
+    try {
+      const { error } = await supabase.from('gastos_flota').insert(nuevosRegistros);
+      if (error) throw error;
+
+      // Limpiamos todo para el siguiente registro
+      setCarritoGastos([]);
+      setMontoTemp('');
+      setConceptoTemp('Gasolina');
+      fetchAllData(); // Recargamos las tablas
+      showToast('¡Gastos guardados con éxito!', 'success');
+    } catch (error) {
+      console.error(error);
+      showToast('Error al guardar en la nube', 'error');
+    }
+  };
+
   const BallardLogo = ({ className }) => (
     <img
       src="/logo-oficial.png"
@@ -1726,13 +1770,75 @@ export default function App() {
                     <option value="Hiace">Hiace</option>
                   </select>
                 </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">Gasolina ($)</label>
-                  <input type="number" name="gasolina" placeholder="Dejar vacío = $0" min="0" step="0.01" value={currentExpense.gasolina} onChange={handleExpenseChange} className="block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm focus:ring-orange-500 focus:border-orange-500" />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">Casetas ($)</label>
-                  <input type="number" name="casetas" placeholder="Dejar vacío = $0" min="0" step="0.01" value={currentExpense.casetas} onChange={handleExpenseChange} className="block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm focus:ring-orange-500 focus:border-orange-500" />
+                {/* --- NUEVO MÓDULO DE CARRITO DE GASTOS --- */}
+                <div className="col-span-1 md:col-span-2 bg-orange-50 p-4 rounded-lg border border-orange-200 shadow-inner">
+                  <div className="flex flex-wrap gap-2 items-end">
+
+                    <div className="flex-1 min-w-[120px]">
+                      <label className="block text-xs font-bold text-orange-800 mb-1">CONCEPTO</label>
+                      <select
+                        value={conceptoTemp}
+                        onChange={(e) => setConceptoTemp(e.target.value)}
+                        className="w-full border border-gray-300 rounded-md p-2 text-sm shadow-sm focus:ring-orange-500 focus:border-orange-500 bg-white"
+                      >
+                        <option value="Gasolina">Gasolina</option>
+                        <option value="Casetas">Casetas</option>
+                        <option value="Llantas">Llantas</option>
+                        <option value="Dua">Dua</option>
+                        <option value="Aceite">Aceite</option>
+                        <option value="Otros">Otros</option>
+                      </select>
+                    </div>
+
+                    <div className="flex-1 min-w-[100px]">
+                      <label className="block text-xs font-bold text-orange-800 mb-1">MONTO ($)</label>
+                      <input
+                        type="number" min="0" step="0.5"
+                        value={montoTemp}
+                        onChange={(e) => setMontoTemp(e.target.value)}
+                        placeholder="Ej. 500"
+                        className="w-full border border-gray-300 rounded-md p-2 text-sm shadow-sm focus:ring-orange-500 focus:border-orange-500"
+                      />
+                    </div>
+
+                    <button
+                      onClick={() => {
+                        if (!montoTemp || montoTemp <= 0) return;
+                        setCarritoGastos([...carritoGastos, { concepto: conceptoTemp, monto: parseFloat(montoTemp) }]);
+                        setMontoTemp(''); // Limpiamos el monto tras agregar
+                      }}
+                      className="bg-orange-500 hover:bg-orange-600 text-white font-black py-2 px-4 rounded-md transition-colors shadow-sm text-sm h-[38px]"
+                      title="Agregar a la lista"
+                    >
+                      + AGREGAR
+                    </button>
+                  </div>
+
+                  {/* Lista visual de lo que se va agregando */}
+                  {carritoGastos.length > 0 && (
+                    <div className="mt-4 bg-white p-3 rounded border border-gray-200">
+                      <h4 className="text-xs font-bold text-gray-500 border-b pb-1 mb-2 uppercase">Gastos a registrar hoy:</h4>
+                      <ul className="text-sm divide-y divide-gray-100 mb-3">
+                        {carritoGastos.map((item, index) => (
+                          <li key={index} className="py-1 flex justify-between text-gray-700">
+                            <span>✔️ {item.concepto}</span>
+                            <span className="font-bold">${item.monto.toFixed(2)}</span>
+                          </li>
+                        ))}
+                      </ul>
+                      <div className="flex justify-between items-center border-t pt-2">
+                        <span className="font-black text-orange-800">Total del día: ${carritoGastos.reduce((sum, item) => sum + item.monto, 0).toFixed(2)}</span>
+
+                        {/* Botón Final para Guardar Todo en Supabase */}
+                        <button
+                          onClick={guardarCarritoGastos}
+                          className="bg-green-600 hover:bg-green-700 text-white font-bold py-1 px-4 rounded transition-colors text-sm shadow"
+                        >
+                          Guardar Gastos
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
               <div className="mt-4 flex justify-between items-center bg-white p-3 rounded border border-orange-200">
