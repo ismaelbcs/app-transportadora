@@ -3246,12 +3246,6 @@ export default function App() {
               🔄 Cambiar a {ticketLang === 'EN' ? 'Español' : 'English'}
             </button>
             <button
-              onClick={() => window.print()}
-              className="bg-amber-500 hover:bg-amber-600 text-slate-900 font-bold py-2 px-6 rounded-xl flex items-center gap-2 transition-colors shadow-md"
-            >
-              <Printer size={20} /> Imprimir / PDF
-            </button>
-            <button
               onClick={() => {
                 // 1. Conseguimos el folio real del ticket actual (ej. BTS00006)
                 // Cambia "currentTicket.folio" o "service.reserva" por la variable exacta donde guardas el folio
@@ -3305,6 +3299,17 @@ export default function App() {
               className="bg-amber-500 hover:bg-amber-600 text-white font-bold py-2 px-4 rounded shadow flex items-center gap-2 text-sm transition-colors"
             >
               🖨️ Imprimir / PDF
+            </button>
+            {/* BOTÓN REGRESAR AL MENÚ */}
+            <button
+              onClick={() => {
+                // Aquí cerramos la vista del ticket
+                // Busca cómo se llama la variable que usas para abrirlo, seguramente es algo como:
+                setTicketDataToPrint(null);
+              }}
+              className="bg-slate-800 hover:bg-slate-900 text-white font-bold py-2 px-4 rounded shadow flex items-center gap-2 text-sm transition-colors"
+            >
+              ⬅️ Regresar al Menú
             </button>
           </div>
 
