@@ -1304,6 +1304,26 @@ export default function App() {
     }
   };
 
+  // --- FUNCIONES DE EXPORTACIÓN DEL CIERRE ---
+  const exportarCierreExcel = () => {
+    const tabla = document.getElementById('tabla-cierre-financiero');
+    if (!tabla) return showToast('No hay datos para exportar', 'error');
+
+    const html = tabla.outerHTML;
+    const blob = new Blob([html], { type: 'application/vnd.ms-excel' });
+    const url = URL.createObjectURL(blob);
+    
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Reporte_${cierreFiltroTipo}_${new Date().toISOString().split('T')[0]}.xls`;
+    a.click();
+    showToast('¡Excel descargado con éxito!');
+  };
+
+  const exportarCierrePDF = () => {
+    window.print();
+  };
+
   const BallardLogo = ({ className }) => (
     <img
       src="/logo-oficial.png"
