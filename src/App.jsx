@@ -1461,64 +1461,7 @@ export default function App() {
       gasto_total: sumTotal
     };
 
-    // --- FUNCIONES DE EXPORTACIÓN DEL CIERRE ---
-    const exportarCierreExcel = () => {
-      // Buscamos la tabla que está activa en pantalla usando su ID
-      const tabla = document.getElementById('tabla-cierre-financiero');
-      if (!tabla) return showToast('No hay datos para exportar', 'error');
-
-      const html = tabla.outerHTML;
-      // Creamos el archivo en memoria con formato Excel
-      const blob = new Blob([html], { type: 'application/vnd.ms-excel' });
-      const url = URL.createObjectURL(blob);
-
-      const a = document.createElement('a');
-      a.href = url;
-      // Bautizamos el archivo con el tipo de reporte y la fecha de hoy
-      a.download = `Reporte_${cierreFiltroTipo}_${new Date().toISOString().split('T')[0]}.xls`;
-      a.click();
-      showToast('¡Excel descargado con éxito!');
-    };
-
-    // --- FUNCION NATIVA PARA EXPORTAR PDF ---
-    const exportarCierrePDF = async () => {
-      // 1. Extraemos los datos que ves en la pantalla de cierres
-      const dataGastos = typeof gastosFlota !== 'undefined' ? gastosFlota : [];
-      const dataFiltrada = dataGastos.filter(g => {
-        const passInicio = !cierreFiltroInicio || g.fecha >= cierreFiltroInicio;
-        const passFin = !cierreFiltroFin || g.fecha <= cierreFiltroFin;
-        const passVehiculo = !cierreFiltroVehiculo || (g.vehiculo && g.vehiculo.toLowerCase() === cierreFiltroVehiculo.toLowerCase());
-        return passInicio && passFin && passVehiculo;
-      });
-
-      if (dataFiltrada.length === 0) {
-        return showToast('No hay datos en el rango seleccionado para exportar PDF.', 'error');
-      }
-
-      showToast('Generando documento PDF digital...', 'info');
-
-      try {
-        // 2. Compilamos el componente PDF en un archivo nativo (Blob)
-        const docInstancia = <CierrePDFDocument data={dataFiltrada} tipo={cierreFiltroTipo} />;
-        const blobPDF = await pdf(docInstancia).toBlob();
-
-        // 3. Generamos la descarga automática
-        const urlDescarga = URL.createObjectURL(blobPDF);
-        const disparadorLink = document.createElement('a');
-        disparadorLink.href = urlDescarga;
-
-        // Bautizamos el archivo
-        disparadorLink.download = `CIERRE_${cierreFiltroTipo.toUpperCase()}_${new Date().toISOString().split('T')[0]}.pdf`;
-        disparadorLink.click();
-
-        URL.revokeObjectURL(urlDescarga);
-        showToast('¡PDF nativo descargado con éxito!', 'success');
-      } catch (error) {
-        console.error("Error crítico en la generación del PDF nativo:", error);
-        showToast('Error de compilación del documento digital.', 'error');
-      }
-    };
-
+    // ... aquí arriba está el inicio de tu función de guardado (supabase)
     try {
       const { error } = await supabase.from('gastos_flota').insert([nuevoRegistro]);
       if (error) throw error;
@@ -1533,9 +1476,10 @@ export default function App() {
       console.error(error);
       showToast('Error al guardar en la nube', 'error');
     }
-  };
+  }; // <--- AQUÍ TERMINA TU FUNCIÓN DE GUARDAR GASTOS
 
   // --- FUNCIONES DE EXPORTACIÓN DEL CIERRE ---
+
   const exportarCierreExcel = () => {
     const tabla = document.getElementById('tabla-cierre-financiero');
     if (!tabla) return showToast('No hay datos para exportar', 'error');
@@ -1550,6 +1494,47 @@ export default function App() {
     a.click();
     showToast('¡Excel descargado con éxito!');
   };
+
+  // --- FUNCION NATIVA PARA EXPORTAR PDF ---
+  const exportarCierrePDF = async () => {
+    // 1. Extraemos los datos que ves en la pantalla de cierres
+    const dataGastos = typeof gastosFlota !== 'undefined' ? gastosFlota : [];
+    const dataFiltrada = dataGastos.filter(g => {
+      const passInicio = !cierreFiltroInicio || g.fecha >= cierreFiltroInicio;
+      const passFin = !cierreFiltroFin || g.fecha <= cierreFiltroFin;
+      const passVehiculo = !cierreFiltroVehiculo || (g.vehiculo && g.vehiculo.toLowerCase() === cierreFiltroVehiculo.toLowerCase());
+      return passInicio && passFin && passVehiculo;
+    });
+
+    if (dataFiltrada.length === 0) {
+      return showToast('No hay datos en el rango seleccionado para exportar PDF.', 'error');
+    }
+
+    showToast('Generando documento PDF digital...', 'info');
+
+    try {
+      // 2. Compilamos el componente PDF en un archivo nativo (Blob)
+      const docInstancia = <CierrePDFDocument data={dataFiltrada} tipo={cierreFiltroTipo} />;
+      const blobPDF = await pdf(docInstancia).toBlob();
+
+      // 3. Generamos la descarga automática
+      const urlDescarga = URL.createObjectURL(blobPDF);
+      const disparadorLink = document.createElement('a');
+      disparadorLink.href = urlDescarga;
+
+      // Bautizamos el archivo
+      disparadorLink.download = `CIERRE_${cierreFiltroTipo.toUpperCase()}_${new Date().toISOString().split('T')[0]}.pdf`;
+      disparadorLink.click();
+
+      URL.revokeObjectURL(urlDescarga);
+      showToast('¡PDF nativo descargado con éxito!', 'success');
+    } catch (error) {
+      console.error("Error crítico en la generación del PDF nativo:", error);
+      showToast('Error de compilación del documento digital.', 'error');
+    }
+  };
+
+  // --- OTROS COMPONENTES Y LÓGICA ---
 
   const BallardLogo = ({ className }) => (
     <img
