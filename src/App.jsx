@@ -246,7 +246,7 @@ const CierrePDFDocument = ({ data, tipo }) => {
 
         {/* Estructura de la Tabla */}
         <View style={pdfStyles.table}>
-          
+
           {/* ---- MODO GENERAL ---- */}
           {isGeneral && (
             <>
@@ -380,6 +380,7 @@ export default function App() {
 
   // --- VARIABLES DEL CIERRE AVANZADO ---
   const [cierreFiltroTipo, setCierreFiltroTipo] = useState('general'); // 'general', 'callcenter', 'gastos'
+  const [tipoCambioDolar, setTipoCambioDolar] = useState('');
   const [cierreFiltroInicio, setCierreFiltroInicio] = useState('');
   const [cierreFiltroFin, setCierreFiltroFin] = useState('');
   const [cierreFiltroVehiculo, setCierreFiltroVehiculo] = useState('');
@@ -3167,14 +3168,34 @@ export default function App() {
         {activeTab === 'cierre' && (
           <div className="bg-white rounded-lg shadow-md p-6 border-t-4 border-blue-800">
 
-            {/* NUEVA CABECERA CON BOTONES */}
+            {/* NUEVA CABECERA CON BOTONES Y TIPO DE CAMBIO */}
             <div className="flex justify-between items-center flex-wrap gap-4 mb-6">
-              <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-                <Database className="text-blue-800" /> Reportes y Cierres Financieros
-              </h2>
+              <div className="flex items-center gap-4">
+                <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+                  <Database className="text-blue-800" /> Reportes y Cierres Financieros
+                </h2>
+
+                {/* NUEVO: Cuadro verde para el precio del Dólar */}
+                <div className="flex items-center bg-green-50 border border-green-300 rounded-md p-1 shadow-sm print:hidden">
+                  <div className="flex items-center pl-2 pr-1 text-green-700">
+                    <DollarSign size={16} className="font-bold" />
+                    <span className="text-xs font-bold uppercase mr-1">TC:</span>
+                  </div>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={tipoCambioDolar}
+                    onChange={(e) => setTipoCambioDolar(e.target.value)}
+                    placeholder="Ej. 18.50"
+                    className="w-24 bg-white border border-green-200 rounded p-1 text-sm text-green-800 font-bold focus:outline-none focus:ring-1 focus:ring-green-500 text-center"
+                    title="Ingresa el precio del Dólar actual"
+                  />
+                </div>
+              </div>
 
               {/* BOTONES CHICOS DE EXPORTACIÓN */}
-              <div className="flex gap-2 print:hidden"> {/* print:hidden hace que NO salgan los botones en el PDF */}
+              <div className="flex gap-2 print:hidden">
                 <button
                   onClick={exportarCierrePDF}
                   className="bg-red-50 text-red-700 border border-red-200 px-3 py-1 rounded text-xs font-bold hover:bg-red-100 transition-colors flex items-center gap-1 shadow-sm"
@@ -3289,9 +3310,26 @@ export default function App() {
                           ))
                         }
                         <tr className="bg-gray-100 border-t-2 border-gray-300">
-                          <td colSpan="5" className="p-3 text-right font-bold text-gray-700 uppercase">Total Ingresos:</td>
+                          <td colSpan="5" className="p-3 text-right font-bold text-gray-700 uppercase">Total Ingresos (USD):</td>
                           <td className="p-3 text-right font-black text-green-800 text-lg">${totalAmount.toFixed(2)}</td>
                         </tr>
+                        
+                        {/* NUEVO: Fila condicional para Pesos (Solo aparece si escribes un número en el cuadro verde) */}
+                        {tipoCambioDolar && parseFloat(tipoCambioDolar) > 0 && (
+                          <tr className="bg-green-100 border-t border-green-300">
+                            <td colSpan="5" className="p-3 text-right">
+                              <div className="flex justify-end items-center gap-2">
+                                <span className="font-bold text-green-800 uppercase">Total Estimado en Pesos (MXN):</span>
+                                <span className="text-xs text-green-700 bg-white px-2 py-0.5 rounded-full border border-green-300 font-bold shadow-sm">
+                                  x ${parseFloat(tipoCambioDolar).toFixed(2)}
+                                </span>
+                              </div>
+                            </td>
+                            <td className="p-3 text-right font-black text-green-900 text-xl">
+                              ${(totalAmount * parseFloat(tipoCambioDolar)).toFixed(2)}
+                            </td>
+                          </tr>
+                        )}
                       </tbody>
                     </table>
                   );
