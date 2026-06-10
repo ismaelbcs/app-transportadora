@@ -2290,7 +2290,7 @@ export default function App() {
                   <tr className="text-gray-600 border-b">
                     <th className="p-3">Chofer</th><th className="p-3">Concepto</th><th className="p-3 text-right">Monto Total</th>
                     <th className="p-3 text-center">Quincenas</th><th className="p-3 text-right bg-red-50 text-red-800 font-bold">Descuento Próxima Quincena</th>
-                    <th className="p-3">Fecha de Liquidación</th><th className="p-3 text-center">Acciones</th>
+                    <th className="p-3">Fecha de Registro (Editable)</th><th className="p-3 text-center">Acciones</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
@@ -2298,13 +2298,12 @@ export default function App() {
                     <tr><td colSpan="7" className="text-center p-8 text-gray-500 font-medium">No hay deudas activas. ¡Todos al corriente! 🎉</td></tr>
                   ) : deudasChoferes.filter(d => d.activa).map(row => {
                     const quincenasRestantes = row.quincenasTotales - row.quincenasPagadas;
-                    // Calculamos la fecha exacta del último pago usando nuestra súper función
                     const fechaFin = calcularFechaQuincena(row.fechaRegistro, row.quincenasTotales);
 
                     return (
                       <tr key={row.id} className="hover:bg-emerald-50 transition-colors">
                         <td className="p-3 font-bold text-gray-800 uppercase">{row.chofer}</td>
-                        {/* Concepto Dinámico Apilado (Múltiples Etiquetas con Precio) */}
+                        {/* Concepto Dinámico Apilado */}
                         <td className="p-3">
                           <div className="flex flex-col gap-1 items-start">
                             {(() => {
@@ -2318,7 +2317,6 @@ export default function App() {
                               }
 
                               return lista.map((c, idx) => {
-                                // Separamos el nombre del precio
                                 const nombreReal = c.includes('|') ? c.split('|')[0] : c;
                                 const precioReal = c.includes('|') ? `$${parseFloat(c.split('|')[1]).toFixed(2)}` : '';
 
@@ -2345,9 +2343,45 @@ export default function App() {
                         <td className="p-3 text-right bg-red-50 text-red-700 font-black text-base">
                           ${row.montoQuincenal.toFixed(2)}
                         </td>
-                        <td className="p-3 font-medium text-gray-600 text-sm flex items-center gap-1">
-                          <Calendar size={14} className="text-emerald-500" /> {fechaFin}
+
+                        {/* AQUI ESTÁ LA MAGIA DE EDICIÓN EN LÍNEA */}
+                        <td className="p-3 font-medium text-gray-600 text-sm">
+                          <div className="flex items-center gap-1">
+                            <Calendar size={14} className="text-emerald-500" />
+                            <input
+                              type="date"
+                              defaultValue={row.fechaRegistro}
+                              className="bg-transparent border border-transparent hover:border-emerald-300 hover:bg-emerald-50 focus:bg-white focus:border-emerald-500 rounded p-1 text-xs font-bold text-gray-700 transition-all cursor-pointer outline-none"
+                              title="Clic para cambiar la fecha inicial"
+                              onBlur={async (e) => {
+                                const nuevaFecha = e.target.value;
+                                if (nuevaFecha && nuevaFecha !== row.fechaRegistro) {
+                                  try {
+                                    showToast('Actualizando fecha en la nube...', 'info');
+                                    // IMPORTANTE: Asegúrate de que 'deudas_choferes' sea el nombre de la tabla en Supabase
+                                    const { error } = await supabase
+                                      .from('deudas_choferes')
+                                      .update({ fechaRegistro: nuevaFecha })
+                                      .eq('id', row.id);
+
+                                    if (error) throw error;
+
+                                    fetchAllData();
+                                    showToast('¡Fecha actualizada con éxito!', 'success');
+                                  } catch (error) {
+                                    console.error(error);
+                                    showToast('Error al actualizar la fecha', 'error');
+                                    e.target.value = row.fechaRegistro;
+                                  }
+                                }
+                              }}
+                            />
+                          </div>
+                          <div className="text-[10px] text-gray-400 mt-1 italic">
+                            Fin estimado: {fechaFin}
+                          </div>
                         </td>
+
                         <td className="p-3 text-center flex justify-center items-center gap-2">
                           <button
                             onClick={() => {
@@ -2378,37 +2412,37 @@ export default function App() {
               </table>
             </div>
 
-            {/* Historial de Pagadas */}
+            {/* Historial de Pagadas (BUG VISUAL CORREGIDO) */}
             <div className="mt-12 flex-1 overflow-x-auto w-full opacity-60 hover:opacity-100 transition-opacity">
               <h3 className="text-md font-bold text-gray-500 mb-4 border-b pb-2">Historial de Deudas Liquidadas</h3>
               <table className="min-w-full text-left text-sm whitespace-nowrap">
                 <thead className="bg-gray-50">
                   <tr className="text-gray-400 border-b">
-                    <th className="p-2">Chofer</th><th className="p-2">Concepto</th><th className="p-2">Monto Total</th><th className="p-2">Estado</th>
+                    <th className="p-2">Chofer</th><th className="p-2">Concepto</th><th className="p-2">Monto Total</th><th className="p-2">Estado</th><th className="p-2 text-center">Acción</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
                   {deudasChoferes.filter(d => !d.activa).length === 0 ? (
-                    <tr><td colSpan="4" className="text-center p-4 text-gray-400">No hay historial.</td></tr>
+                    <tr><td colSpan="5" className="text-center p-4 text-gray-400">No hay historial.</td></tr>
                   ) : deudasChoferes.filter(d => !d.activa).map(row => (
                     <tr key={row.id}>
                       <td className="p-2 font-medium">{row.chofer}</td><td className="p-2">{row.concepto}</td>
                       <td className="p-2">${row.montoTotal.toFixed(2)}</td>
                       <td className="p-2"><span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded font-bold">Pagada</span></td>
+                      <td className="p-2 text-center">
+                        {userProfile?.rol === 'admin' && (
+                          <button
+                            onClick={() => eliminarDeuda(row.id)}
+                            className="p-1 text-red-400 hover:bg-red-50 hover:text-red-600 rounded transition-colors"
+                            title="Eliminar del historial"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>
+                          </button>
+                        )}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
-                <td className="p-2 text-center">
-                  {userProfile?.rol === 'admin' && (
-                    <button
-                      onClick={() => eliminarDeuda(row.id)}
-                      className="p-1 text-red-400 hover:bg-red-50 hover:text-red-600 rounded transition-colors"
-                      title="Eliminar del historial"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>
-                    </button>
-                  )}
-                </td>
               </table>
             </div>
 
