@@ -219,10 +219,17 @@ const pdfStyles = StyleSheet.create({
   }
 });
 
-// 2. Componente del Documento PDF
+// 2. Componente del Documento PDF Dinámico
 const CierrePDFDocument = ({ data, tipo }) => {
-  // Calculamos el total general acumulado de la tabla
-  const totalGeneral = data.reduce((sum, g) => sum + (parseFloat(g.gasto_total) || 0), 0);
+  const isGeneral = tipo === 'general';
+  const isCC = tipo === 'callcenter';
+  const isGastos = tipo === 'gastos';
+
+  // Calculamos el total dependiendo del tipo de reporte
+  let totalAcumulado = 0;
+  if (isGeneral) totalAcumulado = data.reduce((sum, g) => sum + (parseFloat(g.cobro) || 0), 0);
+  if (isCC) totalAcumulado = data.reduce((sum, g) => sum + (parseFloat(g.comision) || 0), 0);
+  if (isGastos) totalAcumulado = data.reduce((sum, g) => sum + (parseFloat(g.gasto_total) || 0), 0);
 
   return (
     <Document>
@@ -230,7 +237,7 @@ const CierrePDFDocument = ({ data, tipo }) => {
         {/* Cabecera del Documento */}
         <View style={pdfStyles.header}>
           <Text style={pdfStyles.title}>
-            Reporte de Cierre: {tipo === 'general' ? 'Base General' : tipo === 'callcenter' ? 'Call Center' : 'Gastos de Flota'}
+            Reporte Financiero: {isGeneral ? 'Ingresos Base General' : isCC ? 'Ingresos Call Center' : 'Egresos Gastos de Flota'}
           </Text>
           <Text style={pdfStyles.meta}>
             Fecha de exportación: {new Date().toLocaleDateString()} | Registros encontrados: {data.length}
@@ -239,71 +246,99 @@ const CierrePDFDocument = ({ data, tipo }) => {
 
         {/* Estructura de la Tabla */}
         <View style={pdfStyles.table}>
-          {/* Encabezados de Columna */}
-          <View style={pdfStyles.tableHeader}>
-            <Text style={[pdfStyles.colFecha, pdfStyles.headerText]}>Fecha</Text>
-            <Text style={[pdfStyles.colVehiculo, pdfStyles.headerText]}>Vehículo</Text>
-            <Text style={[pdfStyles.colChofer, pdfStyles.headerText]}>Chofer</Text>
-            <Text style={[pdfStyles.colDetalle, pdfStyles.headerText]}>Detalle (Sub-total)</Text>
-            <Text style={[pdfStyles.colTotal, pdfStyles.headerText, { textAlign: 'right' }]}>Total</Text>
-          </View>
+          
+          {/* ---- MODO GENERAL ---- */}
+          {isGeneral && (
+            <>
+              <View style={pdfStyles.tableHeader}>
+                <Text style={[pdfStyles.colFecha, pdfStyles.headerText]}>Fecha</Text>
+                <Text style={[{ width: '20%' }, pdfStyles.headerText]}>Reserva</Text>
+                <Text style={[{ width: '30%' }, pdfStyles.headerText]}>Cliente</Text>
+                <Text style={[{ width: '20%' }, pdfStyles.headerText]}>Chofer</Text>
+                <Text style={[pdfStyles.colTotal, pdfStyles.headerText, { textAlign: 'right' }]}>Ingreso</Text>
+              </View>
+              {data.map((row, idx) => (
+                <View key={row.id || idx} style={pdfStyles.tableRow} wrap={false}>
+                  <Text style={pdfStyles.colFecha}>{row.fecha}</Text>
+                  <Text style={{ width: '20%' }}>{row.reserva || 'N/A'}</Text>
+                  <Text style={{ width: '30%', textTransform: 'uppercase' }}>{row.nombre} {row.apellido}</Text>
+                  <Text style={{ width: '20%', textTransform: 'uppercase' }}>{row.chofer || 'N/A'}</Text>
+                  <Text style={[pdfStyles.colTotal, { fontWeight: 'bold', color: '#166534' }]}>${parseFloat(row.cobro || 0).toFixed(2)}</Text>
+                </View>
+              ))}
+            </>
+          )}
 
-          {/* Filas Dinámicas */}
-          {data.map((row, idx) => (
-            <View key={row.id || idx} style={pdfStyles.tableRow} wrap={false}>
-              <Text style={pdfStyles.colFecha}>{row.fecha}</Text>
-              <Text style={pdfStyles.colVehiculo}>{row.vehiculo || 'N/A'}</Text>
-              <Text style={[pdfStyles.colChofer, { textTransform: 'uppercase' }]}>{row.chofer || 'N/A'}</Text>
+          {/* ---- MODO CALL CENTER ---- */}
+          {isCC && (
+            <>
+              <View style={pdfStyles.tableHeader}>
+                <Text style={[pdfStyles.colFecha, pdfStyles.headerText]}>Fecha</Text>
+                <Text style={[{ width: '20%' }, pdfStyles.headerText]}>Reserva</Text>
+                <Text style={[{ width: '35%' }, pdfStyles.headerText]}>Cliente</Text>
+                <Text style={[{ width: '15%' }, pdfStyles.headerText]}>Acción</Text>
+                <Text style={[pdfStyles.colTotal, pdfStyles.headerText, { textAlign: 'right' }]}>Comisión</Text>
+              </View>
+              {data.map((row, idx) => (
+                <View key={row.id || idx} style={pdfStyles.tableRow} wrap={false}>
+                  <Text style={pdfStyles.colFecha}>{row.fecha_sistema}</Text>
+                  <Text style={{ width: '20%' }}>{row.reserva}</Text>
+                  <Text style={{ width: '35%', textTransform: 'uppercase' }}>{row.cliente}</Text>
+                  <Text style={{ width: '15%' }}>{row.accion}</Text>
+                  <Text style={[pdfStyles.colTotal, { fontWeight: 'bold', color: '#6b21a8' }]}>${parseFloat(row.comision || 0).toFixed(2)}</Text>
+                </View>
+              ))}
+            </>
+          )}
 
-              {/* Celda del desglose interno de conceptos con precios reales */}
-              <View style={pdfStyles.colDetalle}>
-                {row.concepto && row.concepto.includes('|') ? (
-                  // Lógica para registros nuevos del Carrito (Dua|4000,Gasolina|800)
-                  row.concepto.split(',').map((item, subIdx) => {
-                    const partes = item.split('|');
-                    return (
-                      <View key={subIdx} style={pdfStyles.subRow}>
-                        <Text style={pdfStyles.conceptName}>{partes[0]}</Text>
-                        <Text style={pdfStyles.conceptPrice}>${parseFloat(partes[1]).toFixed(2)}</Text>
-                      </View>
-                    );
-                  })
-                ) : (
-                  // Rescate contable para registros históricos de tu base de datos
-                  <>
-                    {row.gasolina > 0 && (
-                      <View style={pdfStyles.subRow}>
-                        <Text style={pdfStyles.conceptName}>GASOLINA</Text>
-                        <Text style={pdfStyles.conceptPrice}>${parseFloat(row.gasolina).toFixed(2)}</Text>
-                      </View>
-                    )}
-                    {row.casetas > 0 && (
-                      <View style={pdfStyles.subRow}>
-                        <Text style={pdfStyles.conceptName}>CASETAS</Text>
-                        <Text style={pdfStyles.conceptPrice}>${parseFloat(row.casetas).toFixed(2)}</Text>
-                      </View>
-                    )}
-                    {(!row.gasolina && !row.casetas && row.gasto_total > 0) && (
+          {/* ---- MODO GASTOS FLOTA (Original) ---- */}
+          {isGastos && (
+            <>
+              <View style={pdfStyles.tableHeader}>
+                <Text style={[pdfStyles.colFecha, pdfStyles.headerText]}>Fecha</Text>
+                <Text style={[pdfStyles.colVehiculo, pdfStyles.headerText]}>Vehículo</Text>
+                <Text style={[pdfStyles.colChofer, pdfStyles.headerText]}>Chofer</Text>
+                <Text style={[pdfStyles.colDetalle, pdfStyles.headerText]}>Detalle (Sub-total)</Text>
+                <Text style={[pdfStyles.colTotal, pdfStyles.headerText, { textAlign: 'right' }]}>Total</Text>
+              </View>
+              {data.map((row, idx) => (
+                <View key={row.id || idx} style={pdfStyles.tableRow} wrap={false}>
+                  <Text style={pdfStyles.colFecha}>{row.fecha}</Text>
+                  <Text style={pdfStyles.colVehiculo}>{row.vehiculo || 'N/A'}</Text>
+                  <Text style={[pdfStyles.colChofer, { textTransform: 'uppercase' }]}>{row.chofer || 'N/A'}</Text>
+                  <View style={pdfStyles.colDetalle}>
+                    {row.concepto && row.concepto.includes('|') ? (
+                      row.concepto.split(',').map((item, subIdx) => {
+                        const partes = item.split('|');
+                        return (
+                          <View key={subIdx} style={pdfStyles.subRow}>
+                            <Text style={pdfStyles.conceptName}>{partes[0]}</Text>
+                            <Text style={pdfStyles.conceptPrice}>${parseFloat(partes[1]).toFixed(2)}</Text>
+                          </View>
+                        );
+                      })
+                    ) : (
                       <View style={pdfStyles.subRow}>
                         <Text style={pdfStyles.conceptName}>{row.concepto || 'VARIOS'}</Text>
                         <Text style={pdfStyles.conceptPrice}>${parseFloat(row.gasto_total).toFixed(2)}</Text>
                       </View>
                     )}
-                  </>
-                )}
-              </View>
-
-              <Text style={[pdfStyles.colTotal, { fontWeight: 'bold' }]}>
-                ${parseFloat(row.gasto_total || 0).toFixed(2)}
-              </Text>
-            </View>
-          ))}
+                  </View>
+                  <Text style={[pdfStyles.colTotal, { fontWeight: 'bold' }]}>${parseFloat(row.gasto_total || 0).toFixed(2)}</Text>
+                </View>
+              ))}
+            </>
+          )}
         </View>
 
         {/* Fila del Gran Total */}
         <View style={pdfStyles.totalRow} wrap={false}>
-          <Text style={pdfStyles.totalLabel}>Total Egresos Acumulados:</Text>
-          <Text style={pdfStyles.totalValue}>${totalGeneral.toFixed(2)}</Text>
+          <Text style={pdfStyles.totalLabel}>
+            {isGeneral ? 'Total Ingresos:' : isCC ? 'Total Comisiones:' : 'Total Egresos Acumulados:'}
+          </Text>
+          <Text style={[pdfStyles.totalValue, { color: isGeneral ? '#166534' : isCC ? '#6b21a8' : '#b91c1c' }]}>
+            ${totalAcumulado.toFixed(2)}
+          </Text>
         </View>
       </Page>
     </Document>
@@ -375,14 +410,14 @@ export default function App() {
   useEffect(() => {
     // 1. Obtenemos la fecha exacta de hoy (Ej. 2026-06-09)
     const hoy = new Date().toISOString().split('T')[0];
-    
+
     // 2. Buscamos todas las deudas activas cuya fecha de cobro sea HOY
     const deudasHoy = deudasChoferes.filter(d => d.activa && d.fechaRegistro === hoy);
-    
+
     // 3. Si hay deudas para hoy, revisamos si ya le diste "Enterado"
     if (deudasHoy.length > 0) {
       const yaEnteradoFecha = localStorage.getItem('deudasEnteradoFecha');
-      
+
       // Si la fecha guardada no es la de hoy, mostramos el banner
       if (yaEnteradoFecha !== hoy) {
         setDeudasParaHoy(deudasHoy);
@@ -1503,31 +1538,63 @@ export default function App() {
 
   // --- FUNCIONES DE EXPORTACIÓN DEL CIERRE ---
 
+  // --- FUNCION PARA EXPORTAR EXCEL REAL ---
   const exportarCierreExcel = () => {
     const tabla = document.getElementById('tabla-cierre-financiero');
     if (!tabla) return showToast('No hay datos para exportar', 'error');
 
-    const html = tabla.outerHTML;
-    const blob = new Blob([html], { type: 'application/vnd.ms-excel' });
-    const url = URL.createObjectURL(blob);
-
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `Reporte_${cierreFiltroTipo}_${new Date().toISOString().split('T')[0]}.xls`;
-    a.click();
-    showToast('¡Excel descargado con éxito!');
+    try {
+      if (window.XLSX) {
+        showToast('Generando Excel Nativo...');
+        const wb = window.XLSX.utils.table_to_book(tabla, { sheet: "Reporte" });
+        const fecha = new Date().toISOString().split('T')[0];
+        window.XLSX.writeFile(wb, `Cierre_${cierreFiltroTipo}_${fecha}.xlsx`);
+        showToast('¡Excel descargado con éxito!');
+      } else {
+        // Fallback en caso de que el internet falle y no cargue la librería
+        const html = tabla.outerHTML;
+        const blob = new Blob([html], { type: 'application/vnd.ms-excel' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Cierre_${cierreFiltroTipo}_${new Date().toISOString().split('T')[0]}.xls`;
+        a.click();
+        showToast('¡Excel descargado en modo compatibilidad!');
+      }
+    } catch (error) {
+      console.error("Error XLSX:", error);
+      showToast('Error al generar Excel', 'error');
+    }
   };
 
   // --- FUNCION NATIVA PARA EXPORTAR PDF ---
   const exportarCierrePDF = async () => {
-    // 1. Extraemos los datos que ves en la pantalla de cierres
-    const dataGastos = typeof gastosFlota !== 'undefined' ? gastosFlota : [];
-    const dataFiltrada = dataGastos.filter(g => {
-      const passInicio = !cierreFiltroInicio || g.fecha >= cierreFiltroInicio;
-      const passFin = !cierreFiltroFin || g.fecha <= cierreFiltroFin;
-      const passVehiculo = !cierreFiltroVehiculo || (g.vehiculo && g.vehiculo.toLowerCase() === cierreFiltroVehiculo.toLowerCase());
-      return passInicio && passFin && passVehiculo;
-    });
+    let dataFiltrada = [];
+
+    // 1. Extraemos y filtramos dependiendo del tab seleccionado en "Origen de Datos"
+    if (cierreFiltroTipo === 'general') {
+      dataFiltrada = services.filter(s => {
+        const passInicio = !cierreFiltroInicio || s.fecha >= cierreFiltroInicio;
+        const passFin = !cierreFiltroFin || s.fecha <= cierreFiltroFin;
+        const passVehiculo = !cierreFiltroVehiculo || (s.vehiculo && s.vehiculo.toLowerCase() === cierreFiltroVehiculo.toLowerCase());
+        return passInicio && passFin && passVehiculo;
+      });
+    } else if (cierreFiltroTipo === 'callcenter') {
+      const dataCC = typeof callCenterData !== 'undefined' ? callCenterData : [];
+      dataFiltrada = dataCC.filter(c => {
+        const passInicio = !cierreFiltroInicio || c.fecha_sistema >= cierreFiltroInicio;
+        const passFin = !cierreFiltroFin || c.fecha_sistema <= cierreFiltroFin;
+        return passInicio && passFin;
+      });
+    } else if (cierreFiltroTipo === 'gastos') {
+      const dataGastos = typeof gastosFlota !== 'undefined' ? gastosFlota : [];
+      dataFiltrada = dataGastos.filter(g => {
+        const passInicio = !cierreFiltroInicio || g.fecha >= cierreFiltroInicio;
+        const passFin = !cierreFiltroFin || g.fecha <= cierreFiltroFin;
+        const passVehiculo = !cierreFiltroVehiculo || (g.vehiculo && g.vehiculo.toLowerCase() === cierreFiltroVehiculo.toLowerCase());
+        return passInicio && passFin && passVehiculo;
+      });
+    }
 
     if (dataFiltrada.length === 0) {
       return showToast('No hay datos en el rango seleccionado para exportar PDF.', 'error');
@@ -1536,7 +1603,7 @@ export default function App() {
     showToast('Generando documento PDF digital...', 'info');
 
     try {
-      // 2. Compilamos el componente PDF en un archivo nativo (Blob)
+      // 2. Compilamos el componente PDF en un archivo nativo
       const docInstancia = <CierrePDFDocument data={dataFiltrada} tipo={cierreFiltroTipo} />;
       const blobPDF = await pdf(docInstancia).toBlob();
 
@@ -1546,7 +1613,7 @@ export default function App() {
       disparadorLink.href = urlDescarga;
 
       // Bautizamos el archivo
-      disparadorLink.download = `CIERRE_${cierreFiltroTipo.toUpperCase()}_${new Date().toISOString().split('T')[0]}.pdf`;
+      disparadorLink.download = `Cierre_${cierreFiltroTipo.toUpperCase()}_${new Date().toISOString().split('T')[0]}.pdf`;
       disparadorLink.click();
 
       URL.revokeObjectURL(urlDescarga);
@@ -1590,6 +1657,67 @@ export default function App() {
   if (!isLoggedIn) {
     return (
       <div className="min-h-screen bg-gray-200 flex items-center justify-center p-4 font-sans">
+        {/* ========================================================= */}
+        {/* MODAL EMERGENTE: AVISO DE DESCUENTOS PARA HOY               */}
+        {/* ========================================================= */}
+        {mostrarAlertaDeudas && deudasParaHoy.length > 0 && (
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden border-t-8 border-emerald-500 animate-in fade-in zoom-in duration-300">
+
+              <div className="bg-emerald-600 p-5 flex items-center gap-3 text-white">
+                {/* Ícono de Campana Nativo */}
+                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+                <h2 className="text-xl font-black uppercase tracking-wider">Aviso de Descuentos</h2>
+              </div>
+
+              <div className="p-6">
+                <p className="text-gray-700 mb-5 font-medium text-lg">
+                  Hoy tienes los siguientes descuentos programados:
+                </p>
+
+                {/* Lista de Choferes a descontar */}
+                <div className="max-h-60 overflow-y-auto pr-2 flex flex-col gap-3 mb-6">
+                  {deudasParaHoy.map(deuda => (
+                    <div key={deuda.id} className="bg-emerald-50 border border-emerald-200 p-4 rounded-xl flex justify-between items-center shadow-sm">
+                      <div>
+                        <div className="font-black text-gray-800 uppercase text-lg">{deuda.chofer}</div>
+                        <div className="text-sm font-semibold text-emerald-700 bg-emerald-100 inline-block px-2 py-0.5 rounded mt-1">{deuda.concepto}</div>
+                      </div>
+                      <div className="text-right">
+                        <div className="font-black text-red-600 text-2xl">${deuda.montoQuincenal?.toFixed(2)}</div>
+                        <div className="text-[11px] font-bold text-gray-500 uppercase tracking-wide">Monto a descontar</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Botones de Acción */}
+                <div className="flex gap-4 justify-end pt-5 border-t border-gray-100">
+                  <button
+                    onClick={() => setMostrarAlertaDeudas(false)}
+                    className="px-5 py-2.5 rounded-lg font-bold text-gray-600 hover:bg-gray-100 transition-colors flex items-center gap-2"
+                  >
+                    ⏳ Recordarme luego
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      const hoy = new Date().toISOString().split('T')[0];
+                      // Guardamos la fecha de hoy en la memoria para que ya no vuelva a salir hoy
+                      localStorage.setItem('deudasEnteradoFecha', hoy);
+                      setMostrarAlertaDeudas(false);
+                    }}
+                    className="px-6 py-2.5 rounded-lg font-black bg-emerald-600 text-white hover:bg-emerald-700 shadow-lg transition-transform hover:scale-105 flex items-center gap-2"
+                  >
+                    ✔️ Enterado
+                  </button>
+                </div>
+
+              </div>
+            </div>
+          </div>
+        )}
+        {/* ========================================================= */}
         <div className="bg-white p-8 rounded-xl shadow-xl w-full max-w-md flex flex-col items-center border-t-4 border-blue-600">
           <BallardLogo className="h-24 w-auto mb-6" />
           <h2 className="text-xl font-bold text-gray-800 mb-2">Acceso al Sistema</h2>
@@ -2367,7 +2495,7 @@ export default function App() {
                         <td className="p-3 text-right bg-red-50 text-red-700 font-black text-base">
                           ${row.montoQuincenal.toFixed(2)}
                         </td>
-                        
+
                         {/* EDICIÓN DE LA FECHA DE COBRO / DESCUENTO */}
                         <td className="p-3 font-medium text-gray-600 text-sm">
                           <div className="flex items-center gap-1">
@@ -2382,14 +2510,14 @@ export default function App() {
                                 if (nuevaFecha && nuevaFecha !== row.fechaRegistro) {
                                   try {
                                     showToast('Programando nueva fecha de cobro...', 'info');
-                                    
+
                                     const { error } = await supabase
-                                      .from('deudas_choferes') 
+                                      .from('deudas_choferes')
                                       .update({ fechaRegistro: nuevaFecha })
                                       .eq('id', row.id);
-                                      
+
                                     if (error) throw error;
-                                    
+
                                     fetchAllData();
                                     showToast('¡Fecha de descuento actualizada!', 'success');
                                   } catch (error) {
