@@ -1480,43 +1480,44 @@ export default function App() {
       showToast('¡Excel descargado con éxito!');
     };
 
+    // --- FUNCION NATIVA PARA EXPORTAR PDF ---
     const exportarCierrePDF = async () => {
-    // 1. Extraemos los datos que ves en la pantalla de cierres
-    const dataGastos = typeof gastosFlota !== 'undefined' ? gastosFlota : [];
-    const dataFiltrada = dataGastos.filter(g => {
-      const passInicio = !cierreFiltroInicio || g.fecha >= cierreFiltroInicio;
-      const passFin = !cierreFiltroFin || g.fecha <= cierreFiltroFin;
-      const passVehiculo = !cierreFiltroVehiculo || (g.vehiculo && g.vehiculo.toLowerCase() === cierreFiltroVehiculo.toLowerCase());
-      return passInicio && passFin && passVehiculo;
-    });
+      // 1. Extraemos los datos que ves en la pantalla de cierres
+      const dataGastos = typeof gastosFlota !== 'undefined' ? gastosFlota : [];
+      const dataFiltrada = dataGastos.filter(g => {
+        const passInicio = !cierreFiltroInicio || g.fecha >= cierreFiltroInicio;
+        const passFin = !cierreFiltroFin || g.fecha <= cierreFiltroFin;
+        const passVehiculo = !cierreFiltroVehiculo || (g.vehiculo && g.vehiculo.toLowerCase() === cierreFiltroVehiculo.toLowerCase());
+        return passInicio && passFin && passVehiculo;
+      });
 
-    if (dataFiltrada.length === 0) {
-      return showToast('No hay datos en el rango seleccionado para exportar PDF.', 'error');
-    }
+      if (dataFiltrada.length === 0) {
+        return showToast('No hay datos en el rango seleccionado para exportar PDF.', 'error');
+      }
 
-    showToast('Generando documento PDF digital...', 'info');
+      showToast('Generando documento PDF digital...', 'info');
 
-    try {
-      // 2. Compilamos el componente PDF en un archivo nativo (Blob)
-      const docInstancia = <CierrePDFDocument data={dataFiltrada} tipo={cierreFiltroTipo} />;
-      const blobPDF = await pdf(docInstancia).toBlob();
-      
-      // 3. Generamos la descarga automática
-      const urlDescarga = URL.createObjectURL(blobPDF);
-      const disparadorLink = document.createElement('a');
-      disparadorLink.href = urlDescarga;
-      
-      // Bautizamos el archivo
-      disparadorLink.download = `CIERRE_${cierreFiltroTipo.toUpperCase()}_${new Date().toISOString().split('T')[0]}.pdf`;
-      disparadorLink.click();
-      
-      URL.revokeObjectURL(urlDescarga);
-      showToast('¡PDF nativo descargado con éxito!', 'success');
-    } catch (error) {
-      console.error("Error crítico en la generación del PDF nativo:", error);
-      showToast('Error de compilación del documento digital.', 'error');
-    }
-  };
+      try {
+        // 2. Compilamos el componente PDF en un archivo nativo (Blob)
+        const docInstancia = <CierrePDFDocument data={dataFiltrada} tipo={cierreFiltroTipo} />;
+        const blobPDF = await pdf(docInstancia).toBlob();
+
+        // 3. Generamos la descarga automática
+        const urlDescarga = URL.createObjectURL(blobPDF);
+        const disparadorLink = document.createElement('a');
+        disparadorLink.href = urlDescarga;
+
+        // Bautizamos el archivo
+        disparadorLink.download = `CIERRE_${cierreFiltroTipo.toUpperCase()}_${new Date().toISOString().split('T')[0]}.pdf`;
+        disparadorLink.click();
+
+        URL.revokeObjectURL(urlDescarga);
+        showToast('¡PDF nativo descargado con éxito!', 'success');
+      } catch (error) {
+        console.error("Error crítico en la generación del PDF nativo:", error);
+        showToast('Error de compilación del documento digital.', 'error');
+      }
+    };
 
     try {
       const { error } = await supabase.from('gastos_flota').insert([nuevoRegistro]);
