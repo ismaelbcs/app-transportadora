@@ -118,6 +118,198 @@ const LISTA_HOTELES = [
   { nombre: "The St. Regis Los Cabos at Quivira", zona: 4 }
 ];
 
+import { Document, Page, Text, View, StyleSheet, pdf } from '@react-pdf/renderer';
+
+// 1. Definimos los estilos vectoriales puros (No CSS web clásico, sino subset de Flexbox)
+const pdfStyles = StyleSheet.create({
+  page: {
+    padding: 40,
+    fontFamily: 'Helvetica',
+    fontSize: 9,
+    color: '#334155'
+  },
+  header: {
+    marginBottom: 20,
+    borderBottomWidth: 2,
+    borderBottomColor: '#1e3a8a',
+    paddingBottom: 10
+  },
+  title: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#1e3a8a',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5
+  },
+  meta: {
+    fontSize: 9,
+    color: '#64748b',
+    marginTop: 4
+  },
+  table: {
+    width: '100%',
+    marginTop: 10
+  },
+  tableHeader: {
+    flexDirection: 'row',
+    backgroundColor: '#f1f5f9',
+    borderBottomWidth: 1,
+    borderBottomColor: '#cbd5e1',
+    padding: 8
+  },
+  tableRow: {
+    flexDirection: 'row',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e2e8f0',
+    padding: 8,
+    alignItems: 'center'
+  },
+  // Columnas con anchos exactos en porcentaje para alineación perfecta
+  colFecha: { width: '15%' },
+  colVehiculo: { width: '15%' },
+  colChofer: { width: '15%' },
+  colDetalle: { width: '40%' },
+  colTotal: { width: '15%', textAlign: 'right' },
+
+  headerText: {
+    fontWeight: 'bold',
+    color: '#1e293b',
+    textTransform: 'uppercase'
+  },
+  subRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+    marginBottom: 3,
+    paddingBottom: 2,
+    borderBottomWidth: 0.5,
+    borderBottomColor: '#f1f5f9'
+  },
+  conceptName: {
+    color: '#475569',
+    textTransform: 'uppercase',
+    fontSize: 8
+  },
+  conceptPrice: {
+    color: '#0f172a',
+    fontSize: 8,
+    fontWeight: 'bold'
+  },
+  totalRow: {
+    flexDirection: 'row',
+    backgroundColor: '#f8fafc',
+    borderTopWidth: 2,
+    borderTopColor: '#cbd5e1',
+    padding: 10,
+    marginTop: 15
+  },
+  totalLabel: {
+    width: '85%',
+    textAlign: 'right',
+    fontWeight: 'bold',
+    color: '#334155',
+    textTransform: 'uppercase'
+  },
+  totalValue: {
+    width: '15%',
+    textAlign: 'right',
+    fontWeight: 'bold',
+    color: '#b91c1c',
+    fontSize: 11
+  }
+});
+
+// 2. Componente del Documento PDF
+const CierrePDFDocument = ({ data, tipo }) => {
+  // Calculamos el total general acumulado de la tabla
+  const totalGeneral = data.reduce((sum, g) => sum + (parseFloat(g.gasto_total) || 0), 0);
+
+  return (
+    <Document>
+      <Page size="LETTER" style={pdfStyles.page}>
+        {/* Cabecera del Documento */}
+        <View style={pdfStyles.header}>
+          <Text style={pdfStyles.title}>
+            Reporte de Cierre: {tipo === 'general' ? 'Base General' : tipo === 'callcenter' ? 'Call Center' : 'Gastos de Flota'}
+          </Text>
+          <Text style={pdfStyles.meta}>
+            Fecha de exportación: {new Date().toLocaleDateString()} | Registros encontrados: {data.length}
+          </Text>
+        </View>
+
+        {/* Estructura de la Tabla */}
+        <View style={pdfStyles.table}>
+          {/* Encabezados de Columna */}
+          <View style={pdfStyles.tableHeader}>
+            <Text style={[pdfStyles.colFecha, pdfStyles.headerText]}>Fecha</Text>
+            <Text style={[pdfStyles.colVehiculo, pdfStyles.headerText]}>Vehículo</Text>
+            <Text style={[pdfStyles.colChofer, pdfStyles.headerText]}>Chofer</Text>
+            <Text style={[pdfStyles.colDetalle, pdfStyles.headerText]}>Detalle (Sub-total)</Text>
+            <Text style={[pdfStyles.colTotal, pdfStyles.headerText, { textAlign: 'right' }]}>Total</Text>
+          </View>
+
+          {/* Filas Dinámicas */}
+          {data.map((row, idx) => (
+            <View key={row.id || idx} style={pdfStyles.tableRow} wrap={false}>
+              <Text style={pdfStyles.colFecha}>{row.fecha}</Text>
+              <Text style={pdfStyles.colVehiculo}>{row.vehiculo || 'N/A'}</Text>
+              <Text style={[pdfStyles.colChofer, { textTransform: 'uppercase' }]}>{row.chofer || 'N/A'}</Text>
+
+              {/* Celda del desglose interno de conceptos con precios reales */}
+              <View style={pdfStyles.colDetalle}>
+                {row.concepto && row.concepto.includes('|') ? (
+                  // Lógica para registros nuevos del Carrito (Dua|4000,Gasolina|800)
+                  row.concepto.split(',').map((item, subIdx) => {
+                    const partes = item.split('|');
+                    return (
+                      <View key={subIdx} style={pdfStyles.subRow}>
+                        <Text style={pdfStyles.conceptName}>{partes[0]}</Text>
+                        <Text style={pdfStyles.conceptPrice}>${parseFloat(partes[1]).toFixed(2)}</Text>
+                      </View>
+                    );
+                  })
+                ) : (
+                  // Rescate contable para registros históricos de tu base de datos
+                  <>
+                    {row.gasolina > 0 && (
+                      <View style={pdfStyles.subRow}>
+                        <Text style={pdfStyles.conceptName}>GASOLINA</Text>
+                        <Text style={pdfStyles.conceptPrice}>${parseFloat(row.gasolina).toFixed(2)}</Text>
+                      </View>
+                    )}
+                    {row.casetas > 0 && (
+                      <View style={pdfStyles.subRow}>
+                        <Text style={pdfStyles.conceptName}>CASETAS</Text>
+                        <Text style={pdfStyles.conceptPrice}>${parseFloat(row.casetas).toFixed(2)}</Text>
+                      </View>
+                    )}
+                    {(!row.gasolina && !row.casetas && row.gasto_total > 0) && (
+                      <View style={pdfStyles.subRow}>
+                        <Text style={pdfStyles.conceptName}>{row.concepto || 'VARIOS'}</Text>
+                        <Text style={pdfStyles.conceptPrice}>${parseFloat(row.gasto_total).toFixed(2)}</Text>
+                      </View>
+                    )}
+                  </>
+                )}
+              </View>
+
+              <Text style={[pdfStyles.colTotal, { fontWeight: 'bold' }]}>
+                ${parseFloat(row.gasto_total || 0).toFixed(2)}
+              </Text>
+            </View>
+          ))}
+        </View>
+
+        {/* Fila del Gran Total */}
+        <View style={pdfStyles.totalRow} wrap={false}>
+          <Text style={pdfStyles.totalLabel}>Total Egresos Acumulados:</Text>
+          <Text style={pdfStyles.totalValue}>${totalGeneral.toFixed(2)}</Text>
+        </View>
+      </Page>
+    </Document>
+  );
+};
+
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [email, setEmail] = useState('');
@@ -1288,88 +1480,43 @@ export default function App() {
       showToast('¡Excel descargado con éxito!');
     };
 
-    const exportarCierrePDF = () => {
-      // 1. Buscamos la tabla que está activa en pantalla
-      const tabla = document.getElementById('tabla-cierre-financiero');
-      if (!tabla) return showToast('No hay datos para exportar', 'error');
+    const exportarCierrePDF = async () => {
+    // 1. Extraemos los datos que ves en la pantalla de cierres
+    const dataGastos = typeof gastosFlota !== 'undefined' ? gastosFlota : [];
+    const dataFiltrada = dataGastos.filter(g => {
+      const passInicio = !cierreFiltroInicio || g.fecha >= cierreFiltroInicio;
+      const passFin = !cierreFiltroFin || g.fecha <= cierreFiltroFin;
+      const passVehiculo = !cierreFiltroVehiculo || (g.vehiculo && g.vehiculo.toLowerCase() === cierreFiltroVehiculo.toLowerCase());
+      return passInicio && passFin && passVehiculo;
+    });
 
-      // 2. Abrimos una pestaña nueva en blanco en el navegador
-      const ventanaImpresion = window.open('', '_blank');
+    if (dataFiltrada.length === 0) {
+      return showToast('No hay datos en el rango seleccionado para exportar PDF.', 'error');
+    }
 
-      // 3. Escribimos un HTML 100% limpio y nativo dentro de esa pestaña
-      ventanaImpresion.document.write(`
-      <html>
-        <head>
-          <title>Reporte Financiero - ${cierreFiltroTipo.toUpperCase()}</title>
-          <style>
-            body { 
-              font-family: 'Helvetica Neue', Arial, sans-serif; 
-              color: #333; 
-              padding: 20px;
-              margin: 0;
-            }
-            h2 { 
-              color: #1e3a8a; 
-              border-bottom: 2px solid #1e3a8a; 
-              padding-bottom: 8px;
-              text-transform: uppercase;
-              font-size: 20px;
-            }
-            /* Estilos nativos para forzar al navegador a usar TEXTO REAL */
-            table { 
-              width: 100%; 
-              border-collapse: collapse; 
-              margin-top: 20px; 
-              font-size: 12px;
-            }
-            th, td { 
-              border: 1px solid #e5e7eb; 
-              padding: 10px; 
-              text-align: left; 
-            }
-            th { 
-              background-color: #f3f4f6; 
-              color: #1f2937; 
-              font-weight: bold; 
-            }
-            tr:nth-child(even) { background-color: #f9fafb; }
-            .text-right { text-align: right; }
-            .font-bold { font-weight: bold; }
-            
-            /* Apagamos cualquier intento de renderizar como imagen */
-            * {
-              box-shadow: none !important;
-              text-shadow: none !important;
-              filter: none !important;
-            }
-            
-            /* Configuración de impresión */
-            @media print {
-              body { padding: 0; }
-              tr { page-break-inside: avoid; }
-            }
-          </style>
-        </head>
-        <body>
-          <h2>Reporte de Cierre: ${cierreFiltroTipo === 'general' ? 'Base General' : cierreFiltroTipo === 'callcenter' ? 'Call Center' : 'Gastos de Flota'}</h2>
-          <p style="font-size: 12px; color: #666;">Fecha de generación: ${new Date().toLocaleDateString()}</p>
-          
-          ${tabla.outerHTML}
-          
-          <script>
-            // En cuanto cargue el texto, abre el asistente de PDF automáticamente
-            window.onload = function() {
-              window.print();
-              // Opcional: cierra la pestaña automáticamente después de guardar
-              setTimeout(function() { window.close(); }, 500);
-            };
-          </script>
-        </body>
-      </html>
-    `);
+    showToast('Generando documento PDF digital...', 'info');
 
-      ventanaImpresion.document.close();
-    };
+    try {
+      // 2. Compilamos el componente PDF en un archivo nativo (Blob)
+      const docInstancia = <CierrePDFDocument data={dataFiltrada} tipo={cierreFiltroTipo} />;
+      const blobPDF = await pdf(docInstancia).toBlob();
+      
+      // 3. Generamos la descarga automática
+      const urlDescarga = URL.createObjectURL(blobPDF);
+      const disparadorLink = document.createElement('a');
+      disparadorLink.href = urlDescarga;
+      
+      // Bautizamos el archivo
+      disparadorLink.download = `CIERRE_${cierreFiltroTipo.toUpperCase()}_${new Date().toISOString().split('T')[0]}.pdf`;
+      disparadorLink.click();
+      
+      URL.revokeObjectURL(urlDescarga);
+      showToast('¡PDF nativo descargado con éxito!', 'success');
+    } catch (error) {
+      console.error("Error crítico en la generación del PDF nativo:", error);
+      showToast('Error de compilación del documento digital.', 'error');
+    }
+  };
 
     try {
       const { error } = await supabase.from('gastos_flota').insert([nuevoRegistro]);
@@ -1401,10 +1548,6 @@ export default function App() {
     a.download = `Reporte_${cierreFiltroTipo}_${new Date().toISOString().split('T')[0]}.xls`;
     a.click();
     showToast('¡Excel descargado con éxito!');
-  };
-
-  const exportarCierrePDF = () => {
-    window.print();
   };
 
   const BallardLogo = ({ className }) => (
