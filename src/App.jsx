@@ -368,6 +368,29 @@ export default function App() {
   const [libsLoaded, setLibsLoaded] = useState(false);
   const [renderData, setRenderData] = useState(null);
 
+  // --- ESTADOS Y LÓGICA PARA LA ALERTA DE DEUDAS ---
+  const [mostrarAlertaDeudas, setMostrarAlertaDeudas] = useState(false);
+  const [deudasParaHoy, setDeudasParaHoy] = useState([]);
+
+  useEffect(() => {
+    // 1. Obtenemos la fecha exacta de hoy (Ej. 2026-06-09)
+    const hoy = new Date().toISOString().split('T')[0];
+    
+    // 2. Buscamos todas las deudas activas cuya fecha de cobro sea HOY
+    const deudasHoy = deudasChoferes.filter(d => d.activa && d.fechaRegistro === hoy);
+    
+    // 3. Si hay deudas para hoy, revisamos si ya le diste "Enterado"
+    if (deudasHoy.length > 0) {
+      const yaEnteradoFecha = localStorage.getItem('deudasEnteradoFecha');
+      
+      // Si la fecha guardada no es la de hoy, mostramos el banner
+      if (yaEnteradoFecha !== hoy) {
+        setDeudasParaHoy(deudasHoy);
+        setMostrarAlertaDeudas(true);
+      }
+    }
+  }, [deudasChoferes]); // Se ejecuta cada vez que las deudas se actualizan
+
   const calcularPrecioCierre = (hotelName, precioOriginal, vehiculoFiltro) => {
     // Si no están filtrando por Expedition, devolvemos el precio original
     if (vehiculoFiltro !== 'Expedition') return precioOriginal;
@@ -2290,7 +2313,7 @@ export default function App() {
                   <tr className="text-gray-600 border-b">
                     <th className="p-3">Chofer</th><th className="p-3">Concepto</th><th className="p-3 text-right">Monto Total</th>
                     <th className="p-3 text-center">Quincenas</th><th className="p-3 text-right bg-red-50 text-red-800 font-bold">Descuento Próxima Quincena</th>
-                    <th className="p-3">Fecha de Registro (Editable)</th><th className="p-3 text-center">Acciones</th>
+                    <th className="p-3">¿Cuándo se descontará? (Editable)</th><th className="p-3 text-center">Acciones</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
@@ -2298,6 +2321,7 @@ export default function App() {
                     <tr><td colSpan="7" className="text-center p-8 text-gray-500 font-medium">No hay deudas activas. ¡Todos al corriente! 🎉</td></tr>
                   ) : deudasChoferes.filter(d => d.activa).map(row => {
                     const quincenasRestantes = row.quincenasTotales - row.quincenasPagadas;
+                    // Se calcula la fecha final partiendo de la fecha de cobro asignada
                     const fechaFin = calcularFechaQuincena(row.fechaRegistro, row.quincenasTotales);
 
                     return (
@@ -2343,8 +2367,8 @@ export default function App() {
                         <td className="p-3 text-right bg-red-50 text-red-700 font-black text-base">
                           ${row.montoQuincenal.toFixed(2)}
                         </td>
-
-                        {/* AQUI ESTÁ LA MAGIA DE EDICIÓN EN LÍNEA */}
+                        
+                        {/* EDICIÓN DE LA FECHA DE COBRO / DESCUENTO */}
                         <td className="p-3 font-medium text-gray-600 text-sm">
                           <div className="flex items-center gap-1">
                             <Calendar size={14} className="text-emerald-500" />
@@ -2352,25 +2376,25 @@ export default function App() {
                               type="date"
                               defaultValue={row.fechaRegistro}
                               className="bg-transparent border border-transparent hover:border-emerald-300 hover:bg-emerald-50 focus:bg-white focus:border-emerald-500 rounded p-1 text-xs font-bold text-gray-700 transition-all cursor-pointer outline-none"
-                              title="Clic para cambiar la fecha inicial"
+                              title="Haz clic para cambiar la fecha en que se aplicará el descuento"
                               onBlur={async (e) => {
                                 const nuevaFecha = e.target.value;
                                 if (nuevaFecha && nuevaFecha !== row.fechaRegistro) {
                                   try {
-                                    showToast('Actualizando fecha en la nube...', 'info');
-                                    // IMPORTANTE: Asegúrate de que 'deudas_choferes' sea el nombre de la tabla en Supabase
+                                    showToast('Programando nueva fecha de cobro...', 'info');
+                                    
                                     const { error } = await supabase
-                                      .from('deudas_choferes')
+                                      .from('deudas_choferes') 
                                       .update({ fechaRegistro: nuevaFecha })
                                       .eq('id', row.id);
-
+                                      
                                     if (error) throw error;
-
+                                    
                                     fetchAllData();
-                                    showToast('¡Fecha actualizada con éxito!', 'success');
+                                    showToast('¡Fecha de descuento actualizada!', 'success');
                                   } catch (error) {
                                     console.error(error);
-                                    showToast('Error al actualizar la fecha', 'error');
+                                    showToast('Error al reprogramar el cobro', 'error');
                                     e.target.value = row.fechaRegistro;
                                   }
                                 }
@@ -2378,7 +2402,7 @@ export default function App() {
                             />
                           </div>
                           <div className="text-[10px] text-gray-400 mt-1 italic">
-                            Fin estimado: {fechaFin}
+                            Termina de pagar: {fechaFin}
                           </div>
                         </td>
 
@@ -2412,7 +2436,7 @@ export default function App() {
               </table>
             </div>
 
-            {/* Historial de Pagadas (BUG VISUAL CORREGIDO) */}
+            {/* Historial de Pagadas */}
             <div className="mt-12 flex-1 overflow-x-auto w-full opacity-60 hover:opacity-100 transition-opacity">
               <h3 className="text-md font-bold text-gray-500 mb-4 border-b pb-2">Historial de Deudas Liquidadas</h3>
               <table className="min-w-full text-left text-sm whitespace-nowrap">
