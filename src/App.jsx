@@ -1766,7 +1766,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-800 font-sans">
+    <div className="flex h-screen w-full bg-gray-100 text-gray-800 font-sans overflow-hidden print:overflow-visible print:h-auto print:block">
       {toast.show && (
         <div className={`fixed top-4 right-4 z-50 p-4 rounded shadow-lg flex items-center gap-2 text-white ${toast.type === 'error' ? 'bg-red-600' : 'bg-green-600'} transition-opacity`}>
           {toast.type === 'error' ? <AlertCircle size={20} /> : <CheckCircle size={20} />}
@@ -1774,1124 +1774,1382 @@ export default function App() {
         </div>
       )}
 
-      <header className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col sm:flex-row justify-between items-center">
-          <div className="flex items-center gap-3">
-            <BallardLogo className="h-12" />
-          </div>
-          <div className="flex flex-wrap gap-2 mt-4 sm:mt-0 justify-center">
-
-            {/* INGRESO / BUSCAR: Candado */}
-            {(userProfile?.rol === 'admin' || userProfile?.permisos?.vistas?.ingresar_reserva) && (
-              <button onClick={() => setActiveTab('form')} className={`px-4 py-2 rounded-md font-medium transition-colors text-sm ${activeTab === 'form' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}>
-                Ingresar / Buscar
-              </button>
-            )}
-
-            {/* INGRESO CC: Candado */}
-            {(userProfile?.rol === 'admin' || userProfile?.permisos?.vistas?.ingreso_cc) && (
-              <button onClick={() => setActiveTab('callcenter')} className={`px-4 py-2 rounded-md font-bold transition-colors text-sm flex items-center gap-1 ${activeTab === 'callcenter' ? 'bg-purple-600 text-white' : 'bg-purple-100 text-purple-700 hover:bg-purple-200'}`}>
-                <Headset size={16} /> Ingreso CC
-              </button>
-            )}
-
-            {/* ROL DIARIO: Candado (Usamos el que ya tenías de ver_modulo) */}
-            {(userProfile?.rol === 'admin' || userProfile?.permisos?.rol_diario?.ver_modulo) && (
-              <button onClick={() => setActiveTab('roll')} className={`px-4 py-2 rounded-md font-medium transition-colors text-sm ${activeTab === 'roll' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}>
-                Rol Diario
-              </button>
-            )}
-
-            {/* CONTROL FLOTA: Candado */}
-            {(userProfile?.rol === 'admin' || userProfile?.permisos?.vistas?.control_flota) && (
-              <button onClick={() => setActiveTab('flota')} className={`px-4 py-2 rounded-md font-bold transition-colors text-sm flex items-center gap-1 ${activeTab === 'flota' ? 'bg-orange-500 text-white' : 'bg-orange-100 text-orange-700 hover:bg-orange-200'}`}>
-                <Fuel size={16} /> Control Flota
-              </button>
-            )}
-
-            {/* CONTROL DEUDAS: Candado */}
-            {(userProfile?.rol === 'admin' || userProfile?.permisos?.vistas?.deudas) && (
-              <button onClick={() => setActiveTab('deudas')} className={`px-4 py-2 rounded-md font-bold transition-colors text-sm flex items-center gap-1 ${activeTab === 'deudas' ? 'bg-emerald-600 text-white' : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'}`}>
-                <Database size={16} /> Deudas y Préstamos
-              </button>
-            )}
-
-            {/* BASE DE DATOS: Candado */}
-            {(userProfile?.rol === 'admin' || userProfile?.permisos?.vistas?.base_de_datos) && (
-              <button onClick={() => setActiveTab('database')} className={`px-4 py-2 rounded-md font-medium transition-colors text-sm ${activeTab === 'database' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}>
-                Base de Datos
-              </button>
-            )}
-
-            {/* CIERRE: Candado */}
-            {(userProfile?.rol === 'admin' || userProfile?.permisos?.vistas?.cierre) && (
-              <button onClick={() => setActiveTab('cierre')} className={`px-4 py-2 rounded-md font-medium transition-colors text-sm ${activeTab === 'cierre' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}>
-                Cierre
-              </button>
-            )}
-
-            {/* BOTÓN SECRETO DE PERMISOS: Solo Admin */}
-            {userProfile?.rol === 'admin' && (
-              <button
-                onClick={() => setActiveTab('usuarios')}
-                className={`px-4 py-2 rounded-md font-bold transition-colors text-sm flex items-center gap-1 ml-2 ${activeTab === 'usuarios' ? 'bg-red-600 text-white shadow-md' : 'bg-red-100 text-red-700 hover:bg-red-200'}`}
-              >
-                <ShieldCheck size={16} /> Permisos
-              </button>
-            )}
-
-            {/* CERRAR SESIÓN */}
-            <button
-              onClick={handleLogout}
-              className="px-4 py-2 rounded-md font-bold transition-colors text-sm flex items-center gap-1 bg-red-100 text-red-700 hover:bg-red-200 ml-4"
-            >
-              <User size={16} /> Cerrar Sesión
-            </button>
-          </div>
+      {/* ========================================================= */}
+      {/* NUEVO SIDEBAR (MENÚ LATERAL MODERNO)                        */}
+      {/* ========================================================= */}
+      <aside className="w-64 flex-shrink-0 bg-slate-900 flex flex-col h-full shadow-2xl z-20 print:hidden transition-all duration-300">
+        <div className="h-20 bg-white flex items-center justify-center border-b border-gray-200 shadow-sm relative z-10">
+          <BallardLogo className="h-12 w-auto" />
         </div>
-      </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <nav className="flex-1 overflow-y-auto py-6 px-3 space-y-2 custom-scrollbar">
+          <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-4 px-3">Menú Principal</div>
 
-        { }
-        {activeTab === 'form' && (
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-              <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-                {isEditing ? <><FileText className="text-blue-600" /> Modificar Servicio</> : <><FileText className="text-blue-600" /> Ingresar Nuevo Servicio</>}
-              </h2>
+          {(userProfile?.rol === 'admin' || userProfile?.permisos?.vistas?.ingresar_reserva) && (
+            <button onClick={() => setActiveTab('form')} className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl font-medium transition-all ${activeTab === 'form' ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/50' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}>
+              <FileText size={20} /> Ingresar / Buscar
+            </button>
+          )}
 
-              <div className="relative w-full md:w-64">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Search className="h-5 w-5 text-gray-400" />
-                </div>
-                <input
-                  type="text"
-                  placeholder="Buscar reserva, nombre..."
-                  value={searchTerm}
-                  onChange={handleSearch}
-                  className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                />
-                {searchResults.length > 0 && (
-                  <ul className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
-                    {searchResults.map(res => (
-                      <li key={res.id} onClick={() => selectServiceToEdit(res)} className="px-4 py-2 hover:bg-blue-50 cursor-pointer text-sm border-b">
-                        <span className="font-semibold">{res.nombre} {res.apellido}</span> - {res.fecha} <br />
-                        <span className="text-xs text-gray-500">Reserva: {res.reserva} | Hotel: {res.hotel}</span>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
+          {(userProfile?.rol === 'admin' || userProfile?.permisos?.vistas?.ingreso_cc) && (
+            <button onClick={() => setActiveTab('callcenter')} className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl font-medium transition-all ${activeTab === 'callcenter' ? 'bg-purple-600 text-white shadow-lg shadow-purple-900/50' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}>
+              <Headset size={20} /> Ingreso CC
+            </button>
+          )}
+
+          {(userProfile?.rol === 'admin' || userProfile?.permisos?.rol_diario?.ver_modulo) && (
+            <button onClick={() => setActiveTab('roll')} className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl font-medium transition-all ${activeTab === 'roll' ? 'bg-amber-500 text-white shadow-lg shadow-amber-900/50' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}>
+              <CalendarCheck size={20} /> Rol Diario
+            </button>
+          )}
+
+          {(userProfile?.rol === 'admin' || userProfile?.permisos?.vistas?.control_flota) && (
+            <button onClick={() => setActiveTab('flota')} className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl font-medium transition-all ${activeTab === 'flota' ? 'bg-orange-600 text-white shadow-lg shadow-orange-900/50' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}>
+              <Fuel size={20} /> Control Flota
+            </button>
+          )}
+
+          {(userProfile?.rol === 'admin' || userProfile?.permisos?.vistas?.deudas) && (
+            <button onClick={() => setActiveTab('deudas')} className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl font-medium transition-all ${activeTab === 'deudas' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-900/50' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}>
+              <DollarSign size={20} /> Deudas y Préstamos
+            </button>
+          )}
+
+          {(userProfile?.rol === 'admin' || userProfile?.permisos?.vistas?.base_de_datos) && (
+            <button onClick={() => setActiveTab('database')} className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl font-medium transition-all ${activeTab === 'database' ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/50' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}>
+              <Database size={20} /> Base de Datos
+            </button>
+          )}
+
+          {(userProfile?.rol === 'admin' || userProfile?.permisos?.vistas?.cierre) && (
+            <button onClick={() => setActiveTab('cierre')} className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl font-medium transition-all ${activeTab === 'cierre' ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/50' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}>
+              <Wallet size={20} /> Cierre Financiero
+            </button>
+          )}
+
+          {userProfile?.rol === 'admin' && (
+            <>
+              <div className="mt-8 mb-4 border-t border-slate-700/50"></div>
+              <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-4 px-3">Administración</div>
+              <button onClick={() => setActiveTab('usuarios')} className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl font-medium transition-all ${activeTab === 'usuarios' ? 'bg-red-600 text-white shadow-lg shadow-red-900/50' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}>
+                <ShieldCheck size={20} /> Permisos
+              </button>
+            </>
+          )}
+        </nav>
+
+        <div className="p-4 bg-slate-950 border-t border-slate-800">
+          <div className="flex items-center gap-3 mb-4 px-2">
+            <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-slate-300">
+              <User size={16} />
             </div>
+            <div className="flex flex-col overflow-hidden">
+              <span className="text-xs text-slate-400">Usuario Activo</span>
+              <span className="text-sm font-bold truncate text-slate-200">{userProfile?.email || email}</span>
+            </div>
+          </div>
+          <button onClick={handleLogout} className="w-full flex justify-center items-center gap-2 bg-red-500/10 hover:bg-red-500/20 text-red-500 py-2.5 rounded-lg text-sm font-bold transition-colors">
+            Cerrar Sesión
+          </button>
+        </div>
+      </aside>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="space-y-4">
-                <h3 className="font-semibold text-gray-700 border-b pb-2">Datos Generales</h3>
-                <div>
-                  <div className="mt-1 flex gap-2">
-                    <input
-                      type="text"
-                      name="reserva"
-                      value={currentService.reserva}
-                      onChange={handleInputChange}
-                      className="block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm focus:ring-blue-500 focus:border-blue-500 uppercase"
-                    />
-                    <button
-                      type="button"
-                      onClick={generarNumeroReserva}
-                      className="bg-blue-100 hover:bg-blue-200 text-blue-700 text-xs font-bold px-3 py-2 rounded-md border border-blue-300 transition-colors whitespace-nowrap flex items-center gap-1"
-                      title="Generar consecutivo automático"
-                    >
-                      ✨ Generar N°
-                    </button>
-                  </div>
-                  <input type="text" name="reserva" value={currentService.reserva} onChange={handleInputChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm focus:ring-blue-500 focus:border-blue-500" />
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700">Nombre</label>
-                    <input type="text" name="nombre" value={currentService.nombre} onChange={handleInputChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm focus:ring-blue-500 focus:border-blue-500" />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700">Apellido</label>
-                    <input type="text" name="apellido" value={currentService.apellido} onChange={handleInputChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm focus:ring-blue-500 focus:border-blue-500" />
-                  </div>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700">Agencia</label>
-                    <input type="text" name="agencia" value={currentService.agencia} onChange={handleInputChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm focus:ring-blue-500 focus:border-blue-500" />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700">PAX (Cant.)</label>
-                    <input type="number" name="pax" value={currentService.pax} onChange={handleInputChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm focus:ring-blue-500 focus:border-blue-500" />
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-700">Teléfono</label>
-                  <input type="text" name="telefono" value={currentService.telefono} onChange={handleInputChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm focus:ring-blue-500 focus:border-blue-500" />
-                </div>
-              </div>
+      {/* CONTENEDOR PRINCIPAL DERECHO */}
+      <div className="flex-1 flex flex-col h-full overflow-hidden relative print:overflow-visible print:h-auto print:block">
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 w-full bg-gray-100 print:p-0 print:overflow-visible print:h-auto print:block max-w-7xl mx-auto">
 
-              <div className="space-y-4">
-                <h3 className="font-semibold text-gray-700 border-b pb-2">Logística</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700">Tipo de Servicio</label>
-                    <select name="tipoServicio" value={currentService.tipoServicio} onChange={handleInputChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm bg-white">
-                      <option>Llegada</option>
-                      <option>Salida</option>
-                      <option>Traslado</option>
-                      <option>Actividad</option>
-                    </select>
-                  </div>
-                  {!isEditing && (
-                    <div>
-                      <label className="block text-xs font-medium text-gray-700">Tipo de Viaje</label>
-                      <select name="tipoViaje" value={currentService.tipoViaje} onChange={handleInputChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm bg-white">
-                        <option value="One way">One way</option>
-                        <option value="RT">Round Trip (RT)</option>
-                      </select>
-                    </div>
-                  )}
-                </div>
+          { }
+          {activeTab === 'form' && (
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+                <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+                  {isEditing ? <><FileText className="text-blue-600" /> Modificar Servicio</> : <><FileText className="text-blue-600" /> Ingresar Nuevo Servicio</>}
+                </h2>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700">Fecha del Servicio</label>
-                    <input type="date" name="fecha" value={currentService.fecha} onChange={handleInputChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm" />
+                <div className="relative w-full md:w-64">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Search className="h-5 w-5 text-gray-400" />
                   </div>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700">Hora</label>
-                    <input type="time" name="hora" value={currentService.hora} onChange={handleInputChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm" />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700">Vuelo</label>
-                    <input type="text" name="vuelo" value={currentService.vuelo} onChange={handleInputChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm" />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700">Pick UP</label>
-                    <input type="time" name="pickUp" value={currentService.pickUp} onChange={handleInputChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm" />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-medium text-gray-700">Hotel / Destino</label>
                   <input
                     type="text"
-                    name="hotel"
-                    list="hoteles-list"
-                    value={currentService.hotel}
-                    onChange={handleInputChange}
-                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="Escribe o selecciona..."
+                    placeholder="Buscar reserva, nombre..."
+                    value={searchTerm}
+                    onChange={handleSearch}
+                    className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                   />
-                  <datalist id="hoteles-list">
-                    {LISTA_HOTELES.map((hotel, index) => (
-                      <option key={index} value={hotel.nombre}>
-                        Zona {hotel.zona}
-                      </option>
-                    ))}
-                  </datalist>
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <h3 className="font-semibold text-gray-700 border-b pb-2">Extras y Comentarios</h3>
-                <div className="grid grid-cols-3 gap-2">
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700">Car Seat</label>
-                    <input type="number" min="0" name="carSeat" value={currentService.carSeat} onChange={handleInputChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm" />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700">Baby Seat</label>
-                    <input type="number" min="0" name="babySeat" value={currentService.babySeat} onChange={handleInputChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm" />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700">Booster</label>
-                    <input type="number" min="0" name="booster" value={currentService.booster} onChange={handleInputChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm" />
-                  </div>
-                </div>
-
-                <div className="flex items-center mt-2">
-                  <input type="checkbox" name="paradaCompras" checked={currentService.paradaCompras} onChange={handleInputChange} className="h-4 w-4 text-blue-600 border-gray-300 rounded" />
-                  <label className="ml-2 block text-sm text-gray-900">Parada de compras</label>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700">Cobro ($)</label>
-                    <input type="text" name="cobro" value={currentService.cobro} onChange={handleInputChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm" />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700">Método de Pago</label>
-                    <select name="metodoPago" value={currentService.metodoPago} onChange={handleInputChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm bg-white">
-                      <option value="">Seleccione...</option>
-                      <option value="Efectivo">Efectivo</option>
-                      <option value="Tarjeta">Tarjeta</option>
-                      <option value="PayPal">PayPal</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-medium text-gray-700">Comentarios</label>
-                  <textarea name="comentario" rows="2" value={currentService.comentario} onChange={handleInputChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm"></textarea>
-                </div>
-              </div>
-            </div>
-
-            {currentService.tipoViaje === 'RT' && !isEditing && (
-              <div className="mt-6 bg-blue-50 p-4 rounded-md border border-blue-200">
-                <h3 className="font-semibold text-blue-800 mb-3 flex items-center gap-2"><MapPin size={18} /> Datos del Viaje de Regreso</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-                  <div>
-                    <label className="block text-xs font-medium text-blue-700">Fecha de Regreso</label>
-                    <input type="date" name="fechaRegreso" value={currentService.fechaRegreso} onChange={handleInputChange} className="mt-1 block w-full border border-blue-300 rounded-md shadow-sm p-2 text-sm" />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-blue-700">Pick UP (Regreso)</label>
-                    <input type="time" name="horaPickUpRegreso" value={currentService.horaPickUpRegreso} onChange={handleInputChange} className="mt-1 block w-full border border-blue-300 rounded-md shadow-sm p-2 text-sm" />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-blue-700">Vuelo de Regreso</label>
-                    <input type="text" name="vueloRegreso" value={currentService.vueloRegreso} onChange={handleInputChange} className="mt-1 block w-full border border-blue-300 rounded-md shadow-sm p-2 text-sm" />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-blue-700">Hora de Vuelo</label>
-                    <input type="time" name="horaRegreso" value={currentService.horaRegreso} onChange={handleInputChange} className="mt-1 block w-full border border-blue-300 rounded-md shadow-sm p-2 text-sm" />
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <div className="mt-6 flex justify-end gap-3">
-              {isEditing && (
-                <button type="button" onClick={cancelEdit} className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 flex items-center gap-2">
-                  <X size={18} /> Cancelar
-                </button>
-              )}
-              <button onClick={saveForm} className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 shadow-sm font-medium flex items-center gap-2 transition-colors">
-                <Save size={18} /> {isEditing ? 'Actualizar' : 'Guardar'}
-              </button>
-            </div>
-          </div>
-        )}
-
-        { }
-        {activeTab === 'callcenter' && (
-          <div className="bg-white rounded-lg shadow-md p-6 border-t-4 border-purple-600">
-            <h2 className="text-2xl font-bold text-purple-900 flex items-center gap-2 mb-6">
-              <Headset className="text-purple-600" /> Ingreso Rápido - Call Center
-            </h2>
-            <div className="bg-purple-50 p-6 rounded-lg border border-purple-100 mb-8">
-              <p className="text-sm text-purple-800 mb-4 font-medium">Pega el mensaje de WhatsApp aquí usando la plantilla requerida. El sistema calculará la comisión ($10 Venta / $5 Confirmación) automáticamente.</p>
-              <textarea
-                rows="5"
-                value={ccInput}
-                onChange={(e) => setCcInput(e.target.value)}
-                className="w-full border border-purple-200 rounded-md p-4 shadow-sm focus:ring-purple-500 focus:border-purple-500 text-sm font-mono"
-                placeholder="ACCIÓN: Venta&#10;CLIENTE: Juan Pérez&#10;RESERVA: 12345&#10;FECHA DEL SERVICIO: 15/06/2026&#10;NOTAS: Pasajero requiere asiento de bebé"
-              ></textarea>
-              <div className="mt-4 flex justify-end">
-                <button onClick={processCallCenterInput} className="bg-purple-600 text-white px-6 py-2 rounded-md hover:bg-purple-700 shadow-sm font-medium transition-colors flex items-center gap-2">
-                  <Database size={18} /> Extraer y Guardar
-                </button>
-              </div>
-            </div>
-
-            {/* Nueva sección: Historial de Call Center directo en la pestaña */}
-            <div className="flex-1 overflow-x-auto overflow-y-auto p-2 w-full">
-              <div className="flex justify-between items-center mb-4 border-b pb-2">
-                <h3 className="text-lg font-semibold text-purple-900">Historial Reciente de Call Center (En la Nube)</h3>
-                <button onClick={fetchAllData} className="bg-purple-100 text-purple-700 px-3 py-1 rounded text-xs font-bold hover:bg-purple-200 transition-colors">
-                  🔄 Actualizar Datos
-                </button>
-              </div>
-              <table className="min-w-full text-left text-sm whitespace-nowrap">
-                <thead>
-                  <tr className="text-purple-800 bg-purple-50 border-b">
-                    <th className="p-2">ID Registro</th><th className="p-2">Fecha Sistema</th><th className="p-2">Fecha Cliente</th>
-                    <th className="p-2">Cliente</th><th className="p-2">Reserva</th><th className="p-2">Acción</th>
-                    <th className="p-2 text-right">Comisión</th><th className="p-2 text-center">Acciones</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y">
-                  {callCenterServices.length === 0 ? (
-                    <tr><td colSpan="8" className="text-center p-8 text-gray-500">No hay registros guardados en el Call Center.</td></tr>
-                  ) : (
-                    // Ordenamos para ver siempre los últimos ingresados arriba
-                    [...callCenterServices].reverse().slice(0, 10).map(row => (
-                      <tr key={row.id} className="hover:bg-purple-50 transition-colors">
-                        <td className="p-2 font-mono text-xs text-gray-500">{row.id}</td>
-                        <td className="p-2">{row.fechaSistema}</td>
-                        <td className="p-2 font-medium">{row.fechaCliente}</td>
-                        <td className="p-2 font-bold uppercase">{row.cliente}</td>
-                        <td className="p-2">{row.reserva}</td>
-                        <td className="p-2">
-                          <span className={`px-2 py-1 rounded-full text-xs ${row.accion === 'Venta' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'}`}>
-                            {row.accion}
-                          </span>
-                        </td>
-                        <td className="p-2 text-right font-bold text-green-700">${parseFloat(row.comision).toFixed(2)}</td>
-                        <td className="p-2 text-center">
-                          <button
-                            onClick={async () => {
-                              if (window.confirm(`¿Estás seguro de que deseas eliminar el registro de ${row.cliente} permanentemente de la nube?`)) {
-                                try {
-                                  showToast('Eliminando...', 'success');
-
-                                  // 1. Lo borramos físicamente de la tabla 'call_center' en Supabase
-                                  const { error } = await supabase.from('call_center').delete().eq('id', row.id);
-                                  if (error) throw error;
-
-                                  // 2. Lo borramos de la pantalla para actualizar la vista de inmediato
-                                  setCallCenterServices(callCenterServices.filter(cc => cc.id !== row.id));
-
-                                  showToast('¡Registro de Call Center eliminado!');
-                                } catch (error) {
-                                  console.error("Error al eliminar en CC:", error);
-                                  showToast('Error al eliminar en la nube', 'error');
-                                }
-                              }
-                            }}
-                            className="p-1 text-red-500 hover:bg-red-100 rounded"
-                            title="Eliminar Registro"
-                          >
-                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>
-                          </button>
-                        </td>
-                      </tr>
-                    ))
+                  {searchResults.length > 0 && (
+                    <ul className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
+                      {searchResults.map(res => (
+                        <li key={res.id} onClick={() => selectServiceToEdit(res)} className="px-4 py-2 hover:bg-blue-50 cursor-pointer text-sm border-b">
+                          <span className="font-semibold">{res.nombre} {res.apellido}</span> - {res.fecha} <br />
+                          <span className="text-xs text-gray-500">Reserva: {res.reserva} | Hotel: {res.hotel}</span>
+                        </li>
+                      ))}
+                    </ul>
                   )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-
-        { }
-        {activeTab === 'flota' && (
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2 mb-6">
-              <Fuel className="text-orange-500" /> Control de Flota (Gastos)
-            </h2>
-
-            <div className="bg-orange-50 p-6 rounded-lg border border-orange-100 mb-8">
-              <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">Fecha</label>
-                  <input type="date" name="fecha" value={currentExpense.fecha} onChange={handleExpenseChange} className="block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm focus:ring-orange-500 focus:border-orange-500" />
                 </div>
-                <div>
-                  <label className="block text-xs font-bold text-orange-800 mb-1 uppercase">Chofer</label>
-                  <select
-                    name="chofer"
-                    value={currentExpense.chofer || ''}
-                    onChange={handleExpenseChange}
-                    className="block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 cursor-pointer uppercase"
-                  >
-                    <option value="">Selecciona...</option>
-                    <option value="IGNACIO">Ignacio</option>
-                  </select>
-                </div>
+              </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-orange-800 mb-1 uppercase">Vehículo</label>
-                  <select
-                    name="vehiculo"
-                    value={currentExpense.vehiculo || ''}
-                    onChange={handleExpenseChange}
-                    className="block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 cursor-pointer"
-                  >
-                    <option value="">Selecciona...</option>
-                    <option value="Expedition">Expedition</option>
-                    <option value="Hiace">Hiace</option>
-                  </select>
-                </div>
-                {/* --- NUEVO MÓDULO DE CARRITO DE GASTOS --- */}
-                <div className="col-span-1 md:col-span-2 bg-orange-50 p-4 rounded-lg border border-orange-200 shadow-inner">
-                  <div className="flex flex-wrap gap-2 items-end">
-
-                    <div className="flex-1 min-w-[120px]">
-                      <label className="block text-xs font-bold text-orange-800 mb-1">CONCEPTO</label>
-                      <select
-                        value={conceptoTemp}
-                        onChange={(e) => setConceptoTemp(e.target.value)}
-                        className="w-full border border-gray-300 rounded-md p-2 text-sm shadow-sm focus:ring-orange-500 focus:border-orange-500 bg-white"
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="space-y-4">
+                  <h3 className="font-semibold text-gray-700 border-b pb-2">Datos Generales</h3>
+                  <div>
+                    <div className="mt-1 flex gap-2">
+                      <input
+                        type="text"
+                        name="reserva"
+                        value={currentService.reserva}
+                        onChange={handleInputChange}
+                        className="block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm focus:ring-blue-500 focus:border-blue-500 uppercase"
+                      />
+                      <button
+                        type="button"
+                        onClick={generarNumeroReserva}
+                        className="bg-blue-100 hover:bg-blue-200 text-blue-700 text-xs font-bold px-3 py-2 rounded-md border border-blue-300 transition-colors whitespace-nowrap flex items-center gap-1"
+                        title="Generar consecutivo automático"
                       >
-                        <option value="Gasolina">Gasolina</option>
-                        <option value="Casetas">Casetas</option>
-                        <option value="Llantas">Llantas</option>
-                        <option value="Dua">Dua</option>
-                        <option value="Aceite">Aceite</option>
-                        <option value="Otros">Otros</option>
+                        ✨ Generar N°
+                      </button>
+                    </div>
+                    <input type="text" name="reserva" value={currentService.reserva} onChange={handleInputChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm focus:ring-blue-500 focus:border-blue-500" />
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700">Nombre</label>
+                      <input type="text" name="nombre" value={currentService.nombre} onChange={handleInputChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm focus:ring-blue-500 focus:border-blue-500" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700">Apellido</label>
+                      <input type="text" name="apellido" value={currentService.apellido} onChange={handleInputChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm focus:ring-blue-500 focus:border-blue-500" />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700">Agencia</label>
+                      <input type="text" name="agencia" value={currentService.agencia} onChange={handleInputChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm focus:ring-blue-500 focus:border-blue-500" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700">PAX (Cant.)</label>
+                      <input type="number" name="pax" value={currentService.pax} onChange={handleInputChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm focus:ring-blue-500 focus:border-blue-500" />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700">Teléfono</label>
+                    <input type="text" name="telefono" value={currentService.telefono} onChange={handleInputChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm focus:ring-blue-500 focus:border-blue-500" />
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <h3 className="font-semibold text-gray-700 border-b pb-2">Logística</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700">Tipo de Servicio</label>
+                      <select name="tipoServicio" value={currentService.tipoServicio} onChange={handleInputChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm bg-white">
+                        <option>Llegada</option>
+                        <option>Salida</option>
+                        <option>Traslado</option>
+                        <option>Actividad</option>
                       </select>
                     </div>
-
-                    <div className="flex-1 min-w-[100px]">
-                      <label className="block text-xs font-bold text-orange-800 mb-1">MONTO ($)</label>
-                      <input
-                        type="number" min="0" step="0.5"
-                        value={montoTemp}
-                        onChange={(e) => setMontoTemp(e.target.value)}
-                        placeholder="Ej. 500"
-                        className="w-full border border-gray-300 rounded-md p-2 text-sm shadow-sm focus:ring-orange-500 focus:border-orange-500"
-                      />
-                    </div>
-
-                    <button
-                      onClick={() => {
-                        if (!montoTemp || montoTemp <= 0) return;
-                        setCarritoGastos([...carritoGastos, { concepto: conceptoTemp, monto: parseFloat(montoTemp) }]);
-                        setMontoTemp(''); // Limpiamos el monto tras agregar
-                      }}
-                      className="bg-orange-500 hover:bg-orange-600 text-white font-black py-2 px-4 rounded-md transition-colors shadow-sm text-sm h-[38px]"
-                      title="Agregar a la lista"
-                    >
-                      + AGREGAR
-                    </button>
+                    {!isEditing && (
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700">Tipo de Viaje</label>
+                        <select name="tipoViaje" value={currentService.tipoViaje} onChange={handleInputChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm bg-white">
+                          <option value="One way">One way</option>
+                          <option value="RT">Round Trip (RT)</option>
+                        </select>
+                      </div>
+                    )}
                   </div>
 
-                  {/* Lista visual de lo que se va agregando */}
-                  {carritoGastos.length > 0 && (
-                    <div className="mt-4 bg-white p-3 rounded border border-gray-200">
-                      <h4 className="text-xs font-bold text-gray-500 border-b pb-1 mb-2 uppercase">Gastos a registrar hoy:</h4>
-                      <ul className="text-sm divide-y divide-gray-100 mb-3">
-                        {carritoGastos.map((item, index) => (
-                          <li key={index} className="py-1 flex justify-between text-gray-700">
-                            <span>✔️ {item.concepto}</span>
-                            <span className="font-bold">${item.monto.toFixed(2)}</span>
-                          </li>
-                        ))}
-                      </ul>
-                      <div className="flex justify-between items-center border-t pt-2">
-                        <span className="font-black text-orange-800">Total del día: ${carritoGastos.reduce((sum, item) => sum + item.monto, 0).toFixed(2)}</span>
-
-                        {/* Botón Final para Guardar Todo en Supabase */}
-                        <button
-                          onClick={guardarCarritoGastos}
-                          className="bg-green-600 hover:bg-green-700 text-white font-bold py-1 px-4 rounded transition-colors text-sm shadow"
-                        >
-                          Guardar Gastos
-                        </button>
-                      </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700">Fecha del Servicio</label>
+                      <input type="date" name="fecha" value={currentService.fecha} onChange={handleInputChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm" />
                     </div>
-                  )}
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700">Hora</label>
+                      <input type="time" name="hora" value={currentService.hora} onChange={handleInputChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm" />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700">Vuelo</label>
+                      <input type="text" name="vuelo" value={currentService.vuelo} onChange={handleInputChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700">Pick UP</label>
+                      <input type="time" name="pickUp" value={currentService.pickUp} onChange={handleInputChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm" />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700">Hotel / Destino</label>
+                    <input
+                      type="text"
+                      name="hotel"
+                      list="hoteles-list"
+                      value={currentService.hotel}
+                      onChange={handleInputChange}
+                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="Escribe o selecciona..."
+                    />
+                    <datalist id="hoteles-list">
+                      {LISTA_HOTELES.map((hotel, index) => (
+                        <option key={index} value={hotel.nombre}>
+                          Zona {hotel.zona}
+                        </option>
+                      ))}
+                    </datalist>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <h3 className="font-semibold text-gray-700 border-b pb-2">Extras y Comentarios</h3>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700">Car Seat</label>
+                      <input type="number" min="0" name="carSeat" value={currentService.carSeat} onChange={handleInputChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700">Baby Seat</label>
+                      <input type="number" min="0" name="babySeat" value={currentService.babySeat} onChange={handleInputChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700">Booster</label>
+                      <input type="number" min="0" name="booster" value={currentService.booster} onChange={handleInputChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm" />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center mt-2">
+                    <input type="checkbox" name="paradaCompras" checked={currentService.paradaCompras} onChange={handleInputChange} className="h-4 w-4 text-blue-600 border-gray-300 rounded" />
+                    <label className="ml-2 block text-sm text-gray-900">Parada de compras</label>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700">Cobro ($)</label>
+                      <input type="text" name="cobro" value={currentService.cobro} onChange={handleInputChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700">Método de Pago</label>
+                      <select name="metodoPago" value={currentService.metodoPago} onChange={handleInputChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm bg-white">
+                        <option value="">Seleccione...</option>
+                        <option value="Efectivo">Efectivo</option>
+                        <option value="Tarjeta">Tarjeta</option>
+                        <option value="PayPal">PayPal</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700">Comentarios</label>
+                    <textarea name="comentario" rows="2" value={currentService.comentario} onChange={handleInputChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm"></textarea>
+                  </div>
                 </div>
               </div>
-              <div className="mt-4 flex justify-between items-center bg-white p-3 rounded border border-orange-200">
-                <div className="text-sm font-semibold text-gray-700">
-                  Gasto Total: <span className="text-lg text-red-600 ml-2">${((parseFloat(currentExpense.gasolina) || 0) + (parseFloat(currentExpense.casetas) || 0)).toFixed(2)}</span>
+
+              {currentService.tipoViaje === 'RT' && !isEditing && (
+                <div className="mt-6 bg-blue-50 p-4 rounded-md border border-blue-200">
+                  <h3 className="font-semibold text-blue-800 mb-3 flex items-center gap-2"><MapPin size={18} /> Datos del Viaje de Regreso</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                    <div>
+                      <label className="block text-xs font-medium text-blue-700">Fecha de Regreso</label>
+                      <input type="date" name="fechaRegreso" value={currentService.fechaRegreso} onChange={handleInputChange} className="mt-1 block w-full border border-blue-300 rounded-md shadow-sm p-2 text-sm" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-blue-700">Pick UP (Regreso)</label>
+                      <input type="time" name="horaPickUpRegreso" value={currentService.horaPickUpRegreso} onChange={handleInputChange} className="mt-1 block w-full border border-blue-300 rounded-md shadow-sm p-2 text-sm" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-blue-700">Vuelo de Regreso</label>
+                      <input type="text" name="vueloRegreso" value={currentService.vueloRegreso} onChange={handleInputChange} className="mt-1 block w-full border border-blue-300 rounded-md shadow-sm p-2 text-sm" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-blue-700">Hora de Vuelo</label>
+                      <input type="time" name="horaRegreso" value={currentService.horaRegreso} onChange={handleInputChange} className="mt-1 block w-full border border-blue-300 rounded-md shadow-sm p-2 text-sm" />
+                    </div>
+                  </div>
                 </div>
-                <button onClick={saveExpense} className="bg-orange-500 text-white px-6 py-2 rounded-md hover:bg-orange-600 shadow-sm font-medium transition-colors flex items-center gap-2">
-                  <Save size={18} /> Guardar Gasto
+              )}
+
+              <div className="mt-6 flex justify-end gap-3">
+                {isEditing && (
+                  <button type="button" onClick={cancelEdit} className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 flex items-center gap-2">
+                    <X size={18} /> Cancelar
+                  </button>
+                )}
+                <button onClick={saveForm} className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 shadow-sm font-medium flex items-center gap-2 transition-colors">
+                  <Save size={18} /> {isEditing ? 'Actualizar' : 'Guardar'}
                 </button>
               </div>
             </div>
+          )}
 
-            <div className="flex-1 overflow-x-auto overflow-y-auto p-2 w-full">
-              <div className="flex justify-between items-center mb-4 border-b pb-2">
-                <h3 className="text-lg font-semibold text-gray-700">Historial de Gastos</h3>
-                <button onClick={saveFleetUpdates} className="bg-orange-500 text-white px-3 py-1 rounded-md hover:bg-orange-600 flex items-center gap-2 text-sm font-medium transition-colors shadow-sm">
-                  <Save size={16} /> Guardar Cambios
-                </button>
+          { }
+          {activeTab === 'callcenter' && (
+            <div className="bg-white rounded-lg shadow-md p-6 border-t-4 border-purple-600">
+              <h2 className="text-2xl font-bold text-purple-900 flex items-center gap-2 mb-6">
+                <Headset className="text-purple-600" /> Ingreso Rápido - Call Center
+              </h2>
+              <div className="bg-purple-50 p-6 rounded-lg border border-purple-100 mb-8">
+                <p className="text-sm text-purple-800 mb-4 font-medium">Pega el mensaje de WhatsApp aquí usando la plantilla requerida. El sistema calculará la comisión ($10 Venta / $5 Confirmación) automáticamente.</p>
+                <textarea
+                  rows="5"
+                  value={ccInput}
+                  onChange={(e) => setCcInput(e.target.value)}
+                  className="w-full border border-purple-200 rounded-md p-4 shadow-sm focus:ring-purple-500 focus:border-purple-500 text-sm font-mono"
+                  placeholder="ACCIÓN: Venta&#10;CLIENTE: Juan Pérez&#10;RESERVA: 12345&#10;FECHA DEL SERVICIO: 15/06/2026&#10;NOTAS: Pasajero requiere asiento de bebé"
+                ></textarea>
+                <div className="mt-4 flex justify-end">
+                  <button onClick={processCallCenterInput} className="bg-purple-600 text-white px-6 py-2 rounded-md hover:bg-purple-700 shadow-sm font-medium transition-colors flex items-center gap-2">
+                    <Database size={18} /> Extraer y Guardar
+                  </button>
+                </div>
               </div>
-              <table className="min-w-full text-left text-sm whitespace-nowrap mt-4">
-                <thead className="bg-gray-50">
-                  <tr className="text-gray-600 border-b">
-                    <th className="p-3">ID Gasto</th>
-                    <th className="p-3">Fecha</th>
-                    <th className="p-3">Chofer</th>
-                    <th className="p-3">Vehículo</th>
-                    <th className="p-3">Concepto</th>
-                    <th className="p-3 text-right">Monto Total</th>
-                    <th className="p-3 text-center">Acciones</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y">
-                  {typeof gastosFlota !== 'undefined' && gastosFlota.length === 0 ? (
-                    <tr><td colSpan="7" className="p-8 text-center text-gray-500 font-medium">No hay historial de gastos.</td></tr>
-                  ) : (
-                    (typeof gastosFlota !== 'undefined' ? gastosFlota : []).map(row => (
-                      <tr key={row.id} className="hover:bg-orange-50 transition-colors">
 
-                        {/* ID Gasto */}
-                        <td className="p-3 text-gray-400 text-xs font-mono">
-                          {row.id?.substring(0, 8)}...
-                        </td>
-
-                        {/* Fecha */}
-                        <td className="p-3 font-medium text-gray-700">
-                          {row.fecha}
-                        </td>
-
-                        {/* Chofer */}
-                        <td className="p-3 font-bold text-gray-800 uppercase">
-                          {row.chofer}
-                        </td>
-
-                        {/* Vehículo */}
-                        <td className="p-3 text-gray-700">
-                          {row.vehiculo}
-                        </td>
-
-                        {/* Concepto Dinámico (Llantas, Gasolina, etc.) */}
-                        <td className="p-3">
-                          <span className={`px-2 py-1 rounded text-xs font-bold ${row.concepto === 'Gasolina' ? 'bg-orange-100 text-orange-800' :
-                            row.concepto === 'Casetas' ? 'bg-blue-100 text-blue-800' :
-                              row.concepto === 'Llantas' ? 'bg-gray-200 text-gray-800' :
-                                'bg-purple-100 text-purple-800'
-                            }`}>
-                            {row.concepto || (row.gasolina > 0 ? 'Gasolina' : row.casetas > 0 ? 'Casetas' : 'Varios')}
-                          </span>
-                        </td>
-
-                        {/* Monto Total */}
-                        <td className="p-3 text-right font-black text-red-600">
-                          ${parseFloat(row.gasto_total || 0).toFixed(2)}
-                        </td>
-
-                        {/* Acciones (Basurero) */}
-                        <td className="p-3 text-center">
-                          {userProfile?.rol === 'admin' && (
+              {/* Nueva sección: Historial de Call Center directo en la pestaña */}
+              <div className="flex-1 overflow-x-auto overflow-y-auto p-2 w-full">
+                <div className="flex justify-between items-center mb-4 border-b pb-2">
+                  <h3 className="text-lg font-semibold text-purple-900">Historial Reciente de Call Center (En la Nube)</h3>
+                  <button onClick={fetchAllData} className="bg-purple-100 text-purple-700 px-3 py-1 rounded text-xs font-bold hover:bg-purple-200 transition-colors">
+                    🔄 Actualizar Datos
+                  </button>
+                </div>
+                <table className="min-w-full text-left text-sm whitespace-nowrap">
+                  <thead>
+                    <tr className="text-purple-800 bg-purple-50 border-b">
+                      <th className="p-2">ID Registro</th><th className="p-2">Fecha Sistema</th><th className="p-2">Fecha Cliente</th>
+                      <th className="p-2">Cliente</th><th className="p-2">Reserva</th><th className="p-2">Acción</th>
+                      <th className="p-2 text-right">Comisión</th><th className="p-2 text-center">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y">
+                    {callCenterServices.length === 0 ? (
+                      <tr><td colSpan="8" className="text-center p-8 text-gray-500">No hay registros guardados en el Call Center.</td></tr>
+                    ) : (
+                      // Ordenamos para ver siempre los últimos ingresados arriba
+                      [...callCenterServices].reverse().slice(0, 10).map(row => (
+                        <tr key={row.id} className="hover:bg-purple-50 transition-colors">
+                          <td className="p-2 font-mono text-xs text-gray-500">{row.id}</td>
+                          <td className="p-2">{row.fechaSistema}</td>
+                          <td className="p-2 font-medium">{row.fechaCliente}</td>
+                          <td className="p-2 font-bold uppercase">{row.cliente}</td>
+                          <td className="p-2">{row.reserva}</td>
+                          <td className="p-2">
+                            <span className={`px-2 py-1 rounded-full text-xs ${row.accion === 'Venta' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'}`}>
+                              {row.accion}
+                            </span>
+                          </td>
+                          <td className="p-2 text-right font-bold text-green-700">${parseFloat(row.comision).toFixed(2)}</td>
+                          <td className="p-2 text-center">
                             <button
                               onClick={async () => {
-                                if (window.confirm('¿Eliminar este gasto permanentemente?')) {
+                                if (window.confirm(`¿Estás seguro de que deseas eliminar el registro de ${row.cliente} permanentemente de la nube?`)) {
                                   try {
-                                    // Usamos supabase directamente para borrar
-                                    await supabase.from('gastos_flota').delete().eq('id', row.id);
-                                    fetchAllData(); // Recarga la tabla
+                                    showToast('Eliminando...', 'success');
+
+                                    // 1. Lo borramos físicamente de la tabla 'call_center' en Supabase
+                                    const { error } = await supabase.from('call_center').delete().eq('id', row.id);
+                                    if (error) throw error;
+
+                                    // 2. Lo borramos de la pantalla para actualizar la vista de inmediato
+                                    setCallCenterServices(callCenterServices.filter(cc => cc.id !== row.id));
+
+                                    showToast('¡Registro de Call Center eliminado!');
                                   } catch (error) {
-                                    console.error("Error al borrar", error);
+                                    console.error("Error al eliminar en CC:", error);
+                                    showToast('Error al eliminar en la nube', 'error');
                                   }
                                 }
                               }}
-                              className="p-1 text-red-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-                              title="Eliminar Gasto"
+                              className="p-1 text-red-500 hover:bg-red-100 rounded"
+                              title="Eliminar Registro"
                             >
                               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>
                             </button>
-                          )}
-                        </td>
-
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-
-        {/* --- PESTAÑA: DEUDAS Y PRÉSTAMOS --- */}
-        {activeTab === 'deudas' && (
-          <div className="bg-white rounded-lg shadow-md p-6 border-t-4 border-emerald-600">
-            <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2 mb-6">
-              <Database className="text-emerald-600" /> Control de Deudas, Descuentos y Préstamos
-            </h2>
-
-            {/* Formulario de Ingreso */}
-            <div className="bg-emerald-50 p-6 rounded-lg border border-emerald-100 mb-8">
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-                <div>
-                  <label className="block text-xs font-bold text-emerald-800 mb-1">Chofer</label>
-                  <input type="text" name="chofer" value={currentDeuda.chofer} onChange={handleDeudaChange} placeholder="Nombre del chofer" className="block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm focus:ring-emerald-500 focus:border-emerald-500" />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-emerald-800 mb-1">Concepto / Razón</label>
-                  <select name="concepto" value={currentDeuda.concepto} onChange={handleDeudaChange} className="block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm focus:ring-emerald-500 focus:border-emerald-500 bg-white">
-                    <option value="Préstamo Personal">Préstamo Personal</option>
-                    <option value="Día Descontado">Día Descontado</option>
-                    <option value="Caseta no reportada">Caseta no reportada</option>
-                    <option value="Daño a vehículo">Daño a vehículo</option>
-                    <option value="Otro">Otro descuento</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-emerald-800 mb-1">Monto Total a Pagar ($)</label>
-                  <input type="number" name="montoTotal" min="0" step="0.5" value={currentDeuda.montoTotal} onChange={handleDeudaChange} placeholder="Ej. 1500" className="block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm font-bold text-red-600 focus:ring-emerald-500 focus:border-emerald-500" />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-emerald-800 mb-1">¿A cuántas quincenas?</label>
-                  <input type="number" name="quincenasTotales" min="1" value={currentDeuda.quincenasTotales} onChange={handleDeudaChange} className="block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm focus:ring-emerald-500 focus:border-emerald-500" />
-                </div>
-              </div>
-              <div className="mt-4 flex flex-col md:flex-row justify-between items-center bg-white p-3 rounded border border-emerald-200">
-                <div className="text-sm font-semibold text-gray-700">
-                  Descuento por quincena:
-                  <span className="text-lg text-emerald-600 ml-2 font-black">
-                    ${currentDeuda.montoTotal ? (parseFloat(currentDeuda.montoTotal) / parseInt(currentDeuda.quincenasTotales || 1)).toFixed(2) : '0.00'}
-                  </span>
-                </div>
-                <button onClick={saveDeuda} className="mt-3 md:mt-0 bg-emerald-600 text-white px-6 py-2 rounded-md hover:bg-emerald-700 shadow-sm font-bold transition-colors flex items-center gap-2">
-                  <Save size={18} /> Registrar Deuda
-                </button>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
               </div>
             </div>
+          )}
 
-            {/* Tabla de Control de Deudas */}
-            <div className="flex-1 overflow-x-auto w-full">
-              <h3 className="text-lg font-bold text-gray-700 mb-4 border-b pb-2">Deudas Activas (Por Cobrar)</h3>
-              <table className="min-w-full text-left text-sm whitespace-nowrap">
-                <thead className="bg-gray-50">
-                  <tr className="text-gray-600 border-b">
-                    <th className="p-3">Chofer</th><th className="p-3">Concepto</th><th className="p-3 text-right">Monto Total</th>
-                    <th className="p-3 text-center">Quincenas</th><th className="p-3 text-right bg-red-50 text-red-800 font-bold">Descuento Próxima Quincena</th>
-                    <th className="p-3">¿Cuándo se descontará? (Editable)</th><th className="p-3 text-center">Acciones</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y">
-                  {deudasChoferes.filter(d => d.activa).length === 0 ? (
-                    <tr><td colSpan="7" className="text-center p-8 text-gray-500 font-medium">No hay deudas activas. ¡Todos al corriente! 🎉</td></tr>
-                  ) : deudasChoferes.filter(d => d.activa).map(row => {
-                    const quincenasRestantes = row.quincenasTotales - row.quincenasPagadas;
-                    // Se calcula la fecha final partiendo de la fecha de cobro asignada
-                    const fechaFin = calcularFechaQuincena(row.fechaRegistro, row.quincenasTotales);
+          { }
+          {activeTab === 'flota' && (
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2 mb-6">
+                <Fuel className="text-orange-500" /> Control de Flota (Gastos)
+              </h2>
 
-                    return (
-                      <tr key={row.id} className="hover:bg-emerald-50 transition-colors">
-                        <td className="p-3 font-bold text-gray-800 uppercase">{row.chofer}</td>
-                        {/* Concepto Dinámico Apilado */}
-                        <td className="p-3">
-                          <div className="flex flex-col gap-1 items-start">
-                            {(() => {
-                              let lista = [];
-                              if (row.concepto === 'Varios' || !row.concepto) {
-                                if (row.gasolina > 0) lista.push('Gasolina');
-                                if (row.casetas > 0) lista.push('Casetas');
-                                if (lista.length === 0) lista.push('Varios');
-                              } else {
-                                lista = row.concepto.split(',');
-                              }
+              <div className="bg-orange-50 p-6 rounded-lg border border-orange-100 mb-8">
+                <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Fecha</label>
+                    <input type="date" name="fecha" value={currentExpense.fecha} onChange={handleExpenseChange} className="block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm focus:ring-orange-500 focus:border-orange-500" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-orange-800 mb-1 uppercase">Chofer</label>
+                    <select
+                      name="chofer"
+                      value={currentExpense.chofer || ''}
+                      onChange={handleExpenseChange}
+                      className="block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 cursor-pointer uppercase"
+                    >
+                      <option value="">Selecciona...</option>
+                      <option value="IGNACIO">Ignacio</option>
+                    </select>
+                  </div>
 
-                              return lista.map((c, idx) => {
-                                const nombreReal = c.includes('|') ? c.split('|')[0] : c;
-                                const precioReal = c.includes('|') ? `$${parseFloat(c.split('|')[1]).toFixed(2)}` : '';
+                  <div>
+                    <label className="block text-xs font-bold text-orange-800 mb-1 uppercase">Vehículo</label>
+                    <select
+                      name="vehiculo"
+                      value={currentExpense.vehiculo || ''}
+                      onChange={handleExpenseChange}
+                      className="block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 cursor-pointer"
+                    >
+                      <option value="">Selecciona...</option>
+                      <option value="Expedition">Expedition</option>
+                      <option value="Hiace">Hiace</option>
+                    </select>
+                  </div>
+                  {/* --- NUEVO MÓDULO DE CARRITO DE GASTOS --- */}
+                  <div className="col-span-1 md:col-span-2 bg-orange-50 p-4 rounded-lg border border-orange-200 shadow-inner">
+                    <div className="flex flex-wrap gap-2 items-end">
 
-                                return (
-                                  <span key={idx} className={`px-2 py-1 rounded text-xs font-bold shadow-sm flex gap-3 justify-between min-w-[130px] ${nombreReal === 'Gasolina' ? 'bg-orange-100 text-orange-800 border border-orange-200' :
-                                    nombreReal === 'Casetas' ? 'bg-blue-100 text-blue-800 border border-blue-200' :
-                                      nombreReal === 'Llantas' ? 'bg-gray-700 text-white border border-gray-800' :
-                                        nombreReal === 'Aceite' ? 'bg-yellow-100 text-yellow-800 border border-yellow-300' :
-                                          nombreReal === 'Dua' ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' :
-                                            'bg-purple-100 text-purple-800 border border-purple-200'
-                                    }`}>
-                                    <span>{nombreReal}</span> <span>{precioReal}</span>
-                                  </span>
-                                );
-                              });
-                            })()}
-                          </div>
-                        </td>
-                        <td className="p-3 text-right font-medium text-gray-600">${row.montoTotal.toFixed(2)}</td>
-                        <td className="p-3 text-center">
-                          <div className="text-xs font-bold text-emerald-600">{row.quincenasPagadas} pagadas</div>
-                          <div className="text-xs text-red-500">faltan {quincenasRestantes}</div>
-                        </td>
-                        <td className="p-3 text-right bg-red-50 text-red-700 font-black text-base">
-                          ${row.montoQuincenal.toFixed(2)}
-                        </td>
+                      <div className="flex-1 min-w-[120px]">
+                        <label className="block text-xs font-bold text-orange-800 mb-1">CONCEPTO</label>
+                        <select
+                          value={conceptoTemp}
+                          onChange={(e) => setConceptoTemp(e.target.value)}
+                          className="w-full border border-gray-300 rounded-md p-2 text-sm shadow-sm focus:ring-orange-500 focus:border-orange-500 bg-white"
+                        >
+                          <option value="Gasolina">Gasolina</option>
+                          <option value="Casetas">Casetas</option>
+                          <option value="Llantas">Llantas</option>
+                          <option value="Dua">Dua</option>
+                          <option value="Aceite">Aceite</option>
+                          <option value="Otros">Otros</option>
+                        </select>
+                      </div>
 
-                        {/* EDICIÓN DE LA FECHA DE COBRO / DESCUENTO */}
-                        <td className="p-3 font-medium text-gray-600 text-sm">
-                          <div className="flex items-center gap-1">
-                            <Calendar size={14} className="text-emerald-500" />
-                            <input
-                              type="date"
-                              defaultValue={row.fechaRegistro}
-                              className="bg-transparent border border-transparent hover:border-emerald-300 hover:bg-emerald-50 focus:bg-white focus:border-emerald-500 rounded p-1 text-xs font-bold text-gray-700 transition-all cursor-pointer outline-none"
-                              title="Haz clic para cambiar la fecha en que se aplicará el descuento"
-                              onBlur={async (e) => {
-                                const nuevaFecha = e.target.value;
-                                if (nuevaFecha && nuevaFecha !== row.fechaRegistro) {
-                                  try {
-                                    showToast('Programando nueva fecha de cobro...', 'info');
+                      <div className="flex-1 min-w-[100px]">
+                        <label className="block text-xs font-bold text-orange-800 mb-1">MONTO ($)</label>
+                        <input
+                          type="number" min="0" step="0.5"
+                          value={montoTemp}
+                          onChange={(e) => setMontoTemp(e.target.value)}
+                          placeholder="Ej. 500"
+                          className="w-full border border-gray-300 rounded-md p-2 text-sm shadow-sm focus:ring-orange-500 focus:border-orange-500"
+                        />
+                      </div>
 
-                                    const { error } = await supabase
-                                      .from('deudas_choferes')
-                                      .update({ fechaRegistro: nuevaFecha })
-                                      .eq('id', row.id);
+                      <button
+                        onClick={() => {
+                          if (!montoTemp || montoTemp <= 0) return;
+                          setCarritoGastos([...carritoGastos, { concepto: conceptoTemp, monto: parseFloat(montoTemp) }]);
+                          setMontoTemp(''); // Limpiamos el monto tras agregar
+                        }}
+                        className="bg-orange-500 hover:bg-orange-600 text-white font-black py-2 px-4 rounded-md transition-colors shadow-sm text-sm h-[38px]"
+                        title="Agregar a la lista"
+                      >
+                        + AGREGAR
+                      </button>
+                    </div>
 
-                                    if (error) throw error;
+                    {/* Lista visual de lo que se va agregando */}
+                    {carritoGastos.length > 0 && (
+                      <div className="mt-4 bg-white p-3 rounded border border-gray-200">
+                        <h4 className="text-xs font-bold text-gray-500 border-b pb-1 mb-2 uppercase">Gastos a registrar hoy:</h4>
+                        <ul className="text-sm divide-y divide-gray-100 mb-3">
+                          {carritoGastos.map((item, index) => (
+                            <li key={index} className="py-1 flex justify-between text-gray-700">
+                              <span>✔️ {item.concepto}</span>
+                              <span className="font-bold">${item.monto.toFixed(2)}</span>
+                            </li>
+                          ))}
+                        </ul>
+                        <div className="flex justify-between items-center border-t pt-2">
+                          <span className="font-black text-orange-800">Total del día: ${carritoGastos.reduce((sum, item) => sum + item.monto, 0).toFixed(2)}</span>
 
-                                    fetchAllData();
-                                    showToast('¡Fecha de descuento actualizada!', 'success');
-                                  } catch (error) {
-                                    console.error(error);
-                                    showToast('Error al reprogramar el cobro', 'error');
-                                    e.target.value = row.fechaRegistro;
+                          {/* Botón Final para Guardar Todo en Supabase */}
+                          <button
+                            onClick={guardarCarritoGastos}
+                            className="bg-green-600 hover:bg-green-700 text-white font-bold py-1 px-4 rounded transition-colors text-sm shadow"
+                          >
+                            Guardar Gastos
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div className="mt-4 flex justify-between items-center bg-white p-3 rounded border border-orange-200">
+                  <div className="text-sm font-semibold text-gray-700">
+                    Gasto Total: <span className="text-lg text-red-600 ml-2">${((parseFloat(currentExpense.gasolina) || 0) + (parseFloat(currentExpense.casetas) || 0)).toFixed(2)}</span>
+                  </div>
+                  <button onClick={saveExpense} className="bg-orange-500 text-white px-6 py-2 rounded-md hover:bg-orange-600 shadow-sm font-medium transition-colors flex items-center gap-2">
+                    <Save size={18} /> Guardar Gasto
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex-1 overflow-x-auto overflow-y-auto p-2 w-full">
+                <div className="flex justify-between items-center mb-4 border-b pb-2">
+                  <h3 className="text-lg font-semibold text-gray-700">Historial de Gastos</h3>
+                  <button onClick={saveFleetUpdates} className="bg-orange-500 text-white px-3 py-1 rounded-md hover:bg-orange-600 flex items-center gap-2 text-sm font-medium transition-colors shadow-sm">
+                    <Save size={16} /> Guardar Cambios
+                  </button>
+                </div>
+                <table className="min-w-full text-left text-sm whitespace-nowrap mt-4">
+                  <thead className="bg-gray-50">
+                    <tr className="text-gray-600 border-b">
+                      <th className="p-3">ID Gasto</th>
+                      <th className="p-3">Fecha</th>
+                      <th className="p-3">Chofer</th>
+                      <th className="p-3">Vehículo</th>
+                      <th className="p-3">Concepto</th>
+                      <th className="p-3 text-right">Monto Total</th>
+                      <th className="p-3 text-center">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y">
+                    {typeof gastosFlota !== 'undefined' && gastosFlota.length === 0 ? (
+                      <tr><td colSpan="7" className="p-8 text-center text-gray-500 font-medium">No hay historial de gastos.</td></tr>
+                    ) : (
+                      (typeof gastosFlota !== 'undefined' ? gastosFlota : []).map(row => (
+                        <tr key={row.id} className="hover:bg-orange-50 transition-colors">
+
+                          {/* ID Gasto */}
+                          <td className="p-3 text-gray-400 text-xs font-mono">
+                            {row.id?.substring(0, 8)}...
+                          </td>
+
+                          {/* Fecha */}
+                          <td className="p-3 font-medium text-gray-700">
+                            {row.fecha}
+                          </td>
+
+                          {/* Chofer */}
+                          <td className="p-3 font-bold text-gray-800 uppercase">
+                            {row.chofer}
+                          </td>
+
+                          {/* Vehículo */}
+                          <td className="p-3 text-gray-700">
+                            {row.vehiculo}
+                          </td>
+
+                          {/* Concepto Dinámico (Llantas, Gasolina, etc.) */}
+                          <td className="p-3">
+                            <span className={`px-2 py-1 rounded text-xs font-bold ${row.concepto === 'Gasolina' ? 'bg-orange-100 text-orange-800' :
+                              row.concepto === 'Casetas' ? 'bg-blue-100 text-blue-800' :
+                                row.concepto === 'Llantas' ? 'bg-gray-200 text-gray-800' :
+                                  'bg-purple-100 text-purple-800'
+                              }`}>
+                              {row.concepto || (row.gasolina > 0 ? 'Gasolina' : row.casetas > 0 ? 'Casetas' : 'Varios')}
+                            </span>
+                          </td>
+
+                          {/* Monto Total */}
+                          <td className="p-3 text-right font-black text-red-600">
+                            ${parseFloat(row.gasto_total || 0).toFixed(2)}
+                          </td>
+
+                          {/* Acciones (Basurero) */}
+                          <td className="p-3 text-center">
+                            {userProfile?.rol === 'admin' && (
+                              <button
+                                onClick={async () => {
+                                  if (window.confirm('¿Eliminar este gasto permanentemente?')) {
+                                    try {
+                                      // Usamos supabase directamente para borrar
+                                      await supabase.from('gastos_flota').delete().eq('id', row.id);
+                                      fetchAllData(); // Recarga la tabla
+                                    } catch (error) {
+                                      console.error("Error al borrar", error);
+                                    }
                                   }
+                                }}
+                                className="p-1 text-red-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                                title="Eliminar Gasto"
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>
+                              </button>
+                            )}
+                          </td>
+
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* --- PESTAÑA: DEUDAS Y PRÉSTAMOS --- */}
+          {activeTab === 'deudas' && (
+            <div className="bg-white rounded-lg shadow-md p-6 border-t-4 border-emerald-600">
+              <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2 mb-6">
+                <Database className="text-emerald-600" /> Control de Deudas, Descuentos y Préstamos
+              </h2>
+
+              {/* Formulario de Ingreso */}
+              <div className="bg-emerald-50 p-6 rounded-lg border border-emerald-100 mb-8">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                  <div>
+                    <label className="block text-xs font-bold text-emerald-800 mb-1">Chofer</label>
+                    <input type="text" name="chofer" value={currentDeuda.chofer} onChange={handleDeudaChange} placeholder="Nombre del chofer" className="block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm focus:ring-emerald-500 focus:border-emerald-500" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-emerald-800 mb-1">Concepto / Razón</label>
+                    <select name="concepto" value={currentDeuda.concepto} onChange={handleDeudaChange} className="block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm focus:ring-emerald-500 focus:border-emerald-500 bg-white">
+                      <option value="Préstamo Personal">Préstamo Personal</option>
+                      <option value="Día Descontado">Día Descontado</option>
+                      <option value="Caseta no reportada">Caseta no reportada</option>
+                      <option value="Daño a vehículo">Daño a vehículo</option>
+                      <option value="Otro">Otro descuento</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-emerald-800 mb-1">Monto Total a Pagar ($)</label>
+                    <input type="number" name="montoTotal" min="0" step="0.5" value={currentDeuda.montoTotal} onChange={handleDeudaChange} placeholder="Ej. 1500" className="block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm font-bold text-red-600 focus:ring-emerald-500 focus:border-emerald-500" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-emerald-800 mb-1">¿A cuántas quincenas?</label>
+                    <input type="number" name="quincenasTotales" min="1" value={currentDeuda.quincenasTotales} onChange={handleDeudaChange} className="block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm focus:ring-emerald-500 focus:border-emerald-500" />
+                  </div>
+                </div>
+                <div className="mt-4 flex flex-col md:flex-row justify-between items-center bg-white p-3 rounded border border-emerald-200">
+                  <div className="text-sm font-semibold text-gray-700">
+                    Descuento por quincena:
+                    <span className="text-lg text-emerald-600 ml-2 font-black">
+                      ${currentDeuda.montoTotal ? (parseFloat(currentDeuda.montoTotal) / parseInt(currentDeuda.quincenasTotales || 1)).toFixed(2) : '0.00'}
+                    </span>
+                  </div>
+                  <button onClick={saveDeuda} className="mt-3 md:mt-0 bg-emerald-600 text-white px-6 py-2 rounded-md hover:bg-emerald-700 shadow-sm font-bold transition-colors flex items-center gap-2">
+                    <Save size={18} /> Registrar Deuda
+                  </button>
+                </div>
+              </div>
+
+              {/* Tabla de Control de Deudas */}
+              <div className="flex-1 overflow-x-auto w-full">
+                <h3 className="text-lg font-bold text-gray-700 mb-4 border-b pb-2">Deudas Activas (Por Cobrar)</h3>
+                <table className="min-w-full text-left text-sm whitespace-nowrap">
+                  <thead className="bg-gray-50">
+                    <tr className="text-gray-600 border-b">
+                      <th className="p-3">Chofer</th><th className="p-3">Concepto</th><th className="p-3 text-right">Monto Total</th>
+                      <th className="p-3 text-center">Quincenas</th><th className="p-3 text-right bg-red-50 text-red-800 font-bold">Descuento Próxima Quincena</th>
+                      <th className="p-3">¿Cuándo se descontará? (Editable)</th><th className="p-3 text-center">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y">
+                    {deudasChoferes.filter(d => d.activa).length === 0 ? (
+                      <tr><td colSpan="7" className="text-center p-8 text-gray-500 font-medium">No hay deudas activas. ¡Todos al corriente! 🎉</td></tr>
+                    ) : deudasChoferes.filter(d => d.activa).map(row => {
+                      const quincenasRestantes = row.quincenasTotales - row.quincenasPagadas;
+                      // Se calcula la fecha final partiendo de la fecha de cobro asignada
+                      const fechaFin = calcularFechaQuincena(row.fechaRegistro, row.quincenasTotales);
+
+                      return (
+                        <tr key={row.id} className="hover:bg-emerald-50 transition-colors">
+                          <td className="p-3 font-bold text-gray-800 uppercase">{row.chofer}</td>
+                          {/* Concepto Dinámico Apilado */}
+                          <td className="p-3">
+                            <div className="flex flex-col gap-1 items-start">
+                              {(() => {
+                                let lista = [];
+                                if (row.concepto === 'Varios' || !row.concepto) {
+                                  if (row.gasolina > 0) lista.push('Gasolina');
+                                  if (row.casetas > 0) lista.push('Casetas');
+                                  if (lista.length === 0) lista.push('Varios');
+                                } else {
+                                  lista = row.concepto.split(',');
+                                }
+
+                                return lista.map((c, idx) => {
+                                  const nombreReal = c.includes('|') ? c.split('|')[0] : c;
+                                  const precioReal = c.includes('|') ? `$${parseFloat(c.split('|')[1]).toFixed(2)}` : '';
+
+                                  return (
+                                    <span key={idx} className={`px-2 py-1 rounded text-xs font-bold shadow-sm flex gap-3 justify-between min-w-[130px] ${nombreReal === 'Gasolina' ? 'bg-orange-100 text-orange-800 border border-orange-200' :
+                                      nombreReal === 'Casetas' ? 'bg-blue-100 text-blue-800 border border-blue-200' :
+                                        nombreReal === 'Llantas' ? 'bg-gray-700 text-white border border-gray-800' :
+                                          nombreReal === 'Aceite' ? 'bg-yellow-100 text-yellow-800 border border-yellow-300' :
+                                            nombreReal === 'Dua' ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' :
+                                              'bg-purple-100 text-purple-800 border border-purple-200'
+                                      }`}>
+                                      <span>{nombreReal}</span> <span>{precioReal}</span>
+                                    </span>
+                                  );
+                                });
+                              })()}
+                            </div>
+                          </td>
+                          <td className="p-3 text-right font-medium text-gray-600">${row.montoTotal.toFixed(2)}</td>
+                          <td className="p-3 text-center">
+                            <div className="text-xs font-bold text-emerald-600">{row.quincenasPagadas} pagadas</div>
+                            <div className="text-xs text-red-500">faltan {quincenasRestantes}</div>
+                          </td>
+                          <td className="p-3 text-right bg-red-50 text-red-700 font-black text-base">
+                            ${row.montoQuincenal.toFixed(2)}
+                          </td>
+
+                          {/* EDICIÓN DE LA FECHA DE COBRO / DESCUENTO */}
+                          <td className="p-3 font-medium text-gray-600 text-sm">
+                            <div className="flex items-center gap-1">
+                              <Calendar size={14} className="text-emerald-500" />
+                              <input
+                                type="date"
+                                defaultValue={row.fechaRegistro}
+                                className="bg-transparent border border-transparent hover:border-emerald-300 hover:bg-emerald-50 focus:bg-white focus:border-emerald-500 rounded p-1 text-xs font-bold text-gray-700 transition-all cursor-pointer outline-none"
+                                title="Haz clic para cambiar la fecha en que se aplicará el descuento"
+                                onBlur={async (e) => {
+                                  const nuevaFecha = e.target.value;
+                                  if (nuevaFecha && nuevaFecha !== row.fechaRegistro) {
+                                    try {
+                                      showToast('Programando nueva fecha de cobro...', 'info');
+
+                                      const { error } = await supabase
+                                        .from('deudas_choferes')
+                                        .update({ fechaRegistro: nuevaFecha })
+                                        .eq('id', row.id);
+
+                                      if (error) throw error;
+
+                                      fetchAllData();
+                                      showToast('¡Fecha de descuento actualizada!', 'success');
+                                    } catch (error) {
+                                      console.error(error);
+                                      showToast('Error al reprogramar el cobro', 'error');
+                                      e.target.value = row.fechaRegistro;
+                                    }
+                                  }
+                                }}
+                              />
+                            </div>
+                            <div className="text-[10px] text-gray-400 mt-1 italic">
+                              Termina de pagar: {fechaFin}
+                            </div>
+                          </td>
+
+                          <td className="p-3 text-center flex justify-center items-center gap-2">
+                            <button
+                              onClick={() => {
+                                if (window.confirm(`¿Confirmas el descuento de $${row.montoQuincenal.toFixed(2)} a ${row.chofer} en esta quincena?`)) {
+                                  registrarAbonoQuincena(row);
                                 }
                               }}
-                            />
-                          </div>
-                          <div className="text-[10px] text-gray-400 mt-1 italic">
-                            Termina de pagar: {fechaFin}
-                          </div>
-                        </td>
+                              className="bg-emerald-100 text-emerald-700 hover:bg-emerald-200 px-3 py-1 rounded font-bold text-xs shadow-sm transition-colors"
+                            >
+                              ✔️ Registrar Pago Quincena
+                            </button>
 
-                        <td className="p-3 text-center flex justify-center items-center gap-2">
-                          <button
-                            onClick={() => {
-                              if (window.confirm(`¿Confirmas el descuento de $${row.montoQuincenal.toFixed(2)} a ${row.chofer} en esta quincena?`)) {
-                                registrarAbonoQuincena(row);
-                              }
-                            }}
-                            className="bg-emerald-100 text-emerald-700 hover:bg-emerald-200 px-3 py-1 rounded font-bold text-xs shadow-sm transition-colors"
-                          >
-                            ✔️ Registrar Pago Quincena
-                          </button>
+                            {/* BOTÓN ELIMINAR (Solo Admin) */}
+                            {userProfile?.rol === 'admin' && (
+                              <button
+                                onClick={() => eliminarDeuda(row.id)}
+                                className="p-1 bg-red-50 text-red-500 hover:bg-red-100 hover:text-red-700 rounded transition-colors"
+                                title="Eliminar Deuda"
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
 
-                          {/* BOTÓN ELIMINAR (Solo Admin) */}
+              {/* Historial de Pagadas */}
+              <div className="mt-12 flex-1 overflow-x-auto w-full opacity-60 hover:opacity-100 transition-opacity">
+                <h3 className="text-md font-bold text-gray-500 mb-4 border-b pb-2">Historial de Deudas Liquidadas</h3>
+                <table className="min-w-full text-left text-sm whitespace-nowrap">
+                  <thead className="bg-gray-50">
+                    <tr className="text-gray-400 border-b">
+                      <th className="p-2">Chofer</th><th className="p-2">Concepto</th><th className="p-2">Monto Total</th><th className="p-2">Estado</th><th className="p-2 text-center">Acción</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y">
+                    {deudasChoferes.filter(d => !d.activa).length === 0 ? (
+                      <tr><td colSpan="5" className="text-center p-4 text-gray-400">No hay historial.</td></tr>
+                    ) : deudasChoferes.filter(d => !d.activa).map(row => (
+                      <tr key={row.id}>
+                        <td className="p-2 font-medium">{row.chofer}</td><td className="p-2">{row.concepto}</td>
+                        <td className="p-2">${row.montoTotal.toFixed(2)}</td>
+                        <td className="p-2"><span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded font-bold">Pagada</span></td>
+                        <td className="p-2 text-center">
                           {userProfile?.rol === 'admin' && (
                             <button
                               onClick={() => eliminarDeuda(row.id)}
-                              className="p-1 bg-red-50 text-red-500 hover:bg-red-100 hover:text-red-700 rounded transition-colors"
-                              title="Eliminar Deuda"
+                              className="p-1 text-red-400 hover:bg-red-50 hover:text-red-600 rounded transition-colors"
+                              title="Eliminar del historial"
                             >
-                              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>
+                              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>
                             </button>
                           )}
                         </td>
                       </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Historial de Pagadas */}
-            <div className="mt-12 flex-1 overflow-x-auto w-full opacity-60 hover:opacity-100 transition-opacity">
-              <h3 className="text-md font-bold text-gray-500 mb-4 border-b pb-2">Historial de Deudas Liquidadas</h3>
-              <table className="min-w-full text-left text-sm whitespace-nowrap">
-                <thead className="bg-gray-50">
-                  <tr className="text-gray-400 border-b">
-                    <th className="p-2">Chofer</th><th className="p-2">Concepto</th><th className="p-2">Monto Total</th><th className="p-2">Estado</th><th className="p-2 text-center">Acción</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y">
-                  {deudasChoferes.filter(d => !d.activa).length === 0 ? (
-                    <tr><td colSpan="5" className="text-center p-4 text-gray-400">No hay historial.</td></tr>
-                  ) : deudasChoferes.filter(d => !d.activa).map(row => (
-                    <tr key={row.id}>
-                      <td className="p-2 font-medium">{row.chofer}</td><td className="p-2">{row.concepto}</td>
-                      <td className="p-2">${row.montoTotal.toFixed(2)}</td>
-                      <td className="p-2"><span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded font-bold">Pagada</span></td>
-                      <td className="p-2 text-center">
-                        {userProfile?.rol === 'admin' && (
-                          <button
-                            onClick={() => eliminarDeuda(row.id)}
-                            className="p-1 text-red-400 hover:bg-red-50 hover:text-red-600 rounded transition-colors"
-                            title="Eliminar del historial"
-                          >
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-          </div>
-        )}
-
-        { }
-        {activeTab === 'roll' && (
-          <div className="bg-white rounded-lg shadow-md flex flex-col h-[80vh]">
-            <div className="p-4 border-b flex flex-wrap justify-between items-center gap-4 bg-gray-50 rounded-t-lg">
-              <div className="flex items-center gap-4">
-                <input type="date" value={rollDate} onChange={(e) => setRollDate(e.target.value)} className="border border-gray-300 rounded-md p-2 shadow-sm font-semibold text-gray-700" />
-                <span className="text-sm text-gray-500">{rollData.length} servicio(s) encontrado(s)</span>
+                    ))}
+                  </tbody>
+                </table>
               </div>
-              <div className="flex gap-2">
-                {/* Candado: Solo el Admin ve el botón de Guardar */}
-                {userProfile?.rol === 'admin' && (
-                  <button onClick={saveRollUpdates} className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 flex items-center gap-2 text-sm font-medium transition-colors">
-                    <Save size={16} /> Guardar
-                  </button>
-                )}
-                <button
-                  onClick={downloadRolPNG}
-                  className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 flex items-center gap-2 shadow-sm"
-                >
-                  <Download size={18} /> Descargar PNG
-                </button>
-              </div>
-            </div>
 
-            <div className="absolute top-[-9999px] left-[-9999px]">
-              <div id="rol-diario-container" className="bg-white p-8 w-[1600px]">
-                <div className="flex justify-between items-end border-b-2 border-black pb-4 mb-4">
-                  <div className="flex flex-col">
-                    <BallardLogo className="h-16 mb-2" />
-                    <h1 className="text-3xl font-bold tracking-tight">Rol Diario de Servicios</h1>
-                  </div>
-                  <div className="text-4xl font-bold text-gray-800 tracking-wider">
-                    {new Date(rollDate + 'T12:00:00').toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }).toUpperCase()}
-                  </div>
+            </div>
+          )}
+
+          { }
+          {activeTab === 'roll' && (
+            <div className="bg-white rounded-lg shadow-md flex flex-col h-[80vh]">
+              <div className="p-4 border-b flex flex-wrap justify-between items-center gap-4 bg-gray-50 rounded-t-lg">
+                <div className="flex items-center gap-4">
+                  <input type="date" value={rollDate} onChange={(e) => setRollDate(e.target.value)} className="border border-gray-300 rounded-md p-2 shadow-sm font-semibold text-gray-700" />
+                  <span className="text-sm text-gray-500">{rollData.length} servicio(s) encontrado(s)</span>
                 </div>
-                <table className="w-full text-left text-sm border-collapse">
-                  <thead>
-                    <tr className="bg-gray-200">
-                      <th className="border p-2">Hora</th>
-                      <th className="border p-2">Chofer</th>
-                      <th className="border p-2">Nombre</th>
-                      <th className="border p-2">Apellido</th>
-                      <th className="border p-2">Vuelo</th>
-                      <th className="border p-2">Hotel</th>
-                      <th className="border p-2">Pax</th>
-                      <th className="border p-2">Teléfono</th>
-                      <th className="border p-2">Tipo</th>
-                      <th className="border p-2">Vehículo</th>
-                      {userProfile?.rol === 'admin' && (
-                        <>
-                          <th className="border p-2 border-b ocultar-en-foto">Proveedor</th>
-                          <th className="border p-2 border-b ocultar-en-foto">Cantidad</th>
-                        </>
-                      )}
+                <div className="flex gap-2">
+                  {/* Candado: Solo el Admin ve el botón de Guardar */}
+                  {userProfile?.rol === 'admin' && (
+                    <button onClick={saveRollUpdates} className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 flex items-center gap-2 text-sm font-medium transition-colors">
+                      <Save size={16} /> Guardar
+                    </button>
+                  )}
+                  <button
+                    onClick={downloadRolPNG}
+                    className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 flex items-center gap-2 shadow-sm"
+                  >
+                    <Download size={18} /> Descargar PNG
+                  </button>
+                </div>
+              </div>
 
-                      {/* NUEVO ENCABEZADO: Necesario para mantener la estructura HTML válida */}
-                      <th className="border p-2 ocultar-en-foto">GPS</th>
-
-                      <th className="border p-2">Extras</th>
-                      <th className="border p-2 w-48">Comentario</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {rollData.map(row => (
-                      <tr key={row.id} className="border-b">
-                        <td className="border p-2 font-bold">{row.hora}</td>
-                        <td className="border p-2">{row.chofer}</td>
-                        <td className="border p-2 uppercase">{row.nombre}</td>
-                        <td className="border p-2 uppercase">{row.apellido}</td>
-                        <td className="border p-2">{row.vuelo}</td>
-                        <td className="border p-2 text-xs">{row.hotel}</td>
-                        <td className="border p-2 text-center">{row.pax}</td>
-                        <td className="border p-2 text-xs">{row.telefono}</td>
-                        <td className="border p-2 text-xs">{row.tipoServicio}</td>
-                        <td className="border p-2">{row.vehiculo}</td>
+              <div className="absolute top-[-9999px] left-[-9999px]">
+                <div id="rol-diario-container" className="bg-white p-8 w-[1600px]">
+                  <div className="flex justify-between items-end border-b-2 border-black pb-4 mb-4">
+                    <div className="flex flex-col">
+                      <BallardLogo className="h-16 mb-2" />
+                      <h1 className="text-3xl font-bold tracking-tight">Rol Diario de Servicios</h1>
+                    </div>
+                    <div className="text-4xl font-bold text-gray-800 tracking-wider">
+                      {new Date(rollDate + 'T12:00:00').toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }).toUpperCase()}
+                    </div>
+                  </div>
+                  <table className="w-full text-left text-sm border-collapse">
+                    <thead>
+                      <tr className="bg-gray-200">
+                        <th className="border p-2">Hora</th>
+                        <th className="border p-2">Chofer</th>
+                        <th className="border p-2">Nombre</th>
+                        <th className="border p-2">Apellido</th>
+                        <th className="border p-2">Vuelo</th>
+                        <th className="border p-2">Hotel</th>
+                        <th className="border p-2">Pax</th>
+                        <th className="border p-2">Teléfono</th>
+                        <th className="border p-2">Tipo</th>
+                        <th className="border p-2">Vehículo</th>
                         {userProfile?.rol === 'admin' && (
                           <>
-                            <td className="border p-2 text-xs border-b ocultar-en-foto">{row.proveedor}</td>
-                            <td className="border p-2 text-xs font-bold">
-                              {row.costoProveedor ? `$${row.costoProveedor}` : ''}
-                            </td>
+                            <th className="border p-2 border-b ocultar-en-foto">Proveedor</th>
+                            <th className="border p-2 border-b ocultar-en-foto">Cantidad</th>
                           </>
                         )}
 
-                        {/* NUEVO BLOQUE: Botones GPS insertados justo después del cobro/cantidad */}
-                        <td className="p-2 text-center ocultar-en-foto">
-                          <div className="flex gap-2 justify-center">
-                            <button
-                              onClick={() => registrarUbicacionGPS(row.id, 'inicio')}
-                              className="bg-green-100 text-green-700 p-1.5 rounded-full hover:bg-green-200 transition-colors shadow-sm"
-                              title="Iniciar Viaje (GPS)"
-                            >
-                              <Play size={16} className="fill-current" />
-                            </button>
-                            <button
-                              onClick={() => registrarUbicacionGPS(row.id, 'fin')}
-                              className="bg-red-100 text-red-700 p-1.5 rounded-full hover:bg-red-200 transition-colors shadow-sm"
-                              title="Finalizar Viaje (GPS)"
-                            >
-                              <Flag size={16} className="fill-current" />
-                            </button>
+                        {/* NUEVO ENCABEZADO: Necesario para mantener la estructura HTML válida */}
+                        <th className="border p-2 ocultar-en-foto">GPS</th>
+
+                        <th className="border p-2">Extras</th>
+                        <th className="border p-2 w-48">Comentario</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {rollData.map(row => (
+                        <tr key={row.id} className="border-b">
+                          <td className="border p-2 font-bold">{row.hora}</td>
+                          <td className="border p-2">{row.chofer}</td>
+                          <td className="border p-2 uppercase">{row.nombre}</td>
+                          <td className="border p-2 uppercase">{row.apellido}</td>
+                          <td className="border p-2">{row.vuelo}</td>
+                          <td className="border p-2 text-xs">{row.hotel}</td>
+                          <td className="border p-2 text-center">{row.pax}</td>
+                          <td className="border p-2 text-xs">{row.telefono}</td>
+                          <td className="border p-2 text-xs">{row.tipoServicio}</td>
+                          <td className="border p-2">{row.vehiculo}</td>
+                          {userProfile?.rol === 'admin' && (
+                            <>
+                              <td className="border p-2 text-xs border-b ocultar-en-foto">{row.proveedor}</td>
+                              <td className="border p-2 text-xs font-bold">
+                                {row.costoProveedor ? `$${row.costoProveedor}` : ''}
+                              </td>
+                            </>
+                          )}
+
+                          {/* NUEVO BLOQUE: Botones GPS insertados justo después del cobro/cantidad */}
+                          <td className="p-2 text-center ocultar-en-foto">
+                            <div className="flex gap-2 justify-center">
+                              <button
+                                onClick={() => registrarUbicacionGPS(row.id, 'inicio')}
+                                className="bg-green-100 text-green-700 p-1.5 rounded-full hover:bg-green-200 transition-colors shadow-sm"
+                                title="Iniciar Viaje (GPS)"
+                              >
+                                <Play size={16} className="fill-current" />
+                              </button>
+                              <button
+                                onClick={() => registrarUbicacionGPS(row.id, 'fin')}
+                                className="bg-red-100 text-red-700 p-1.5 rounded-full hover:bg-red-200 transition-colors shadow-sm"
+                                title="Finalizar Viaje (GPS)"
+                              >
+                                <Flag size={16} className="fill-current" />
+                              </button>
+                            </div>
+                          </td>
+
+                          <td className="border p-2 text-xs">
+                            {row.carSeat > 0 && `Car:${row.carSeat} `}
+                            {row.babySeat > 0 && `Baby:${row.babySeat} `}
+                            {row.booster > 0 && `Bstr:${row.booster} `}
+                            {row.paradaCompras && `Compras`}
+                          </td>
+                          <td className="border p-2 text-xs break-words">{row.comentario}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div className="flex-1 overflow-x-auto overflow-y-auto p-4 w-full"><datalist id="hoteles-rol-list">
+                {LISTA_HOTELES.map((hotel, index) => (
+                  <option key={`rol-${index}`} value={hotel.nombre}>
+                    Zona {hotel.zona}
+                  </option>
+                ))}
+              </datalist>
+                <table className="min-w-max w-full text-left text-sm whitespace-nowrap">
+                  <thead className="sticky top-0 bg-white shadow-sm z-10">
+                    <tr className="text-gray-600 border-b">
+                      <th className="p-2">Hora</th><th className="p-2">Chofer</th><th className="p-2">Nombre</th><th className="p-2">Apellido</th>
+                      <th className="p-2">Vuelo</th><th className="p-2">Hotel</th><th className="p-2">Pax</th><th className="p-2">Teléfono</th>
+                      <th className="p-2">Tipo</th><th className="p-2">Vehículo</th><th className="p-2">Proveedor</th><th className="p-2">Cantidad</th>
+                      <th className="p-2">Extras</th><th className="p-2">Comentario</th><th className="p-2 text-center">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y">
+                    {rollData.length === 0 ? <tr><td colSpan="15" className="text-center p-8 text-gray-500">No hay servicios programados.</td></tr> : rollData.map(row => (
+                      <tr key={row.id} className="hover:bg-gray-50 transition-colors border-b">
+
+                        {/* Hora */}
+                        <td className="p-2">
+                          {userProfile?.rol === 'admin' ? (
+                            <input type="time" value={row.hora || ''} onChange={(e) => handleRollChange(row.id, 'hora', e.target.value)} className="w-full bg-transparent border-b border-dashed focus:outline-none focus:border-blue-500" />
+                          ) : (
+                            <span className="font-bold text-gray-800">{row.hora}</span>
+                          )}
+                        </td>
+
+                        {/* Chofer */}
+                        <td className="p-2">
+                          {userProfile?.rol === 'admin' ? (
+                            <input type="text" value={row.chofer || ''} onChange={(e) => handleRollChange(row.id, 'chofer', e.target.value)} className="w-24 bg-transparent border-b border-dashed focus:outline-none" />
+                          ) : (
+                            <span className="text-gray-700">{row.chofer}</span>
+                          )}
+                        </td>
+
+                        {/* Nombre y Apellido (Siempre fijos) */}
+                        <td className="p-2 font-medium uppercase">{row.nombre}</td>
+                        <td className="p-2 font-medium uppercase">{row.apellido}</td>
+
+                        {/* Vuelo */}
+                        <td className="p-2">
+                          {userProfile?.rol === 'admin' ? (
+                            <input type="text" value={row.vuelo || ''} onChange={(e) => handleRollChange(row.id, 'vuelo', e.target.value)} className="w-20 bg-transparent border-b border-dashed focus:outline-none" />
+                          ) : (
+                            <span className="text-gray-700">{row.vuelo}</span>
+                          )}
+                        </td>
+
+                        {/* Hotel */}
+                        <td className="p-2">
+                          {userProfile?.rol === 'admin' ? (
+                            <input type="text" list="hoteles-rol-list" value={row.hotel || ''} onChange={(e) => handleRollChange(row.id, 'hotel', e.target.value)} className="w-32 bg-transparent border-b border-dashed focus:outline-none cursor-pointer" placeholder="Elegir..." />
+                          ) : (
+                            <span className="text-xs text-gray-700">{row.hotel}</span>
+                          )}
+                        </td>
+
+                        {/* PAX y Teléfono (Siempre fijos) */}
+                        <td className="p-2 text-center">{row.pax}</td>
+                        <td className="p-2 text-xs">{row.telefono}</td>
+
+                        {/* Tipo de Servicio */}
+                        <td className="p-2">
+                          <span className={`px-2 py-1 rounded-full text-xs font-bold ${row.tipoServicio === 'Llegada' ? 'bg-green-100 text-green-800' :
+                            row.tipoServicio === 'Salida' ? 'bg-red-100 text-red-800' :
+                              row.tipoServicio === 'Traslado' ? 'bg-yellow-100 text-yellow-800' :
+                                row.tipoServicio === 'Actividad' ? 'bg-blue-100 text-blue-800' :
+                                  'bg-gray-100 text-gray-800'
+                            }`}>
+                            {row.tipoServicio}
+                          </span>
+                        </td>
+
+                        {/* Vehículo */}
+                        <td className="p-2">
+                          {userProfile?.rol === 'admin' ? (
+                            <select value={row.vehiculo || ''} onChange={(e) => handleRollChange(row.id, 'vehiculo', e.target.value)} className="w-24 bg-transparent border-b border-dashed focus:outline-none text-sm cursor-pointer">
+                              <option value=""></option>
+                              <option value="Expedition">Expedition</option>
+                              <option value="Hiace">Hiace</option>
+                            </select>
+                          ) : (
+                            <span className="text-sm text-gray-700">{row.vehiculo}</span>
+                          )}
+                        </td>
+
+                        {/* PROVEEDOR Y COSTO (Condicionados al rol de Admin) */}
+                        {userProfile?.rol === 'admin' && (
+                          <>
+                            <td className="p-2"><input type="text" value={row.proveedor || ''} onChange={(e) => handleRollChange(row.id, 'proveedor', e.target.value)} className="w-24 bg-transparent border-b border-dashed focus:outline-none" /></td>
+                            <td className="p-2"><input type="number" value={row.costoProveedor || ''} onChange={(e) => handleRollChange(row.id, 'costoProveedor', e.target.value)} className="w-16 bg-transparent border-b border-dashed focus:outline-none font-bold text-red-700" /></td>
+                          </>
+                        )}
+
+                        {/* Extras (Fijos) */}
+                        <td className="p-2 text-xs text-gray-600">
+                          <div className="flex gap-1 flex-col">
+                            {row.carSeat > 0 && <span>Car: {row.carSeat}</span>}{row.babySeat > 0 && <span>Baby: {row.babySeat}</span>}
+                            {row.booster > 0 && <span>Bstr: {row.booster}</span>}{row.paradaCompras && <span className="text-blue-600 font-semibold">Compras</span>}
                           </div>
                         </td>
 
-                        <td className="border p-2 text-xs">
-                          {row.carSeat > 0 && `Car:${row.carSeat} `}
-                          {row.babySeat > 0 && `Baby:${row.babySeat} `}
-                          {row.booster > 0 && `Bstr:${row.booster} `}
-                          {row.paradaCompras && `Compras`}
+                        {/* Comentarios */}
+                        <td className="p-2">
+                          {userProfile?.rol === 'admin' ? (
+                            <input type="text" value={row.comentario || ''} onChange={(e) => handleRollChange(row.id, 'comentario', e.target.value)} className="w-32 bg-transparent border-b border-dashed focus:outline-none text-xs" />
+                          ) : (
+                            <span className="text-xs break-words text-gray-600">{row.comentario}</span>
+                          )}
                         </td>
-                        <td className="border p-2 text-xs break-words">{row.comentario}</td>
+
+                        {/* ACCIONES Y BOTONES (Ya cuentan con sus candados previos) */}
+                        <td className="p-2 text-center">
+                          <div className="flex justify-center items-center gap-2">
+
+                            {/* --- BOTÓN GPS INICIO: Candado --- */}
+                            {(userProfile?.rol === 'admin' || userProfile?.permisos?.rol_diario?.inicio_viaje) && (
+                              <button
+                                onClick={() => registrarUbicacionGPS(row.id, 'inicio')}
+                                className="p-1 text-green-600 hover:bg-green-100 rounded transition-colors"
+                                title="Iniciar Viaje (GPS)"
+                              >
+                                <Play size={18} className="fill-current" />
+                              </button>
+                            )}
+
+                            {/* --- BOTÓN GPS FIN: Candado --- */}
+                            {(userProfile?.rol === 'admin' || userProfile?.permisos?.rol_diario?.viaje_finalizado) && (
+                              <button
+                                onClick={() => registrarUbicacionGPS(row.id, 'fin')}
+                                className="p-1 text-red-600 hover:bg-red-100 rounded transition-colors"
+                                title="Finalizar Viaje (GPS)"
+                              >
+                                <Flag size={18} className="fill-current" />
+                              </button>
+                            )}
+
+                            {/* BOTÓN VER MAPA */}
+                            <button onClick={() => abrirMapaGPS(row)} className="p-1 text-blue-500 hover:bg-blue-100 rounded transition-colors" title="Ver Ruta en Google Maps">
+                              <Map size={18} className="fill-current" />
+                            </button>
+
+                            {/* BOTÓN COMPARTIR */}
+                            <button onClick={() => generateSharePNG(row)} className="p-1 text-blue-600 hover:bg-blue-100 rounded" title="Compartir">
+                              <Send size={18} />
+                            </button>
+
+                            {/* --- BOTÓN IMPRIMIR LETRERO: Candado --- */}
+                            {row.tipoServicio === 'Llegada' && (userProfile?.rol === 'admin' || userProfile?.permisos?.rol_diario?.imprimir_letrero) && (
+                              <button onClick={() => generateWelcomeSign(row)} className="p-1 text-gray-600 hover:bg-gray-200 rounded" title="Imprimir Letrero">
+                                <Printer size={18} />
+                              </button>
+                            )}
+
+                            {/* --- BOTÓN ELIMINAR: Candado --- */}
+                            {(userProfile?.rol === 'admin' || userProfile?.permisos?.rol_diario?.eliminar_servicio) && (
+                              <button
+                                onClick={async () => {
+                                  if (window.confirm('¿Estás seguro de que deseas eliminar este servicio permanentemente de la nube?')) {
+                                    try {
+                                      showToast('Eliminando...', 'success');
+                                      const { error } = await supabase.from('servicios').delete().eq('id', row.id);
+                                      if (error) throw error;
+                                      setServices(services.filter(s => s.id !== row.id));
+                                      setRollData(rollData.filter(r => r.id !== row.id));
+                                      showToast('¡Servicio eliminado de la nube!');
+                                    } catch (error) {
+                                      console.error("Error al eliminar:", error);
+                                      showToast('Error al eliminar en la nube', 'error');
+                                    }
+                                  }
+                                }}
+                                className="p-1 text-red-500 hover:bg-red-100 rounded"
+                                title="Eliminar Servicio"
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>
+                              </button>
+                            )}
+                          </div>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
             </div>
+          )}
 
-            <div className="flex-1 overflow-x-auto overflow-y-auto p-4 w-full"><datalist id="hoteles-rol-list">
-              {LISTA_HOTELES.map((hotel, index) => (
-                <option key={`rol-${index}`} value={hotel.nombre}>
-                  Zona {hotel.zona}
-                </option>
-              ))}
-            </datalist>
-              <table className="min-w-max w-full text-left text-sm whitespace-nowrap">
-                <thead className="sticky top-0 bg-white shadow-sm z-10">
-                  <tr className="text-gray-600 border-b">
-                    <th className="p-2">Hora</th><th className="p-2">Chofer</th><th className="p-2">Nombre</th><th className="p-2">Apellido</th>
-                    <th className="p-2">Vuelo</th><th className="p-2">Hotel</th><th className="p-2">Pax</th><th className="p-2">Teléfono</th>
-                    <th className="p-2">Tipo</th><th className="p-2">Vehículo</th><th className="p-2">Proveedor</th><th className="p-2">Cantidad</th>
-                    <th className="p-2">Extras</th><th className="p-2">Comentario</th><th className="p-2 text-center">Acciones</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y">
-                  {rollData.length === 0 ? <tr><td colSpan="15" className="text-center p-8 text-gray-500">No hay servicios programados.</td></tr> : rollData.map(row => (
-                    <tr key={row.id} className="hover:bg-gray-50 transition-colors border-b">
+          { }
+          {activeTab === 'database' && (
+            <div className="bg-white rounded-lg shadow-md flex flex-col h-[80vh]">
+              <div className="p-4 border-b bg-gray-50 rounded-t-lg flex justify-between items-center flex-wrap gap-4">
+                <div className="flex items-center gap-4">
+                  <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                    <Database className="text-blue-600" /> Base de Datos General
+                  </h2>
+                  <span className="text-sm text-gray-500 hidden md:inline-block">{services.length} registros</span>
+                </div>
 
-                      {/* Hora */}
-                      <td className="p-2">
-                        {userProfile?.rol === 'admin' ? (
-                          <input type="time" value={row.hora || ''} onChange={(e) => handleRollChange(row.id, 'hora', e.target.value)} className="w-full bg-transparent border-b border-dashed focus:outline-none focus:border-blue-500" />
-                        ) : (
-                          <span className="font-bold text-gray-800">{row.hora}</span>
-                        )}
-                      </td>
+                {/* NUEVO BUSCADOR GLOBAL */}
+                <div className="flex-1 w-full md:max-w-md relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Search className="h-4 w-4 text-gray-400" />
+                  </div>
+                  <input
+                    type="text"
+                    placeholder="Buscar reserva, nombre, hotel, vehículo..."
+                    value={dbSearchTerm}
+                    onChange={(e) => setDbSearchTerm(e.target.value)}
+                    className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm shadow-sm"
+                  />
+                </div>
 
-                      {/* Chofer */}
-                      <td className="p-2">
-                        {userProfile?.rol === 'admin' ? (
-                          <input type="text" value={row.chofer || ''} onChange={(e) => handleRollChange(row.id, 'chofer', e.target.value)} className="w-24 bg-transparent border-b border-dashed focus:outline-none" />
-                        ) : (
-                          <span className="text-gray-700">{row.chofer}</span>
-                        )}
-                      </td>
+                <div className="flex gap-2">
+                  <button onClick={descargarRespaldoExcel} className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 flex items-center gap-2 font-medium transition-colors shadow-sm text-sm">
+                    <Download size={16} /> Excel
+                  </button>
+                  <button onClick={saveDatabaseUpdates} className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center gap-2 font-medium transition-colors shadow-sm text-sm">
+                    <Save size={16} /> Guardar
+                  </button>
+                </div>
+              </div>
 
-                      {/* Nombre y Apellido (Siempre fijos) */}
-                      <td className="p-2 font-medium uppercase">{row.nombre}</td>
-                      <td className="p-2 font-medium uppercase">{row.apellido}</td>
+              <div className="flex-1 overflow-x-auto overflow-y-auto p-4 w-full">
 
-                      {/* Vuelo */}
-                      <td className="p-2">
-                        {userProfile?.rol === 'admin' ? (
-                          <input type="text" value={row.vuelo || ''} onChange={(e) => handleRollChange(row.id, 'vuelo', e.target.value)} className="w-20 bg-transparent border-b border-dashed focus:outline-none" />
-                        ) : (
-                          <span className="text-gray-700">{row.vuelo}</span>
-                        )}
-                      </td>
+                {/* --- BARRA DE FILTROS AVANZADOS --- */}
+                <div className="flex flex-wrap gap-4 mb-4 bg-gray-50 p-3 rounded-lg border border-gray-200 shadow-sm items-end">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1 uppercase">Agencia</label>
+                    <select
+                      value={filtroAgenciaGeneral}
+                      onChange={(e) => setFiltroAgenciaGeneral(e.target.value)}
+                      className="block w-40 border border-gray-300 rounded-md shadow-sm p-2 text-sm focus:ring-blue-500 focus:border-blue-500 cursor-pointer"
+                    >
+                      <option value="">Todas las Agencias</option>
+                      <option value="USA">USA</option>
+                      <option value="EXPEDIA">Expedia</option>
+                      <option value="BOOKING">Booking</option>
+                      <option value="DIRECTO">Directo</option>
+                    </select>
+                  </div>
 
-                      {/* Hotel */}
-                      <td className="p-2">
-                        {userProfile?.rol === 'admin' ? (
-                          <input type="text" list="hoteles-rol-list" value={row.hotel || ''} onChange={(e) => handleRollChange(row.id, 'hotel', e.target.value)} className="w-32 bg-transparent border-b border-dashed focus:outline-none cursor-pointer" placeholder="Elegir..." />
-                        ) : (
-                          <span className="text-xs text-gray-700">{row.hotel}</span>
-                        )}
-                      </td>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1 uppercase">Desde (Fecha)</label>
+                    <input
+                      type="date"
+                      value={filtroFechaInicioGeneral}
+                      onChange={(e) => setFiltroFechaInicioGeneral(e.target.value)}
+                      className="block w-40 border border-gray-300 rounded-md shadow-sm p-2 text-sm focus:ring-blue-500 focus:border-blue-500 cursor-pointer"
+                    />
+                  </div>
 
-                      {/* PAX y Teléfono (Siempre fijos) */}
-                      <td className="p-2 text-center">{row.pax}</td>
-                      <td className="p-2 text-xs">{row.telefono}</td>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1 uppercase">Hasta (Fecha)</label>
+                    <input
+                      type="date"
+                      value={filtroFechaFinGeneral}
+                      onChange={(e) => setFiltroFechaFinGeneral(e.target.value)}
+                      className="block w-40 border border-gray-300 rounded-md shadow-sm p-2 text-sm focus:ring-blue-500 focus:border-blue-500 cursor-pointer"
+                    />
+                  </div>
 
-                      {/* Tipo de Servicio */}
-                      <td className="p-2">
-                        <span className={`px-2 py-1 rounded-full text-xs font-bold ${row.tipoServicio === 'Llegada' ? 'bg-green-100 text-green-800' :
-                          row.tipoServicio === 'Salida' ? 'bg-red-100 text-red-800' :
-                            row.tipoServicio === 'Traslado' ? 'bg-yellow-100 text-yellow-800' :
-                              row.tipoServicio === 'Actividad' ? 'bg-blue-100 text-blue-800' :
-                                'bg-gray-100 text-gray-800'
-                          }`}>
-                          {row.tipoServicio}
-                        </span>
-                      </td>
+                  <div className="pb-1 ml-auto">
+                    <button
+                      onClick={() => {
+                        setFiltroAgenciaGeneral('');
+                        setFiltroFechaInicioGeneral('');
+                        setFiltroFechaFinGeneral('');
+                        setDbSearchTerm(''); // Limpia también la barra de búsqueda escrita
+                      }}
+                      className="text-xs text-blue-600 hover:text-blue-800 font-bold underline transition-colors"
+                    >
+                      Limpiar Filtros
+                    </button>
+                  </div>
+                </div>
+                {/* --- FIN BARRA DE FILTROS AVANZADOS --- */}
 
-                      {/* Vehículo */}
-                      <td className="p-2">
-                        {userProfile?.rol === 'admin' ? (
-                          <select value={row.vehiculo || ''} onChange={(e) => handleRollChange(row.id, 'vehiculo', e.target.value)} className="w-24 bg-transparent border-b border-dashed focus:outline-none text-sm cursor-pointer">
-                            <option value=""></option>
-                            <option value="Expedition">Expedition</option>
-                            <option value="Hiace">Hiace</option>
-                          </select>
-                        ) : (
-                          <span className="text-sm text-gray-700">{row.vehiculo}</span>
-                        )}
-                      </td>
+                <datalist id="hoteles-bd-list">
+                  {LISTA_HOTELES.map((hotel, index) => (
+                    <option key={`bd-${index}`} value={hotel.nombre}>
+                      Zona {hotel.zona}
+                    </option>
+                  ))}
+                </datalist>
 
-                      {/* PROVEEDOR Y COSTO (Condicionados al rol de Admin) */}
+                <table className="min-w-max w-full text-left text-sm whitespace-nowrap">
+                  <thead className="sticky top-0 bg-white shadow-sm z-10">
+                    <tr className="text-gray-600 border-b bg-gray-50">
+                      <th className="p-2">Reserva</th><th className="p-2">Agencia</th><th className="p-2 min-w-[150px]">Nombre y Apellido</th>
+                      <th className="p-2">Fecha</th><th className="p-2">Hora</th><th className="p-2">Tipo</th><th className="p-2">Hotel</th>
+                      <th className="p-2">Vuelo</th><th className="p-2">PickUp</th><th className="p-2">PAX</th><th className="p-2">Teléfono</th>
+                      <th className="p-2">Cobro</th><th className="p-2">Método Pago</th><th className="p-2">Chofer</th><th className="p-2">Vehículo</th>
                       {userProfile?.rol === 'admin' && (
                         <>
-                          <td className="p-2"><input type="text" value={row.proveedor || ''} onChange={(e) => handleRollChange(row.id, 'proveedor', e.target.value)} className="w-24 bg-transparent border-b border-dashed focus:outline-none" /></td>
-                          <td className="p-2"><input type="number" value={row.costoProveedor || ''} onChange={(e) => handleRollChange(row.id, 'costoProveedor', e.target.value)} className="w-16 bg-transparent border-b border-dashed focus:outline-none font-bold text-red-700" /></td>
+                          <th className="p-2">Proveedor</th>
+                          <th className="p-2">Cantidad</th>
                         </>
-                      )}
+                      )}<th className="p-2">Extras</th><th className="p-2">Comentarios</th>
+                      <th className="p-2 text-center ocultar-en-foto">GPS / Viaje</th>
+                      <th className="p-2 text-center">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y">
+                    {(() => {
+                      // 1. Filtramos los datos en tiempo real (AHORA CONECTADO A LOS NUEVOS FILTROS)
+                      const filteredDatabase = services.filter(s => {
+                        // Filtro por Agencia
+                        if (filtroAgenciaGeneral && (s.agencia || '').toUpperCase() !== filtroAgenciaGeneral.toUpperCase()) {
+                          return false;
+                        }
+                        // Filtro por Fechas
+                        if (filtroFechaInicioGeneral && s.fecha < filtroFechaInicioGeneral) {
+                          return false;
+                        }
+                        if (filtroFechaFinGeneral && s.fecha > filtroFechaFinGeneral) {
+                          return false;
+                        }
 
-                      {/* Extras (Fijos) */}
-                      <td className="p-2 text-xs text-gray-600">
-                        <div className="flex gap-1 flex-col">
-                          {row.carSeat > 0 && <span>Car: {row.carSeat}</span>}{row.babySeat > 0 && <span>Baby: {row.babySeat}</span>}
-                          {row.booster > 0 && <span>Bstr: {row.booster}</span>}{row.paradaCompras && <span className="text-blue-600 font-semibold">Compras</span>}
-                        </div>
-                      </td>
+                        // Filtro del Buscador Global de texto
+                        if (!dbSearchTerm) return true; // Si la barra de búsqueda está vacía, pasa.
 
-                      {/* Comentarios */}
-                      <td className="p-2">
-                        {userProfile?.rol === 'admin' ? (
-                          <input type="text" value={row.comentario || ''} onChange={(e) => handleRollChange(row.id, 'comentario', e.target.value)} className="w-32 bg-transparent border-b border-dashed focus:outline-none text-xs" />
-                        ) : (
-                          <span className="text-xs break-words text-gray-600">{row.comentario}</span>
-                        )}
-                      </td>
+                        const term = dbSearchTerm.toLowerCase();
+                        return (
+                          (s.nombre || '').toLowerCase().includes(term) ||
+                          (s.apellido || '').toLowerCase().includes(term) ||
+                          (s.reserva || '').toLowerCase().includes(term) ||
+                          (s.hotel || '').toLowerCase().includes(term) ||
+                          (s.vehiculo || '').toLowerCase().includes(term) ||
+                          (s.chofer || '').toLowerCase().includes(term)
+                        );
+                      });
 
-                      {/* ACCIONES Y BOTONES (Ya cuentan con sus candados previos) */}
-                      <td className="p-2 text-center">
-                        <div className="flex justify-center items-center gap-2">
+                      // 2. Pintamos los datos ya filtrados
+                      if (filteredDatabase.length === 0) return <tr><td colSpan="20" className="text-center p-8 text-gray-500">No se encontraron servicios con los filtros actuales.</td></tr>;
 
-                          {/* --- BOTÓN GPS INICIO: Candado --- */}
-                          {(userProfile?.rol === 'admin' || userProfile?.permisos?.rol_diario?.inicio_viaje) && (
+                      return filteredDatabase.map(row => (
+                        <tr key={row.id} className="hover:bg-blue-50 transition-colors">
+                          <td className="p-2"><input type="text" value={row.reserva || ''} onChange={e => handleDatabaseChange(row.id, 'reserva', e.target.value)} className="w-16 bg-transparent border-b border-dashed focus:outline-none" /></td>
+                          <td className="p-2"><input type="text" value={row.agencia || ''} onChange={e => handleDatabaseChange(row.id, 'agencia', e.target.value)} className="w-20 bg-transparent border-b border-dashed focus:outline-none" /></td>
+                          <td className="p-2 flex gap-1">
+                            <input type="text" value={row.nombre || ''} onChange={e => handleDatabaseChange(row.id, 'nombre', e.target.value)} className="w-20 bg-transparent border-b border-dashed focus:outline-none" placeholder="Nombre" />
+                            <input type="text" value={row.apellido || ''} onChange={e => handleDatabaseChange(row.id, 'apellido', e.target.value)} className="w-24 bg-transparent border-b border-dashed focus:outline-none" placeholder="Apellido" />
+                          </td>
+                          <td className="p-2"><input type="date" value={row.fecha || ''} onChange={e => handleDatabaseChange(row.id, 'fecha', e.target.value)} className="w-28 bg-transparent border-b border-dashed focus:outline-none text-xs" /></td>
+                          <td className="p-2"><input type="time" value={row.hora || ''} onChange={e => handleDatabaseChange(row.id, 'hora', e.target.value)} className="w-20 bg-transparent border-b border-dashed focus:outline-none font-semibold text-xs" /></td>
+                          <td className="p-2">
+                            <select value={row.tipoServicio || ''} onChange={e => handleDatabaseChange(row.id, 'tipoServicio', e.target.value)} className={`w-24 bg-transparent border-b border-dashed focus:outline-none text-xs font-bold cursor-pointer ${row.tipoServicio === 'Llegada' ? 'text-green-700' : row.tipoServicio === 'Salida' ? 'text-red-700' : row.tipoServicio === 'Traslado' ? 'text-yellow-700' : 'text-blue-700'}`}>
+                              <option value="Llegada">Llegada</option>
+                              <option value="Salida">Salida</option>
+                              <option value="Traslado">Traslado</option>
+                              <option value="Actividad">Actividad</option>
+                            </select>
+                          </td>
+                          <td className="p-2"><input type="text" list="hoteles-bd-list" value={row.hotel || ''} onChange={e => handleDatabaseChange(row.id, 'hotel', e.target.value)} className="w-28 bg-transparent border-b border-dashed focus:outline-none text-xs cursor-pointer" placeholder="Elegir..." /></td>
+                          <td className="p-2"><input type="text" value={row.vuelo || ''} onChange={e => handleDatabaseChange(row.id, 'vuelo', e.target.value)} className="w-16 bg-transparent border-b border-dashed focus:outline-none text-xs" /></td>
+                          <td className="p-2"><input type="time" value={row.pickUp || ''} onChange={e => handleDatabaseChange(row.id, 'pickUp', e.target.value)} className="w-20 bg-transparent border-b border-dashed focus:outline-none text-blue-600 font-medium text-xs" /></td>
+                          <td className="p-2"><input type="number" value={row.pax || ''} onChange={e => handleDatabaseChange(row.id, 'pax', e.target.value)} className="w-12 bg-transparent border-b border-dashed focus:outline-none text-center" /></td>
+                          <td className="p-2"><input type="text" value={row.telefono || ''} onChange={e => handleDatabaseChange(row.id, 'telefono', e.target.value)} className="w-24 bg-transparent border-b border-dashed focus:outline-none text-xs" /></td>
+                          <td className="p-2">
+                            <div className="flex items-center">
+                              <span className="text-green-700 font-bold mr-1">$</span>
+                              <input type="text" value={row.cobro || ''} onChange={e => handleDatabaseChange(row.id, 'cobro', e.target.value)} className="w-16 bg-transparent border-b border-dashed focus:outline-none font-bold text-green-700" />
+                            </div>
+                          </td>
+                          <td className="p-2">
+                            <select value={row.metodoPago || ''} onChange={e => handleDatabaseChange(row.id, 'metodoPago', e.target.value)} className="w-24 bg-transparent border-b border-dashed focus:outline-none text-xs cursor-pointer">
+                              <option value=""></option>
+                              <option value="Efectivo">Efectivo</option>
+                              <option value="Tarjeta">Tarjeta</option>
+                              <option value="PayPal">PayPal</option>
+                            </select>
+                          </td>
+                          <td className="p-2"><input type="text" value={row.chofer || ''} onChange={e => handleDatabaseChange(row.id, 'chofer', e.target.value)} className="w-20 bg-transparent border-b border-dashed focus:outline-none text-gray-600 text-xs" /></td>
+                          <td className="p-2">
+                            <select value={row.vehiculo || ''} onChange={e => handleDatabaseChange(row.id, 'vehiculo', e.target.value)} className="w-24 bg-transparent border-b border-dashed focus:outline-none text-xs text-gray-600 cursor-pointer">
+                              <option value=""></option>
+                              <option value="Expedition">Expedition</option>
+                              <option value="Hiace">Hiace</option>
+                            </select>
+                          </td>
+                          {userProfile?.rol === 'admin' && (
+                            <>
+                              <td className="p-2">
+                                <input type="text" value={row.proveedor || ''} onChange={(e) => handleRollChange(row.id, 'proveedor', e.target.value)} className="w-24 bg-transparent border-b border-dashed focus:outline-none" />
+                              </td>
+                              <td className="p-2">
+                                <input type="number" value={row.costoProveedor || ''} onChange={(e) => handleRollChange(row.id, 'costoProveedor', e.target.value)} className="w-16 bg-transparent border-b border-dashed focus:outline-none font-bold text-red-700" />
+                              </td>
+                            </>
+                          )}
+                          <td className="p-2 text-xs">
+                            <div className="flex flex-col gap-1 w-16">
+                              <input type="text" placeholder="Car" value={row.carSeat > 0 ? row.carSeat : ''} onChange={e => handleDatabaseChange(row.id, 'carSeat', e.target.value)} className="w-full bg-transparent border-b border-dashed focus:outline-none" title="Car Seat" />
+                              <input type="text" placeholder="Baby" value={row.babySeat > 0 ? row.babySeat : ''} onChange={e => handleDatabaseChange(row.id, 'babySeat', e.target.value)} className="w-full bg-transparent border-b border-dashed focus:outline-none" title="Baby Seat" />
+                              <input type="text" placeholder="Bstr" value={row.booster > 0 ? row.booster : ''} onChange={e => handleDatabaseChange(row.id, 'booster', e.target.value)} className="w-full bg-transparent border-b border-dashed focus:outline-none" title="Booster" />
+                            </div>
+                          </td>
+                          <td className="p-2"><input type="text" value={row.comentario || ''} onChange={e => handleDatabaseChange(row.id, 'comentario', e.target.value)} className="w-32 bg-transparent border-b border-dashed focus:outline-none text-xs text-gray-500" /></td>
+                          <td className="p-2 text-center">
                             <button
-                              onClick={() => registrarUbicacionGPS(row.id, 'inicio')}
-                              className="p-1 text-green-600 hover:bg-green-100 rounded transition-colors"
-                              title="Iniciar Viaje (GPS)"
+                              onClick={() => {
+                                setTicketDataToPrint(row);
+                                setTicketLang('EN');
+                              }}
+                              className="p-1 text-slate-500 hover:bg-slate-200 rounded mr-1"
+                              title="Generar Ticket"
                             >
-                              <Play size={18} className="fill-current" />
+                              <Ticket size={18} />
                             </button>
-                          )}
-
-                          {/* --- BOTÓN GPS FIN: Candado --- */}
-                          {(userProfile?.rol === 'admin' || userProfile?.permisos?.rol_diario?.viaje_finalizado) && (
-                            <button
-                              onClick={() => registrarUbicacionGPS(row.id, 'fin')}
-                              className="p-1 text-red-600 hover:bg-red-100 rounded transition-colors"
-                              title="Finalizar Viaje (GPS)"
-                            >
-                              <Flag size={18} className="fill-current" />
-                            </button>
-                          )}
-
-                          {/* BOTÓN VER MAPA */}
-                          <button onClick={() => abrirMapaGPS(row)} className="p-1 text-blue-500 hover:bg-blue-100 rounded transition-colors" title="Ver Ruta en Google Maps">
-                            <Map size={18} className="fill-current" />
-                          </button>
-
-                          {/* BOTÓN COMPARTIR */}
-                          <button onClick={() => generateSharePNG(row)} className="p-1 text-blue-600 hover:bg-blue-100 rounded" title="Compartir">
-                            <Send size={18} />
-                          </button>
-
-                          {/* --- BOTÓN IMPRIMIR LETRERO: Candado --- */}
-                          {row.tipoServicio === 'Llegada' && (userProfile?.rol === 'admin' || userProfile?.permisos?.rol_diario?.imprimir_letrero) && (
-                            <button onClick={() => generateWelcomeSign(row)} className="p-1 text-gray-600 hover:bg-gray-200 rounded" title="Imprimir Letrero">
-                              <Printer size={18} />
-                            </button>
-                          )}
-
-                          {/* --- BOTÓN ELIMINAR: Candado --- */}
-                          {(userProfile?.rol === 'admin' || userProfile?.permisos?.rol_diario?.eliminar_servicio) && (
                             <button
                               onClick={async () => {
-                                if (window.confirm('¿Estás seguro de que deseas eliminar este servicio permanentemente de la nube?')) {
+                                if (window.confirm('¿Estás seguro de que deseas eliminar este servicio de la Base de Datos permanentemente?')) {
                                   try {
                                     showToast('Eliminando...', 'success');
                                     const { error } = await supabase.from('servicios').delete().eq('id', row.id);
                                     if (error) throw error;
                                     setServices(services.filter(s => s.id !== row.id));
-                                    setRollData(rollData.filter(r => r.id !== row.id));
-                                    showToast('¡Servicio eliminado de la nube!');
+                                    showToast('¡Servicio eliminado!');
                                   } catch (error) {
                                     console.error("Error al eliminar:", error);
-                                    showToast('Error al eliminar en la nube', 'error');
+                                    showToast('Error al eliminar', 'error');
                                   }
                                 }
                               }}
@@ -2900,811 +3158,559 @@ export default function App() {
                             >
                               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>
                             </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-
-        { }
-        {activeTab === 'database' && (
-          <div className="bg-white rounded-lg shadow-md flex flex-col h-[80vh]">
-            <div className="p-4 border-b bg-gray-50 rounded-t-lg flex justify-between items-center flex-wrap gap-4">
-              <div className="flex items-center gap-4">
-                <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-                  <Database className="text-blue-600" /> Base de Datos General
-                </h2>
-                <span className="text-sm text-gray-500 hidden md:inline-block">{services.length} registros</span>
+                          </td>
+                        </tr>
+                      ));
+                    })()}
+                  </tbody>
+                </table>
               </div>
+            </div>
+          )}
 
-              {/* NUEVO BUSCADOR GLOBAL */}
-              <div className="flex-1 w-full md:max-w-md relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Search className="h-4 w-4 text-gray-400" />
+          { }
+          {/* --- PESTAÑA: CIERRE Y REPORTES FINANCIEROS --- */}
+          {activeTab === 'cierre' && (
+            <div className="bg-white rounded-lg shadow-md p-6 border-t-4 border-blue-800">
+
+              {/* NUEVA CABECERA CON BOTONES Y TIPO DE CAMBIO */}
+              <div className="flex justify-between items-center flex-wrap gap-4 mb-6">
+                <div className="flex items-center gap-4">
+                  <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+                    <Database className="text-blue-800" /> Reportes y Cierres Financieros
+                  </h2>
+
+                  {/* NUEVO: Cuadro verde para el precio del Dólar */}
+                  <div className="flex items-center bg-green-50 border border-green-300 rounded-md p-1 shadow-sm print:hidden">
+                    <div className="flex items-center pl-2 pr-1 text-green-700">
+                      <DollarSign size={16} className="font-bold" />
+                      <span className="text-xs font-bold uppercase mr-1">TC:</span>
+                    </div>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={tipoCambioDolar}
+                      onChange={(e) => setTipoCambioDolar(e.target.value)}
+                      placeholder="Ej. 18.50"
+                      className="w-24 bg-white border border-green-200 rounded p-1 text-sm text-green-800 font-bold focus:outline-none focus:ring-1 focus:ring-green-500 text-center"
+                      title="Ingresa el precio del Dólar actual"
+                    />
+                  </div>
                 </div>
-                <input
-                  type="text"
-                  placeholder="Buscar reserva, nombre, hotel, vehículo..."
-                  value={dbSearchTerm}
-                  onChange={(e) => setDbSearchTerm(e.target.value)}
-                  className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm shadow-sm"
-                />
-              </div>
 
-              <div className="flex gap-2">
-                <button onClick={descargarRespaldoExcel} className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 flex items-center gap-2 font-medium transition-colors shadow-sm text-sm">
-                  <Download size={16} /> Excel
-                </button>
-                <button onClick={saveDatabaseUpdates} className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center gap-2 font-medium transition-colors shadow-sm text-sm">
-                  <Save size={16} /> Guardar
-                </button>
-              </div>
-            </div>
-
-            <div className="flex-1 overflow-x-auto overflow-y-auto p-4 w-full">
-
-              {/* --- BARRA DE FILTROS AVANZADOS --- */}
-              <div className="flex flex-wrap gap-4 mb-4 bg-gray-50 p-3 rounded-lg border border-gray-200 shadow-sm items-end">
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1 uppercase">Agencia</label>
-                  <select
-                    value={filtroAgenciaGeneral}
-                    onChange={(e) => setFiltroAgenciaGeneral(e.target.value)}
-                    className="block w-40 border border-gray-300 rounded-md shadow-sm p-2 text-sm focus:ring-blue-500 focus:border-blue-500 cursor-pointer"
+                {/* BOTONES CHICOS DE EXPORTACIÓN */}
+                <div className="flex gap-2 print:hidden">
+                  <button
+                    onClick={exportarCierrePDF}
+                    className="bg-red-50 text-red-700 border border-red-200 px-3 py-1 rounded text-xs font-bold hover:bg-red-100 transition-colors flex items-center gap-1 shadow-sm"
                   >
-                    <option value="">Todas las Agencias</option>
-                    <option value="USA">USA</option>
-                    <option value="EXPEDIA">Expedia</option>
-                    <option value="BOOKING">Booking</option>
-                    <option value="DIRECTO">Directo</option>
+                    📄 Exportar PDF
+                  </button>
+                  <button
+                    onClick={exportarCierreExcel}
+                    className="bg-green-50 text-green-700 border border-green-200 px-3 py-1 rounded text-xs font-bold hover:bg-green-100 transition-colors flex items-center gap-1 shadow-sm"
+                  >
+                    📊 Exportar Excel
+                  </button>
+                </div>
+              </div>
+              {/* FIN DE LA NUEVA CABECERA */}
+
+              {/* PANEL DE FILTROS */}
+              <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 mb-6 flex flex-wrap gap-4 items-end">
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1 uppercase">Origen de Datos</label>
+                  <select
+                    value={cierreFiltroTipo}
+                    onChange={(e) => setCierreFiltroTipo(e.target.value)}
+                    className="block w-48 border border-gray-300 rounded-md shadow-sm p-2 text-sm font-bold text-blue-800 focus:ring-blue-500 focus:border-blue-500 cursor-pointer"
+                  >
+                    <option value="general">Ingresos: Base General</option>
+                    <option value="callcenter">Ingresos: Call Center</option>
+                    <option value="gastos">Egresos: Gastos de Flota</option>
                   </select>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1 uppercase">Desde (Fecha)</label>
+                  <label className="block text-xs font-bold text-gray-700 mb-1 uppercase">Fecha Inicial</label>
                   <input
                     type="date"
-                    value={filtroFechaInicioGeneral}
-                    onChange={(e) => setFiltroFechaInicioGeneral(e.target.value)}
+                    value={cierreFiltroInicio}
+                    onChange={(e) => setCierreFiltroInicio(e.target.value)}
                     className="block w-40 border border-gray-300 rounded-md shadow-sm p-2 text-sm focus:ring-blue-500 focus:border-blue-500 cursor-pointer"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1 uppercase">Hasta (Fecha)</label>
+                  <label className="block text-xs font-bold text-gray-700 mb-1 uppercase">Fecha Final</label>
                   <input
                     type="date"
-                    value={filtroFechaFinGeneral}
-                    onChange={(e) => setFiltroFechaFinGeneral(e.target.value)}
+                    value={cierreFiltroFin}
+                    onChange={(e) => setCierreFiltroFin(e.target.value)}
                     className="block w-40 border border-gray-300 rounded-md shadow-sm p-2 text-sm focus:ring-blue-500 focus:border-blue-500 cursor-pointer"
                   />
                 </div>
 
-                <div className="pb-1 ml-auto">
+                {/* Filtro de Vehículo (Solo visible para General y Gastos) */}
+                {(cierreFiltroTipo === 'general' || cierreFiltroTipo === 'gastos') && (
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1 uppercase">Vehículo</label>
+                    <select
+                      value={cierreFiltroVehiculo}
+                      onChange={(e) => setCierreFiltroVehiculo(e.target.value)}
+                      className="block w-40 border border-gray-300 rounded-md shadow-sm p-2 text-sm focus:ring-blue-500 focus:border-blue-500 cursor-pointer"
+                    >
+                      <option value="">Todos los vehículos</option>
+                      <option value="Expedition">Expedition</option>
+                      <option value="Hiace">Hiace</option>
+                    </select>
+                  </div>
+                )}
+
+                <div className="ml-auto">
                   <button
                     onClick={() => {
-                      setFiltroAgenciaGeneral('');
-                      setFiltroFechaInicioGeneral('');
-                      setFiltroFechaFinGeneral('');
-                      setDbSearchTerm(''); // Limpia también la barra de búsqueda escrita
+                      setCierreFiltroInicio(''); setCierreFiltroFin(''); setCierreFiltroVehiculo('');
                     }}
-                    className="text-xs text-blue-600 hover:text-blue-800 font-bold underline transition-colors"
+                    className="text-xs text-blue-600 hover:text-blue-800 font-bold underline"
                   >
                     Limpiar Filtros
                   </button>
                 </div>
               </div>
-              {/* --- FIN BARRA DE FILTROS AVANZADOS --- */}
 
-              <datalist id="hoteles-bd-list">
-                {LISTA_HOTELES.map((hotel, index) => (
-                  <option key={`bd-${index}`} value={hotel.nombre}>
-                    Zona {hotel.zona}
-                  </option>
-                ))}
-              </datalist>
+              {/* TABLA DINÁMICA DE RESULTADOS */}
+              <div className="overflow-x-auto w-full border border-gray-200 rounded-lg">
+                {(() => {
+                  // LÓGICA DE FILTRADO DEPENDIENDO DEL TIPO SELECCIONADO
+                  let filteredData = [];
+                  let totalAmount = 0;
 
-              <table className="min-w-max w-full text-left text-sm whitespace-nowrap">
-                <thead className="sticky top-0 bg-white shadow-sm z-10">
-                  <tr className="text-gray-600 border-b bg-gray-50">
-                    <th className="p-2">Reserva</th><th className="p-2">Agencia</th><th className="p-2 min-w-[150px]">Nombre y Apellido</th>
-                    <th className="p-2">Fecha</th><th className="p-2">Hora</th><th className="p-2">Tipo</th><th className="p-2">Hotel</th>
-                    <th className="p-2">Vuelo</th><th className="p-2">PickUp</th><th className="p-2">PAX</th><th className="p-2">Teléfono</th>
-                    <th className="p-2">Cobro</th><th className="p-2">Método Pago</th><th className="p-2">Chofer</th><th className="p-2">Vehículo</th>
-                    {userProfile?.rol === 'admin' && (
-                      <>
-                        <th className="p-2">Proveedor</th>
-                        <th className="p-2">Cantidad</th>
-                      </>
-                    )}<th className="p-2">Extras</th><th className="p-2">Comentarios</th>
-                    <th className="p-2 text-center ocultar-en-foto">GPS / Viaje</th>
-                    <th className="p-2 text-center">Acciones</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y">
-                  {(() => {
-                    // 1. Filtramos los datos en tiempo real (AHORA CONECTADO A LOS NUEVOS FILTROS)
-                    const filteredDatabase = services.filter(s => {
-                      // Filtro por Agencia
-                      if (filtroAgenciaGeneral && (s.agencia || '').toUpperCase() !== filtroAgenciaGeneral.toUpperCase()) {
-                        return false;
-                      }
-                      // Filtro por Fechas
-                      if (filtroFechaInicioGeneral && s.fecha < filtroFechaInicioGeneral) {
-                        return false;
-                      }
-                      if (filtroFechaFinGeneral && s.fecha > filtroFechaFinGeneral) {
-                        return false;
-                      }
-
-                      // Filtro del Buscador Global de texto
-                      if (!dbSearchTerm) return true; // Si la barra de búsqueda está vacía, pasa.
-
-                      const term = dbSearchTerm.toLowerCase();
-                      return (
-                        (s.nombre || '').toLowerCase().includes(term) ||
-                        (s.apellido || '').toLowerCase().includes(term) ||
-                        (s.reserva || '').toLowerCase().includes(term) ||
-                        (s.hotel || '').toLowerCase().includes(term) ||
-                        (s.vehiculo || '').toLowerCase().includes(term) ||
-                        (s.chofer || '').toLowerCase().includes(term)
-                      );
+                  if (cierreFiltroTipo === 'general') {
+                    filteredData = services.filter(s => {
+                      const passInicio = !cierreFiltroInicio || s.fecha >= cierreFiltroInicio;
+                      const passFin = !cierreFiltroFin || s.fecha <= cierreFiltroFin;
+                      const passVehiculo = !cierreFiltroVehiculo || (s.vehiculo && s.vehiculo.toLowerCase() === cierreFiltroVehiculo.toLowerCase());
+                      return passInicio && passFin && passVehiculo;
                     });
+                    totalAmount = filteredData.reduce((sum, s) => sum + (parseFloat(s.cobro) || 0), 0);
 
-                    // 2. Pintamos los datos ya filtrados
-                    if (filteredDatabase.length === 0) return <tr><td colSpan="20" className="text-center p-8 text-gray-500">No se encontraron servicios con los filtros actuales.</td></tr>;
-
-                    return filteredDatabase.map(row => (
-                      <tr key={row.id} className="hover:bg-blue-50 transition-colors">
-                        <td className="p-2"><input type="text" value={row.reserva || ''} onChange={e => handleDatabaseChange(row.id, 'reserva', e.target.value)} className="w-16 bg-transparent border-b border-dashed focus:outline-none" /></td>
-                        <td className="p-2"><input type="text" value={row.agencia || ''} onChange={e => handleDatabaseChange(row.id, 'agencia', e.target.value)} className="w-20 bg-transparent border-b border-dashed focus:outline-none" /></td>
-                        <td className="p-2 flex gap-1">
-                          <input type="text" value={row.nombre || ''} onChange={e => handleDatabaseChange(row.id, 'nombre', e.target.value)} className="w-20 bg-transparent border-b border-dashed focus:outline-none" placeholder="Nombre" />
-                          <input type="text" value={row.apellido || ''} onChange={e => handleDatabaseChange(row.id, 'apellido', e.target.value)} className="w-24 bg-transparent border-b border-dashed focus:outline-none" placeholder="Apellido" />
-                        </td>
-                        <td className="p-2"><input type="date" value={row.fecha || ''} onChange={e => handleDatabaseChange(row.id, 'fecha', e.target.value)} className="w-28 bg-transparent border-b border-dashed focus:outline-none text-xs" /></td>
-                        <td className="p-2"><input type="time" value={row.hora || ''} onChange={e => handleDatabaseChange(row.id, 'hora', e.target.value)} className="w-20 bg-transparent border-b border-dashed focus:outline-none font-semibold text-xs" /></td>
-                        <td className="p-2">
-                          <select value={row.tipoServicio || ''} onChange={e => handleDatabaseChange(row.id, 'tipoServicio', e.target.value)} className={`w-24 bg-transparent border-b border-dashed focus:outline-none text-xs font-bold cursor-pointer ${row.tipoServicio === 'Llegada' ? 'text-green-700' : row.tipoServicio === 'Salida' ? 'text-red-700' : row.tipoServicio === 'Traslado' ? 'text-yellow-700' : 'text-blue-700'}`}>
-                            <option value="Llegada">Llegada</option>
-                            <option value="Salida">Salida</option>
-                            <option value="Traslado">Traslado</option>
-                            <option value="Actividad">Actividad</option>
-                          </select>
-                        </td>
-                        <td className="p-2"><input type="text" list="hoteles-bd-list" value={row.hotel || ''} onChange={e => handleDatabaseChange(row.id, 'hotel', e.target.value)} className="w-28 bg-transparent border-b border-dashed focus:outline-none text-xs cursor-pointer" placeholder="Elegir..." /></td>
-                        <td className="p-2"><input type="text" value={row.vuelo || ''} onChange={e => handleDatabaseChange(row.id, 'vuelo', e.target.value)} className="w-16 bg-transparent border-b border-dashed focus:outline-none text-xs" /></td>
-                        <td className="p-2"><input type="time" value={row.pickUp || ''} onChange={e => handleDatabaseChange(row.id, 'pickUp', e.target.value)} className="w-20 bg-transparent border-b border-dashed focus:outline-none text-blue-600 font-medium text-xs" /></td>
-                        <td className="p-2"><input type="number" value={row.pax || ''} onChange={e => handleDatabaseChange(row.id, 'pax', e.target.value)} className="w-12 bg-transparent border-b border-dashed focus:outline-none text-center" /></td>
-                        <td className="p-2"><input type="text" value={row.telefono || ''} onChange={e => handleDatabaseChange(row.id, 'telefono', e.target.value)} className="w-24 bg-transparent border-b border-dashed focus:outline-none text-xs" /></td>
-                        <td className="p-2">
-                          <div className="flex items-center">
-                            <span className="text-green-700 font-bold mr-1">$</span>
-                            <input type="text" value={row.cobro || ''} onChange={e => handleDatabaseChange(row.id, 'cobro', e.target.value)} className="w-16 bg-transparent border-b border-dashed focus:outline-none font-bold text-green-700" />
-                          </div>
-                        </td>
-                        <td className="p-2">
-                          <select value={row.metodoPago || ''} onChange={e => handleDatabaseChange(row.id, 'metodoPago', e.target.value)} className="w-24 bg-transparent border-b border-dashed focus:outline-none text-xs cursor-pointer">
-                            <option value=""></option>
-                            <option value="Efectivo">Efectivo</option>
-                            <option value="Tarjeta">Tarjeta</option>
-                            <option value="PayPal">PayPal</option>
-                          </select>
-                        </td>
-                        <td className="p-2"><input type="text" value={row.chofer || ''} onChange={e => handleDatabaseChange(row.id, 'chofer', e.target.value)} className="w-20 bg-transparent border-b border-dashed focus:outline-none text-gray-600 text-xs" /></td>
-                        <td className="p-2">
-                          <select value={row.vehiculo || ''} onChange={e => handleDatabaseChange(row.id, 'vehiculo', e.target.value)} className="w-24 bg-transparent border-b border-dashed focus:outline-none text-xs text-gray-600 cursor-pointer">
-                            <option value=""></option>
-                            <option value="Expedition">Expedition</option>
-                            <option value="Hiace">Hiace</option>
-                          </select>
-                        </td>
-                        {userProfile?.rol === 'admin' && (
-                          <>
-                            <td className="p-2">
-                              <input type="text" value={row.proveedor || ''} onChange={(e) => handleRollChange(row.id, 'proveedor', e.target.value)} className="w-24 bg-transparent border-b border-dashed focus:outline-none" />
-                            </td>
-                            <td className="p-2">
-                              <input type="number" value={row.costoProveedor || ''} onChange={(e) => handleRollChange(row.id, 'costoProveedor', e.target.value)} className="w-16 bg-transparent border-b border-dashed focus:outline-none font-bold text-red-700" />
-                            </td>
-                          </>
-                        )}
-                        <td className="p-2 text-xs">
-                          <div className="flex flex-col gap-1 w-16">
-                            <input type="text" placeholder="Car" value={row.carSeat > 0 ? row.carSeat : ''} onChange={e => handleDatabaseChange(row.id, 'carSeat', e.target.value)} className="w-full bg-transparent border-b border-dashed focus:outline-none" title="Car Seat" />
-                            <input type="text" placeholder="Baby" value={row.babySeat > 0 ? row.babySeat : ''} onChange={e => handleDatabaseChange(row.id, 'babySeat', e.target.value)} className="w-full bg-transparent border-b border-dashed focus:outline-none" title="Baby Seat" />
-                            <input type="text" placeholder="Bstr" value={row.booster > 0 ? row.booster : ''} onChange={e => handleDatabaseChange(row.id, 'booster', e.target.value)} className="w-full bg-transparent border-b border-dashed focus:outline-none" title="Booster" />
-                          </div>
-                        </td>
-                        <td className="p-2"><input type="text" value={row.comentario || ''} onChange={e => handleDatabaseChange(row.id, 'comentario', e.target.value)} className="w-32 bg-transparent border-b border-dashed focus:outline-none text-xs text-gray-500" /></td>
-                        <td className="p-2 text-center">
-                          <button
-                            onClick={() => {
-                              setTicketDataToPrint(row);
-                              setTicketLang('EN');
-                            }}
-                            className="p-1 text-slate-500 hover:bg-slate-200 rounded mr-1"
-                            title="Generar Ticket"
-                          >
-                            <Ticket size={18} />
-                          </button>
-                          <button
-                            onClick={async () => {
-                              if (window.confirm('¿Estás seguro de que deseas eliminar este servicio de la Base de Datos permanentemente?')) {
-                                try {
-                                  showToast('Eliminando...', 'success');
-                                  const { error } = await supabase.from('servicios').delete().eq('id', row.id);
-                                  if (error) throw error;
-                                  setServices(services.filter(s => s.id !== row.id));
-                                  showToast('¡Servicio eliminado!');
-                                } catch (error) {
-                                  console.error("Error al eliminar:", error);
-                                  showToast('Error al eliminar', 'error');
-                                }
-                              }
-                            }}
-                            className="p-1 text-red-500 hover:bg-red-100 rounded"
-                            title="Eliminar Servicio"
-                          >
-                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>
-                          </button>
-                        </td>
-                      </tr>
-                    ));
-                  })()}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-
-        { }
-        {/* --- PESTAÑA: CIERRE Y REPORTES FINANCIEROS --- */}
-        {activeTab === 'cierre' && (
-          <div className="bg-white rounded-lg shadow-md p-6 border-t-4 border-blue-800">
-
-            {/* NUEVA CABECERA CON BOTONES Y TIPO DE CAMBIO */}
-            <div className="flex justify-between items-center flex-wrap gap-4 mb-6">
-              <div className="flex items-center gap-4">
-                <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-                  <Database className="text-blue-800" /> Reportes y Cierres Financieros
-                </h2>
-
-                {/* NUEVO: Cuadro verde para el precio del Dólar */}
-                <div className="flex items-center bg-green-50 border border-green-300 rounded-md p-1 shadow-sm print:hidden">
-                  <div className="flex items-center pl-2 pr-1 text-green-700">
-                    <DollarSign size={16} className="font-bold" />
-                    <span className="text-xs font-bold uppercase mr-1">TC:</span>
-                  </div>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={tipoCambioDolar}
-                    onChange={(e) => setTipoCambioDolar(e.target.value)}
-                    placeholder="Ej. 18.50"
-                    className="w-24 bg-white border border-green-200 rounded p-1 text-sm text-green-800 font-bold focus:outline-none focus:ring-1 focus:ring-green-500 text-center"
-                    title="Ingresa el precio del Dólar actual"
-                  />
-                </div>
-              </div>
-
-              {/* BOTONES CHICOS DE EXPORTACIÓN */}
-              <div className="flex gap-2 print:hidden">
-                <button
-                  onClick={exportarCierrePDF}
-                  className="bg-red-50 text-red-700 border border-red-200 px-3 py-1 rounded text-xs font-bold hover:bg-red-100 transition-colors flex items-center gap-1 shadow-sm"
-                >
-                  📄 Exportar PDF
-                </button>
-                <button
-                  onClick={exportarCierreExcel}
-                  className="bg-green-50 text-green-700 border border-green-200 px-3 py-1 rounded text-xs font-bold hover:bg-green-100 transition-colors flex items-center gap-1 shadow-sm"
-                >
-                  📊 Exportar Excel
-                </button>
-              </div>
-            </div>
-            {/* FIN DE LA NUEVA CABECERA */}
-
-            {/* PANEL DE FILTROS */}
-            <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 mb-6 flex flex-wrap gap-4 items-end">
-              <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1 uppercase">Origen de Datos</label>
-                <select
-                  value={cierreFiltroTipo}
-                  onChange={(e) => setCierreFiltroTipo(e.target.value)}
-                  className="block w-48 border border-gray-300 rounded-md shadow-sm p-2 text-sm font-bold text-blue-800 focus:ring-blue-500 focus:border-blue-500 cursor-pointer"
-                >
-                  <option value="general">Ingresos: Base General</option>
-                  <option value="callcenter">Ingresos: Call Center</option>
-                  <option value="gastos">Egresos: Gastos de Flota</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1 uppercase">Fecha Inicial</label>
-                <input
-                  type="date"
-                  value={cierreFiltroInicio}
-                  onChange={(e) => setCierreFiltroInicio(e.target.value)}
-                  className="block w-40 border border-gray-300 rounded-md shadow-sm p-2 text-sm focus:ring-blue-500 focus:border-blue-500 cursor-pointer"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1 uppercase">Fecha Final</label>
-                <input
-                  type="date"
-                  value={cierreFiltroFin}
-                  onChange={(e) => setCierreFiltroFin(e.target.value)}
-                  className="block w-40 border border-gray-300 rounded-md shadow-sm p-2 text-sm focus:ring-blue-500 focus:border-blue-500 cursor-pointer"
-                />
-              </div>
-
-              {/* Filtro de Vehículo (Solo visible para General y Gastos) */}
-              {(cierreFiltroTipo === 'general' || cierreFiltroTipo === 'gastos') && (
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1 uppercase">Vehículo</label>
-                  <select
-                    value={cierreFiltroVehiculo}
-                    onChange={(e) => setCierreFiltroVehiculo(e.target.value)}
-                    className="block w-40 border border-gray-300 rounded-md shadow-sm p-2 text-sm focus:ring-blue-500 focus:border-blue-500 cursor-pointer"
-                  >
-                    <option value="">Todos los vehículos</option>
-                    <option value="Expedition">Expedition</option>
-                    <option value="Hiace">Hiace</option>
-                  </select>
-                </div>
-              )}
-
-              <div className="ml-auto">
-                <button
-                  onClick={() => {
-                    setCierreFiltroInicio(''); setCierreFiltroFin(''); setCierreFiltroVehiculo('');
-                  }}
-                  className="text-xs text-blue-600 hover:text-blue-800 font-bold underline"
-                >
-                  Limpiar Filtros
-                </button>
-              </div>
-            </div>
-
-            {/* TABLA DINÁMICA DE RESULTADOS */}
-            <div className="overflow-x-auto w-full border border-gray-200 rounded-lg">
-              {(() => {
-                // LÓGICA DE FILTRADO DEPENDIENDO DEL TIPO SELECCIONADO
-                let filteredData = [];
-                let totalAmount = 0;
-
-                if (cierreFiltroTipo === 'general') {
-                  filteredData = services.filter(s => {
-                    const passInicio = !cierreFiltroInicio || s.fecha >= cierreFiltroInicio;
-                    const passFin = !cierreFiltroFin || s.fecha <= cierreFiltroFin;
-                    const passVehiculo = !cierreFiltroVehiculo || (s.vehiculo && s.vehiculo.toLowerCase() === cierreFiltroVehiculo.toLowerCase());
-                    return passInicio && passFin && passVehiculo;
-                  });
-                  totalAmount = filteredData.reduce((sum, s) => sum + (parseFloat(s.cobro) || 0), 0);
-
-                  return (
-                    <table id="tabla-cierre-financiero" className="min-w-full text-left text-sm whitespace-nowrap">
-                      <thead className="bg-blue-50">
-                        <tr className="text-blue-900 border-b">
-                          <th className="p-3">Fecha</th><th className="p-3">Reserva</th><th className="p-3">Nombre</th>
-                          <th className="p-3">Vehículo</th><th className="p-3">Chofer</th><th className="p-3 text-right">Cobro (Ingreso)</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y">
-                        {filteredData.length === 0 ? <tr><td colSpan="6" className="p-4 text-center text-gray-500">No hay servicios en estas fechas.</td></tr> :
-                          filteredData.map(row => (
-                            <tr key={row.id} className="hover:bg-gray-50">
-                              <td className="p-2 font-medium">{row.fecha}</td><td className="p-2">{row.reserva}</td><td className="p-2 uppercase">{row.nombre} {row.apellido}</td>
-                              <td className="p-2">{row.vehiculo}</td><td className="p-2 uppercase text-gray-600">{row.chofer}</td>
-                              <td className="p-2 text-right font-bold text-green-700">${parseFloat(row.cobro || 0).toFixed(2)}</td>
-                            </tr>
-                          ))
-                        }
-                        <tr className="bg-gray-100 border-t-2 border-gray-300">
-                          <td colSpan="5" className="p-3 text-right font-bold text-gray-700 uppercase">Total Ingresos (USD):</td>
-                          <td className="p-3 text-right font-black text-green-800 text-lg">${totalAmount.toFixed(2)}</td>
-                        </tr>
-                        
-                        {/* NUEVO: Fila condicional para Pesos (Solo aparece si escribes un número en el cuadro verde) */}
-                        {tipoCambioDolar && parseFloat(tipoCambioDolar) > 0 && (
-                          <tr className="bg-green-100 border-t border-green-300">
-                            <td colSpan="5" className="p-3 text-right">
-                              <div className="flex justify-end items-center gap-2">
-                                <span className="font-bold text-green-800 uppercase">Total Estimado en Pesos (MXN):</span>
-                                <span className="text-xs text-green-700 bg-white px-2 py-0.5 rounded-full border border-green-300 font-bold shadow-sm">
-                                  x ${parseFloat(tipoCambioDolar).toFixed(2)}
-                                </span>
-                              </div>
-                            </td>
-                            <td className="p-3 text-right font-black text-green-900 text-xl">
-                              ${(totalAmount * parseFloat(tipoCambioDolar)).toFixed(2)}
-                            </td>
+                    return (
+                      <table id="tabla-cierre-financiero" className="min-w-full text-left text-sm whitespace-nowrap">
+                        <thead className="bg-blue-50">
+                          <tr className="text-blue-900 border-b">
+                            <th className="p-3">Fecha</th><th className="p-3">Reserva</th><th className="p-3">Nombre</th>
+                            <th className="p-3">Vehículo</th><th className="p-3">Chofer</th><th className="p-3 text-right">Cobro (Ingreso)</th>
                           </tr>
-                        )}
-                      </tbody>
-                    </table>
-                  );
-                }
+                        </thead>
+                        <tbody className="divide-y">
+                          {filteredData.length === 0 ? <tr><td colSpan="6" className="p-4 text-center text-gray-500">No hay servicios en estas fechas.</td></tr> :
+                            filteredData.map(row => (
+                              <tr key={row.id} className="hover:bg-gray-50">
+                                <td className="p-2 font-medium">{row.fecha}</td><td className="p-2">{row.reserva}</td><td className="p-2 uppercase">{row.nombre} {row.apellido}</td>
+                                <td className="p-2">{row.vehiculo}</td><td className="p-2 uppercase text-gray-600">{row.chofer}</td>
+                                <td className="p-2 text-right font-bold text-green-700">${parseFloat(row.cobro || 0).toFixed(2)}</td>
+                              </tr>
+                            ))
+                          }
+                          <tr className="bg-gray-100 border-t-2 border-gray-300">
+                            <td colSpan="5" className="p-3 text-right font-bold text-gray-700 uppercase">Total Ingresos (USD):</td>
+                            <td className="p-3 text-right font-black text-green-800 text-lg">${totalAmount.toFixed(2)}</td>
+                          </tr>
 
-                else if (cierreFiltroTipo === 'callcenter') {
-                  // Asumiendo que tienes una variable de estado para los datos del call center (ej. callCenterData)
-                  // Si no la tienes guardada en memoria general, usa el array vacío por ahora
-                  const dataCC = typeof callCenterData !== 'undefined' ? callCenterData : [];
-                  filteredData = dataCC.filter(c => {
-                    const passInicio = !cierreFiltroInicio || c.fecha_sistema >= cierreFiltroInicio;
-                    const passFin = !cierreFiltroFin || c.fecha_sistema <= cierreFiltroFin;
-                    return passInicio && passFin;
-                  });
-                  totalAmount = filteredData.reduce((sum, c) => sum + (parseFloat(c.comision) || 0), 0);
-
-                  return (
-                    <table id="tabla-cierre-financiero" className="min-w-full text-left text-sm whitespace-nowrap">
-                      <thead className="bg-purple-50">
-                        <tr className="text-purple-900 border-b">
-                          <th className="p-3">Fecha</th><th className="p-3">Reserva</th><th className="p-3">Cliente</th>
-                          <th className="p-3">Acción</th><th className="p-3 text-right">Comisión</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y">
-                        {filteredData.length === 0 ? <tr><td colSpan="5" className="p-4 text-center text-gray-500">No hay registros de Call Center en estas fechas.</td></tr> :
-                          filteredData.map(row => (
-                            <tr key={row.id} className="hover:bg-gray-50">
-                              <td className="p-2 font-medium">{row.fecha_sistema}</td><td className="p-2">{row.reserva}</td><td className="p-2 uppercase">{row.cliente}</td>
-                              <td className="p-2"><span className="px-2 py-1 rounded bg-gray-200 text-xs font-bold">{row.accion}</span></td>
-                              <td className="p-2 text-right font-bold text-purple-700">${parseFloat(row.comision || 0).toFixed(2)}</td>
-                            </tr>
-                          ))
-                        }
-                        <tr className="bg-gray-100 border-t-2 border-gray-300">
-                          <td colSpan="4" className="p-3 text-right font-bold text-gray-700 uppercase">Total Comisiones:</td>
-                          <td className="p-3 text-right font-black text-purple-800 text-lg">${totalAmount.toFixed(2)}</td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  );
-                }
-
-                else if (cierreFiltroTipo === 'gastos') {
-                  const dataGastos = typeof gastosFlota !== 'undefined' ? gastosFlota : [];
-                  filteredData = dataGastos.filter(g => {
-                    const passInicio = !cierreFiltroInicio || g.fecha >= cierreFiltroInicio;
-                    const passFin = !cierreFiltroFin || g.fecha <= cierreFiltroFin;
-                    const passVehiculo = !cierreFiltroVehiculo || (g.vehiculo && g.vehiculo.toLowerCase() === cierreFiltroVehiculo.toLowerCase());
-                    return passInicio && passFin && passVehiculo;
-                  });
-                  totalAmount = filteredData.reduce((sum, g) => sum + (parseFloat(g.gasto_total) || 0), 0);
-
-                  return (
-                    <table id="tabla-cierre-financiero" className="min-w-full text-left text-sm whitespace-nowrap">
-                      <thead className="bg-orange-50">
-                        <tr className="text-orange-900 border-b">
-                          <th className="p-3">Fecha</th><th className="p-3">Vehículo</th><th className="p-3">Chofer</th>
-                          <th className="p-3">Detalle de Gastos (Sub-total)</th><th className="p-3 text-right">Gasto Total (Egreso)</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y">
-                        {filteredData.length === 0 ? <tr><td colSpan="5" className="p-4 text-center text-gray-500">No hay gastos registrados en estas fechas.</td></tr> :
-                          filteredData.map(row => (
-                            <tr key={row.id} className="hover:bg-gray-50">
-                              <td className="p-2 font-medium">{row.fecha}</td><td className="p-2">{row.vehiculo}</td><td className="p-2 uppercase">{row.chofer}</td>
-
-                              {/* NUEVA CELDA DINÁMICA DE CONCEPTOS */}
-                              <td className="p-2">
-                                <div className="flex flex-col gap-1 text-xs">
-                                  {row.concepto && row.concepto.includes('|') ? (
-                                    // 1. Lógica para los registros nuevos (Ej. Dua|4000,Gasolina|800)
-                                    row.concepto.split(',').map((item, idx) => {
-                                      const partes = item.split('|');
-                                      return (
-                                        <div key={idx} className="flex justify-between w-48 border-b border-gray-100 border-dashed pb-1">
-                                          <span className="font-semibold text-gray-600 uppercase">{partes[0]}</span>
-                                          <span className="font-bold text-gray-800">${parseFloat(partes[1]).toFixed(2)}</span>
-                                        </div>
-                                      )
-                                    })
-                                  ) : (
-                                    // 2. Rescate visual para registros viejos (Antes de la actualización)
-                                    <>
-                                      {row.gasolina > 0 && <div className="flex justify-between w-48 border-b border-gray-100 border-dashed pb-1"><span className="font-semibold text-gray-600 uppercase">GASOLINA</span><span className="font-bold text-gray-800">${parseFloat(row.gasolina).toFixed(2)}</span></div>}
-                                      {row.casetas > 0 && <div className="flex justify-between w-48 border-b border-gray-100 border-dashed pb-1"><span className="font-semibold text-gray-600 uppercase">CASETAS</span><span className="font-bold text-gray-800">${parseFloat(row.casetas).toFixed(2)}</span></div>}
-                                      {(!row.gasolina && !row.casetas && row.gasto_total > 0) && <div className="flex justify-between w-48 border-b border-gray-100 border-dashed pb-1"><span className="font-semibold text-gray-600 uppercase">{row.concepto || 'VARIOS'}</span><span className="font-bold text-gray-800">${parseFloat(row.gasto_total).toFixed(2)}</span></div>}
-                                    </>
-                                  )}
+                          {/* NUEVO: Fila condicional para Pesos (Solo aparece si escribes un número en el cuadro verde) */}
+                          {tipoCambioDolar && parseFloat(tipoCambioDolar) > 0 && (
+                            <tr className="bg-green-100 border-t border-green-300">
+                              <td colSpan="5" className="p-3 text-right">
+                                <div className="flex justify-end items-center gap-2">
+                                  <span className="font-bold text-green-800 uppercase">Total Estimado en Pesos (MXN):</span>
+                                  <span className="text-xs text-green-700 bg-white px-2 py-0.5 rounded-full border border-green-300 font-bold shadow-sm">
+                                    x ${parseFloat(tipoCambioDolar).toFixed(2)}
+                                  </span>
                                 </div>
                               </td>
-
-                              <td className="p-2 text-right font-bold text-red-700">${parseFloat(row.gasto_total || 0).toFixed(2)}</td>
+                              <td className="p-3 text-right font-black text-green-900 text-xl">
+                                ${(totalAmount * parseFloat(tipoCambioDolar)).toFixed(2)}
+                              </td>
                             </tr>
-                          ))
-                        }
-                        <tr className="bg-gray-100 border-t-2 border-gray-300">
-                          <td colSpan="4" className="p-3 text-right font-bold text-gray-700 uppercase">Total Egresos:</td>
-                          <td className="p-3 text-right font-black text-red-800 text-lg">${totalAmount.toFixed(2)}</td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  );
-                }
-              })()}
+                          )}
+                        </tbody>
+                      </table>
+                    );
+                  }
+
+                  else if (cierreFiltroTipo === 'callcenter') {
+                    // Asumiendo que tienes una variable de estado para los datos del call center (ej. callCenterData)
+                    // Si no la tienes guardada en memoria general, usa el array vacío por ahora
+                    const dataCC = typeof callCenterData !== 'undefined' ? callCenterData : [];
+                    filteredData = dataCC.filter(c => {
+                      const passInicio = !cierreFiltroInicio || c.fecha_sistema >= cierreFiltroInicio;
+                      const passFin = !cierreFiltroFin || c.fecha_sistema <= cierreFiltroFin;
+                      return passInicio && passFin;
+                    });
+                    totalAmount = filteredData.reduce((sum, c) => sum + (parseFloat(c.comision) || 0), 0);
+
+                    return (
+                      <table id="tabla-cierre-financiero" className="min-w-full text-left text-sm whitespace-nowrap">
+                        <thead className="bg-purple-50">
+                          <tr className="text-purple-900 border-b">
+                            <th className="p-3">Fecha</th><th className="p-3">Reserva</th><th className="p-3">Cliente</th>
+                            <th className="p-3">Acción</th><th className="p-3 text-right">Comisión</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y">
+                          {filteredData.length === 0 ? <tr><td colSpan="5" className="p-4 text-center text-gray-500">No hay registros de Call Center en estas fechas.</td></tr> :
+                            filteredData.map(row => (
+                              <tr key={row.id} className="hover:bg-gray-50">
+                                <td className="p-2 font-medium">{row.fecha_sistema}</td><td className="p-2">{row.reserva}</td><td className="p-2 uppercase">{row.cliente}</td>
+                                <td className="p-2"><span className="px-2 py-1 rounded bg-gray-200 text-xs font-bold">{row.accion}</span></td>
+                                <td className="p-2 text-right font-bold text-purple-700">${parseFloat(row.comision || 0).toFixed(2)}</td>
+                              </tr>
+                            ))
+                          }
+                          <tr className="bg-gray-100 border-t-2 border-gray-300">
+                            <td colSpan="4" className="p-3 text-right font-bold text-gray-700 uppercase">Total Comisiones:</td>
+                            <td className="p-3 text-right font-black text-purple-800 text-lg">${totalAmount.toFixed(2)}</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    );
+                  }
+
+                  else if (cierreFiltroTipo === 'gastos') {
+                    const dataGastos = typeof gastosFlota !== 'undefined' ? gastosFlota : [];
+                    filteredData = dataGastos.filter(g => {
+                      const passInicio = !cierreFiltroInicio || g.fecha >= cierreFiltroInicio;
+                      const passFin = !cierreFiltroFin || g.fecha <= cierreFiltroFin;
+                      const passVehiculo = !cierreFiltroVehiculo || (g.vehiculo && g.vehiculo.toLowerCase() === cierreFiltroVehiculo.toLowerCase());
+                      return passInicio && passFin && passVehiculo;
+                    });
+                    totalAmount = filteredData.reduce((sum, g) => sum + (parseFloat(g.gasto_total) || 0), 0);
+
+                    return (
+                      <table id="tabla-cierre-financiero" className="min-w-full text-left text-sm whitespace-nowrap">
+                        <thead className="bg-orange-50">
+                          <tr className="text-orange-900 border-b">
+                            <th className="p-3">Fecha</th><th className="p-3">Vehículo</th><th className="p-3">Chofer</th>
+                            <th className="p-3">Detalle de Gastos (Sub-total)</th><th className="p-3 text-right">Gasto Total (Egreso)</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y">
+                          {filteredData.length === 0 ? <tr><td colSpan="5" className="p-4 text-center text-gray-500">No hay gastos registrados en estas fechas.</td></tr> :
+                            filteredData.map(row => (
+                              <tr key={row.id} className="hover:bg-gray-50">
+                                <td className="p-2 font-medium">{row.fecha}</td><td className="p-2">{row.vehiculo}</td><td className="p-2 uppercase">{row.chofer}</td>
+
+                                {/* NUEVA CELDA DINÁMICA DE CONCEPTOS */}
+                                <td className="p-2">
+                                  <div className="flex flex-col gap-1 text-xs">
+                                    {row.concepto && row.concepto.includes('|') ? (
+                                      // 1. Lógica para los registros nuevos (Ej. Dua|4000,Gasolina|800)
+                                      row.concepto.split(',').map((item, idx) => {
+                                        const partes = item.split('|');
+                                        return (
+                                          <div key={idx} className="flex justify-between w-48 border-b border-gray-100 border-dashed pb-1">
+                                            <span className="font-semibold text-gray-600 uppercase">{partes[0]}</span>
+                                            <span className="font-bold text-gray-800">${parseFloat(partes[1]).toFixed(2)}</span>
+                                          </div>
+                                        )
+                                      })
+                                    ) : (
+                                      // 2. Rescate visual para registros viejos (Antes de la actualización)
+                                      <>
+                                        {row.gasolina > 0 && <div className="flex justify-between w-48 border-b border-gray-100 border-dashed pb-1"><span className="font-semibold text-gray-600 uppercase">GASOLINA</span><span className="font-bold text-gray-800">${parseFloat(row.gasolina).toFixed(2)}</span></div>}
+                                        {row.casetas > 0 && <div className="flex justify-between w-48 border-b border-gray-100 border-dashed pb-1"><span className="font-semibold text-gray-600 uppercase">CASETAS</span><span className="font-bold text-gray-800">${parseFloat(row.casetas).toFixed(2)}</span></div>}
+                                        {(!row.gasolina && !row.casetas && row.gasto_total > 0) && <div className="flex justify-between w-48 border-b border-gray-100 border-dashed pb-1"><span className="font-semibold text-gray-600 uppercase">{row.concepto || 'VARIOS'}</span><span className="font-bold text-gray-800">${parseFloat(row.gasto_total).toFixed(2)}</span></div>}
+                                      </>
+                                    )}
+                                  </div>
+                                </td>
+
+                                <td className="p-2 text-right font-bold text-red-700">${parseFloat(row.gasto_total || 0).toFixed(2)}</td>
+                              </tr>
+                            ))
+                          }
+                          <tr className="bg-gray-100 border-t-2 border-gray-300">
+                            <td colSpan="4" className="p-3 text-right font-bold text-gray-700 uppercase">Total Egresos:</td>
+                            <td className="p-3 text-right font-black text-red-800 text-lg">${totalAmount.toFixed(2)}</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    );
+                  }
+                })()}
+              </div>
+
             </div>
+          )}
+          {/* --- NUEVA PESTAÑA: ADMINISTRACIÓN DE USUARIOS --- */}
+          {activeTab === 'usuarios' && userProfile?.rol === 'admin' && (
+            <div className="bg-white rounded-lg shadow-md p-6 border-t-4 border-red-600">
+              <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+                <ShieldCheck className="text-red-600" /> Administración de Usuarios y Permisos
+              </h2>
 
-          </div>
-        )}
-        {/* --- NUEVA PESTAÑA: ADMINISTRACIÓN DE USUARIOS --- */}
-        {activeTab === 'usuarios' && userProfile?.rol === 'admin' && (
-          <div className="bg-white rounded-lg shadow-md p-6 border-t-4 border-red-600">
-            <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-              <ShieldCheck className="text-red-600" /> Administración de Usuarios y Permisos
-            </h2>
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Columna Izquierda: Lista de Usuarios */}
+                <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 flex flex-col">
+                  <div className="flex justify-between items-center border-b pb-2 mb-4">
+                    <h3 className="font-semibold text-gray-700">Usuarios del Sistema</h3>
+                    <button onClick={descargarListaUsuarios} className="text-xs text-blue-600 hover:text-blue-800 font-bold" title="Recargar lista">
+                      🔄 Actualizar
+                    </button>
+                  </div>
 
-              {/* Columna Izquierda: Lista de Usuarios */}
-              <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 flex flex-col">
-                <div className="flex justify-between items-center border-b pb-2 mb-4">
-                  <h3 className="font-semibold text-gray-700">Usuarios del Sistema</h3>
-                  <button onClick={descargarListaUsuarios} className="text-xs text-blue-600 hover:text-blue-800 font-bold" title="Recargar lista">
-                    🔄 Actualizar
+                  <div className="flex-1 overflow-y-auto space-y-2 mb-4 max-h-96">
+                    {listaUsuarios.length === 0 ? (
+                      <div className="text-sm text-gray-500 text-center py-4">Presiona actualizar para ver la lista</div>
+                    ) : (
+                      listaUsuarios.map((usr) => (
+                        <button
+                          key={usr.id}
+                          onClick={() => setUsuarioSeleccionado(usr)}
+                          className={`w-full text-left p-3 rounded-md border transition-colors flex flex-col ${usuarioSeleccionado?.id === usr.id ? 'bg-red-50 border-red-300' : 'bg-white border-gray-200 hover:bg-gray-100'}`}
+                        >
+                          <span className="font-bold text-gray-800 text-sm truncate">{usr.email || 'Usuario sin correo'}</span>
+                          <span className={`text-xs font-semibold mt-1 w-max px-2 rounded-full ${usr.rol === 'admin' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}`}>
+                            {usr.rol === 'admin' ? 'Administrador' : 'Chofer / Staff'}
+                          </span>
+                        </button>
+                      ))
+                    )}
+                  </div>
+
+                  <button className="mt-auto w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 text-sm font-medium transition-colors shadow-sm">
+                    + Agregar Nuevo Usuario
                   </button>
                 </div>
 
-                <div className="flex-1 overflow-y-auto space-y-2 mb-4 max-h-96">
-                  {listaUsuarios.length === 0 ? (
-                    <div className="text-sm text-gray-500 text-center py-4">Presiona actualizar para ver la lista</div>
+                {/* Columna Derecha: Editor de Permisos */}
+                <div className="lg:col-span-2 bg-white p-4 rounded-lg border border-gray-200 shadow-sm flex flex-col h-full">
+                  <h3 className="font-semibold text-gray-700 border-b pb-2 mb-4">Ajustes y Permisos</h3>
+
+                  {!usuarioSeleccionado ? (
+                    <div className="text-center py-12 text-gray-400 flex-1 flex flex-col justify-center">
+                      <ShieldCheck size={48} className="mx-auto mb-3 opacity-30" />
+                      <p className="text-lg font-medium text-gray-500">Selecciona un usuario de la lista</p>
+                      <p className="text-sm">Para ver y editar los botones a los que tiene acceso.</p>
+                    </div>
                   ) : (
-                    listaUsuarios.map((usr) => (
-                      <button
-                        key={usr.id}
-                        onClick={() => setUsuarioSeleccionado(usr)}
-                        className={`w-full text-left p-3 rounded-md border transition-colors flex flex-col ${usuarioSeleccionado?.id === usr.id ? 'bg-red-50 border-red-300' : 'bg-white border-gray-200 hover:bg-gray-100'}`}
-                      >
-                        <span className="font-bold text-gray-800 text-sm truncate">{usr.email || 'Usuario sin correo'}</span>
-                        <span className={`text-xs font-semibold mt-1 w-max px-2 rounded-full ${usr.rol === 'admin' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}`}>
-                          {usr.rol === 'admin' ? 'Administrador' : 'Chofer / Staff'}
-                        </span>
-                      </button>
-                    ))
+                    <div className="flex flex-col flex-1">
+
+                      {/* Cabecera del Editor */}
+                      <div className="mb-6 flex flex-wrap gap-4 justify-between items-center bg-gray-50 p-4 rounded-md border">
+                        <div>
+                          <p className="text-sm text-gray-500 font-semibold uppercase">Editando perfil de:</p>
+                          <p className="text-xl font-bold text-gray-800">{usuarioSeleccionado.email}</p>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Nivel de Acceso General</label>
+                          <select
+                            value={usuarioSeleccionado.rol}
+                            onChange={(e) => handleRolChange(e.target.value)}
+                            className={`border rounded-md p-2 font-bold focus:outline-none cursor-pointer shadow-sm ${usuarioSeleccionado.rol === 'admin' ? 'bg-red-100 text-red-700 border-red-300' : 'bg-blue-100 text-blue-700 border-blue-300'}`}
+                          >
+                            <option value="chofer">Chofer / Staff</option>
+                            <option value="admin">Administrador Supremo</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      {/* ZONA DE INTERRUPTORES */}
+                      <div className="flex-1 overflow-y-auto space-y-6 pr-2">
+
+                        {/* Módulo: Rol Diario */}
+                        <div className="border border-gray-200 rounded-lg overflow-hidden shadow-sm">
+                          <div className="bg-gray-100 px-4 py-2 border-b font-bold text-gray-700 flex items-center gap-2">
+                            <Calendar size={18} className="text-blue-600" /> Módulo: Rol Diario
+                          </div>
+                          <div className="p-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 bg-white">
+                            {Object.keys(usuarioSeleccionado.permisos?.rol_diario || {}).map((llave) => (
+                              <label key={llave} className="flex items-center gap-3 cursor-pointer p-2 hover:bg-gray-50 rounded border border-transparent hover:border-gray-200 transition-colors">
+                                <input
+                                  type="checkbox"
+                                  checked={usuarioSeleccionado.permisos.rol_diario[llave]}
+                                  onChange={() => handlePermisoChange('rol_diario', llave)}
+                                  className="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
+                                />
+                                <span className="text-sm font-medium text-gray-700 capitalize">
+                                  {llave.replace(/_/g, ' ')}
+                                </span>
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Módulo: Accesos Principales (Pestañas) */}
+                        <div className="border border-gray-200 rounded-lg overflow-hidden shadow-sm">
+                          <div className="bg-purple-100 px-4 py-2 border-b border-purple-200 font-bold text-purple-900 flex items-center gap-2">
+                            <Globe size={18} className="text-purple-600" /> Accesos Principales (Menú Superior)
+                          </div>
+                          <div className="p-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 bg-white">
+                            {/* Generamos los botones manualmente para asegurarnos de que existan */}
+                            {['ingresar_reserva', 'ingreso_cc', 'control_flota', 'base_de_datos', 'cierre'].map((llave) => (
+                              <label key={llave} className="flex items-center gap-3 cursor-pointer p-2 hover:bg-purple-50 rounded border border-transparent hover:border-purple-200 transition-colors">
+                                <input
+                                  type="checkbox"
+                                  // Usamos !! para forzar a booleano, y el ? para que no rompa si la vista es nueva
+                                  checked={!!usuarioSeleccionado.permisos?.vistas?.[llave]}
+                                  onChange={() => handlePermisoChange('vistas', llave)}
+                                  className="w-5 h-5 text-purple-600 rounded border-gray-300 focus:ring-purple-500 cursor-pointer"
+                                />
+                                <span className="text-sm font-medium text-gray-700 capitalize">
+                                  {llave.replace(/_/g, ' ')}
+                                </span>
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Módulo: Catálogos */}
+                        <div className="border border-gray-200 rounded-lg overflow-hidden shadow-sm">
+                          <div className="bg-gray-100 px-4 py-2 border-b font-bold text-gray-700 flex items-center gap-2">
+                            <Database size={18} className="text-orange-500" /> Módulo: Catálogos
+                          </div>
+                          <div className="p-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 bg-white">
+                            {Object.keys(usuarioSeleccionado.permisos?.catalogos || {}).map((llave) => (
+                              <label key={llave} className="flex items-center gap-3 cursor-pointer p-2 hover:bg-gray-50 rounded border border-transparent hover:border-gray-200 transition-colors">
+                                <input
+                                  type="checkbox"
+                                  checked={usuarioSeleccionado.permisos.catalogos[llave]}
+                                  onChange={() => handlePermisoChange('catalogos', llave)}
+                                  className="w-5 h-5 text-orange-600 rounded border-gray-300 focus:ring-orange-500 cursor-pointer"
+                                />
+                                <span className="text-sm font-medium text-gray-700 capitalize">
+                                  {llave.replace(/_/g, ' ')}
+                                </span>
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+
+                      </div>
+
+                      {/* Botón Guardar */}
+                      <div className="mt-6 pt-4 border-t flex justify-end gap-3">
+                        <button
+                          onClick={guardarPermisosUsuario}
+                          className="bg-green-600 text-white px-6 py-2 rounded-md hover:bg-green-700 font-bold shadow-md flex items-center gap-2 transition-colors"
+                        >
+                          <Save size={18} /> Guardar Configuración
+                        </button>
+                      </div>
+                    </div>
                   )}
                 </div>
 
-                <button className="mt-auto w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 text-sm font-medium transition-colors shadow-sm">
-                  + Agregar Nuevo Usuario
-                </button>
               </div>
+            </div>
+          )}
 
-              {/* Columna Derecha: Editor de Permisos */}
-              <div className="lg:col-span-2 bg-white p-4 rounded-lg border border-gray-200 shadow-sm flex flex-col h-full">
-                <h3 className="font-semibold text-gray-700 border-b pb-2 mb-4">Ajustes y Permisos</h3>
+        </main>
+        </div> {/* <-- ESTA ES LA LÍNEA NUEVA QUE DEBES AGREGAR */}
 
-                {!usuarioSeleccionado ? (
-                  <div className="text-center py-12 text-gray-400 flex-1 flex flex-col justify-center">
-                    <ShieldCheck size={48} className="mx-auto mb-3 opacity-30" />
-                    <p className="text-lg font-medium text-gray-500">Selecciona un usuario de la lista</p>
-                    <p className="text-sm">Para ver y editar los botones a los que tiene acceso.</p>
+        { }
+        {renderData?.type === 'share' && (
+          <div className="fixed top-0 left-0 -z-50 pointer-events-none opacity-0">
+            <div ref={shareRef} className="bg-white p-6 w-[500px] border-4 border-gray-800 rounded-xl font-sans">
+              <div className="flex justify-between items-center border-b-2 border-gray-200 pb-4 mb-4">
+                <BallardLogo className="h-12" />
+                <div className="text-right">
+                  <div className="text-sm text-gray-500 uppercase tracking-widest">{renderData.data.fecha}</div>
+                  <div className="text-2xl font-bold">{renderData.data.hora}</div>
+                </div>
+              </div>
+              <div className="space-y-4">
+                <div>
+                  <div className="text-xs text-gray-500 uppercase">Pasajero</div>
+                  <div className="text-xl font-bold uppercase">{renderData.data.nombre} {renderData.data.apellido}</div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-gray-50 p-3 rounded">
+                    <div className="text-xs text-gray-500 uppercase flex items-center gap-1"><MapPin size={12} /> Hotel / Destino</div>
+                    <div className="font-semibold">{renderData.data.hotel}</div>
                   </div>
-                ) : (
-                  <div className="flex flex-col flex-1">
-
-                    {/* Cabecera del Editor */}
-                    <div className="mb-6 flex flex-wrap gap-4 justify-between items-center bg-gray-50 p-4 rounded-md border">
-                      <div>
-                        <p className="text-sm text-gray-500 font-semibold uppercase">Editando perfil de:</p>
-                        <p className="text-xl font-bold text-gray-800">{usuarioSeleccionado.email}</p>
-                      </div>
-                      <div>
-                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Nivel de Acceso General</label>
-                        <select
-                          value={usuarioSeleccionado.rol}
-                          onChange={(e) => handleRolChange(e.target.value)}
-                          className={`border rounded-md p-2 font-bold focus:outline-none cursor-pointer shadow-sm ${usuarioSeleccionado.rol === 'admin' ? 'bg-red-100 text-red-700 border-red-300' : 'bg-blue-100 text-blue-700 border-blue-300'}`}
-                        >
-                          <option value="chofer">Chofer / Staff</option>
-                          <option value="admin">Administrador Supremo</option>
-                        </select>
-                      </div>
-                    </div>
-
-                    {/* ZONA DE INTERRUPTORES */}
-                    <div className="flex-1 overflow-y-auto space-y-6 pr-2">
-
-                      {/* Módulo: Rol Diario */}
-                      <div className="border border-gray-200 rounded-lg overflow-hidden shadow-sm">
-                        <div className="bg-gray-100 px-4 py-2 border-b font-bold text-gray-700 flex items-center gap-2">
-                          <Calendar size={18} className="text-blue-600" /> Módulo: Rol Diario
-                        </div>
-                        <div className="p-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 bg-white">
-                          {Object.keys(usuarioSeleccionado.permisos?.rol_diario || {}).map((llave) => (
-                            <label key={llave} className="flex items-center gap-3 cursor-pointer p-2 hover:bg-gray-50 rounded border border-transparent hover:border-gray-200 transition-colors">
-                              <input
-                                type="checkbox"
-                                checked={usuarioSeleccionado.permisos.rol_diario[llave]}
-                                onChange={() => handlePermisoChange('rol_diario', llave)}
-                                className="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
-                              />
-                              <span className="text-sm font-medium text-gray-700 capitalize">
-                                {llave.replace(/_/g, ' ')}
-                              </span>
-                            </label>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Módulo: Accesos Principales (Pestañas) */}
-                      <div className="border border-gray-200 rounded-lg overflow-hidden shadow-sm">
-                        <div className="bg-purple-100 px-4 py-2 border-b border-purple-200 font-bold text-purple-900 flex items-center gap-2">
-                          <Globe size={18} className="text-purple-600" /> Accesos Principales (Menú Superior)
-                        </div>
-                        <div className="p-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 bg-white">
-                          {/* Generamos los botones manualmente para asegurarnos de que existan */}
-                          {['ingresar_reserva', 'ingreso_cc', 'control_flota', 'base_de_datos', 'cierre'].map((llave) => (
-                            <label key={llave} className="flex items-center gap-3 cursor-pointer p-2 hover:bg-purple-50 rounded border border-transparent hover:border-purple-200 transition-colors">
-                              <input
-                                type="checkbox"
-                                // Usamos !! para forzar a booleano, y el ? para que no rompa si la vista es nueva
-                                checked={!!usuarioSeleccionado.permisos?.vistas?.[llave]}
-                                onChange={() => handlePermisoChange('vistas', llave)}
-                                className="w-5 h-5 text-purple-600 rounded border-gray-300 focus:ring-purple-500 cursor-pointer"
-                              />
-                              <span className="text-sm font-medium text-gray-700 capitalize">
-                                {llave.replace(/_/g, ' ')}
-                              </span>
-                            </label>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Módulo: Catálogos */}
-                      <div className="border border-gray-200 rounded-lg overflow-hidden shadow-sm">
-                        <div className="bg-gray-100 px-4 py-2 border-b font-bold text-gray-700 flex items-center gap-2">
-                          <Database size={18} className="text-orange-500" /> Módulo: Catálogos
-                        </div>
-                        <div className="p-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 bg-white">
-                          {Object.keys(usuarioSeleccionado.permisos?.catalogos || {}).map((llave) => (
-                            <label key={llave} className="flex items-center gap-3 cursor-pointer p-2 hover:bg-gray-50 rounded border border-transparent hover:border-gray-200 transition-colors">
-                              <input
-                                type="checkbox"
-                                checked={usuarioSeleccionado.permisos.catalogos[llave]}
-                                onChange={() => handlePermisoChange('catalogos', llave)}
-                                className="w-5 h-5 text-orange-600 rounded border-gray-300 focus:ring-orange-500 cursor-pointer"
-                              />
-                              <span className="text-sm font-medium text-gray-700 capitalize">
-                                {llave.replace(/_/g, ' ')}
-                              </span>
-                            </label>
-                          ))}
-                        </div>
-                      </div>
-
-                    </div>
-
-                    {/* Botón Guardar */}
-                    <div className="mt-6 pt-4 border-t flex justify-end gap-3">
-                      <button
-                        onClick={guardarPermisosUsuario}
-                        className="bg-green-600 text-white px-6 py-2 rounded-md hover:bg-green-700 font-bold shadow-md flex items-center gap-2 transition-colors"
-                      >
-                        <Save size={18} /> Guardar Configuración
-                      </button>
+                  <div className="bg-gray-50 p-3 rounded">
+                    <div className="text-xs text-gray-500 uppercase">Vuelo</div>
+                    <div className="font-semibold">{renderData.data.vuelo || 'N/A'}</div>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="border border-gray-200 p-3 rounded flex items-center justify-between">
+                    <span className="text-xs text-gray-500 uppercase flex items-center gap-1"><Users size={12} /> Pasajeros</span>
+                    <span className="font-bold text-lg">{renderData.data.pax}</span>
+                  </div>
+                  <div className="border border-gray-200 p-3 rounded flex items-center justify-between">
+                    <span className="text-xs text-gray-500 uppercase">Servicio</span>
+                    <span className="font-bold text-blue-800">{renderData.data.tipoServicio}</span>
+                  </div>
+                </div>
+                {(renderData.data.carSeat > 0 || renderData.data.babySeat > 0 || renderData.data.booster > 0 || renderData.data.paradaCompras) && (
+                  <div className="bg-blue-50 text-blue-900 p-3 rounded border border-blue-100">
+                    <div className="text-xs uppercase mb-1 font-semibold flex items-center gap-1"><Car size={12} /> Extras</div>
+                    <div className="flex flex-wrap gap-3 font-medium text-sm">
+                      {renderData.data.carSeat > 0 && <span>Car Seat: {renderData.data.carSeat}</span>}
+                      {renderData.data.babySeat > 0 && <span>Baby Seat: {renderData.data.babySeat}</span>}
+                      {renderData.data.booster > 0 && <span>Booster: {renderData.data.booster}</span>}
+                      {renderData.data.paradaCompras && <span className="bg-blue-200 px-2 py-0.5 rounded">Parada de Compras</span>}
                     </div>
                   </div>
                 )}
               </div>
-
             </div>
           </div>
         )}
 
-      </main>
-
-      { }
-      {renderData?.type === 'share' && (
-        <div className="fixed top-0 left-0 -z-50 pointer-events-none opacity-0">
-          <div ref={shareRef} className="bg-white p-6 w-[500px] border-4 border-gray-800 rounded-xl font-sans">
-            <div className="flex justify-between items-center border-b-2 border-gray-200 pb-4 mb-4">
-              <BallardLogo className="h-12" />
-              <div className="text-right">
-                <div className="text-sm text-gray-500 uppercase tracking-widest">{renderData.data.fecha}</div>
-                <div className="text-2xl font-bold">{renderData.data.hora}</div>
+        {renderData?.type === 'sign' && (
+          <div className="fixed top-0 left-0 -z-50 pointer-events-none opacity-0">
+            <div ref={signRef} className="bg-white w-[1122px] h-[793px] flex flex-col items-center justify-center p-12 relative overflow-hidden font-sans">
+              <div className="mb-12 flex justify-center w-full">
+                <BallardLogo className="h-48" />
               </div>
-            </div>
-            <div className="space-y-4">
-              <div>
-                <div className="text-xs text-gray-500 uppercase">Pasajero</div>
-                <div className="text-xl font-bold uppercase">{renderData.data.nombre} {renderData.data.apellido}</div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-gray-50 p-3 rounded">
-                  <div className="text-xs text-gray-500 uppercase flex items-center gap-1"><MapPin size={12} /> Hotel / Destino</div>
-                  <div className="font-semibold">{renderData.data.hotel}</div>
+              <div className="text-center w-full max-w-4xl mb-16">
+                <div className="text-[130px] leading-none font-bold uppercase text-black break-words px-4 text-center w-full">
+                  {renderData.data.nombre}
                 </div>
-                <div className="bg-gray-50 p-3 rounded">
-                  <div className="text-xs text-gray-500 uppercase">Vuelo</div>
-                  <div className="font-semibold">{renderData.data.vuelo || 'N/A'}</div>
+                <div className="text-[130px] leading-tight font-bold uppercase text-black break-words px-4 text-center w-full mt-6">
+                  {renderData.data.apellido}
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="border border-gray-200 p-3 rounded flex items-center justify-between">
-                  <span className="text-xs text-gray-500 uppercase flex items-center gap-1"><Users size={12} /> Pasajeros</span>
-                  <span className="font-bold text-lg">{renderData.data.pax}</span>
-                </div>
-                <div className="border border-gray-200 p-3 rounded flex items-center justify-between">
-                  <span className="text-xs text-gray-500 uppercase">Servicio</span>
-                  <span className="font-bold text-blue-800">{renderData.data.tipoServicio}</span>
-                </div>
+              <div className="text-4xl font-medium tracking-[0.4em] text-gray-600 mt-4">
+                WELCOME!
               </div>
-              {(renderData.data.carSeat > 0 || renderData.data.babySeat > 0 || renderData.data.booster > 0 || renderData.data.paradaCompras) && (
-                <div className="bg-blue-50 text-blue-900 p-3 rounded border border-blue-100">
-                  <div className="text-xs uppercase mb-1 font-semibold flex items-center gap-1"><Car size={12} /> Extras</div>
-                  <div className="flex flex-wrap gap-3 font-medium text-sm">
-                    {renderData.data.carSeat > 0 && <span>Car Seat: {renderData.data.carSeat}</span>}
-                    {renderData.data.babySeat > 0 && <span>Baby Seat: {renderData.data.babySeat}</span>}
-                    {renderData.data.booster > 0 && <span>Booster: {renderData.data.booster}</span>}
-                    {renderData.data.paradaCompras && <span className="bg-blue-200 px-2 py-0.5 rounded">Parada de Compras</span>}
-                  </div>
-                </div>
-              )}
             </div>
           </div>
-        </div>
-      )}
+        )}
+        {/* --- MODAL DEL TICKET DE IMPRESIÓN --- */}
+        {ticketDataToPrint && (
+          <div className="fixed inset-0 z-[9999] bg-gray-100 overflow-y-auto flex flex-col items-center py-8 px-4 font-sans print:p-0 print:bg-white">
 
-      {renderData?.type === 'sign' && (
-        <div className="fixed top-0 left-0 -z-50 pointer-events-none opacity-0">
-          <div ref={signRef} className="bg-white w-[1122px] h-[793px] flex flex-col items-center justify-center p-12 relative overflow-hidden font-sans">
-            <div className="mb-12 flex justify-center w-full">
-              <BallardLogo className="h-48" />
-            </div>
-            <div className="text-center w-full max-w-4xl mb-16">
-              <div className="text-[130px] leading-none font-bold uppercase text-black break-words px-4 text-center w-full">
-                {renderData.data.nombre}
-              </div>
-              <div className="text-[130px] leading-tight font-bold uppercase text-black break-words px-4 text-center w-full mt-6">
-                {renderData.data.apellido}
-              </div>
-            </div>
-            <div className="text-4xl font-medium tracking-[0.4em] text-gray-600 mt-4">
-              WELCOME!
-            </div>
-          </div>
-        </div>
-      )}
-      {/* --- MODAL DEL TICKET DE IMPRESIÓN --- */}
-      {ticketDataToPrint && (
-        <div className="fixed inset-0 z-[9999] bg-gray-100 overflow-y-auto flex flex-col items-center py-8 px-4 font-sans print:p-0 print:bg-white">
+            {/* Controles superiores (se ocultan al imprimir) */}
+            <div className="mb-8 flex flex-wrap justify-center gap-4 print:hidden">
+              <button
+                onClick={() => setTicketLang(ticketLang === 'EN' ? 'ES' : 'EN')}
+                className="bg-white border-2 border-slate-900 text-slate-900 font-bold py-2 px-6 rounded-xl transition-colors hover:bg-slate-100 shadow-md"
+              >
+                🔄 Cambiar a {ticketLang === 'EN' ? 'Español' : 'English'}
+              </button>
+              <button
+                onClick={() => {
+                  // 1. Conseguimos el folio real del ticket actual (ej. BTS00006)
+                  // Cambia "currentTicket.folio" o "service.reserva" por la variable exacta donde guardas el folio
+                  const numeroTicket = currentService?.folio || currentService?.reserva || "00000";
 
-          {/* Controles superiores (se ocultan al imprimir) */}
-          <div className="mb-8 flex flex-wrap justify-center gap-4 print:hidden">
-            <button
-              onClick={() => setTicketLang(ticketLang === 'EN' ? 'ES' : 'EN')}
-              className="bg-white border-2 border-slate-900 text-slate-900 font-bold py-2 px-6 rounded-xl transition-colors hover:bg-slate-100 shadow-md"
-            >
-              🔄 Cambiar a {ticketLang === 'EN' ? 'Español' : 'English'}
-            </button>
-            <button
-              onClick={() => {
-                // 1. Conseguimos el folio real del ticket actual (ej. BTS00006)
-                // Cambia "currentTicket.folio" o "service.reserva" por la variable exacta donde guardas el folio
-                const numeroTicket = currentService?.folio || currentService?.reserva || "00000";
+                  // 2. Guardamos el título original de la pestaña de tu app
+                  const tituloOriginal = document.title;
 
-                // 2. Guardamos el título original de la pestaña de tu app
-                const tituloOriginal = document.title;
+                  // 3. LE CAMBIAMOS EL NOMBRE AL ARCHIVO AUTOMÁTICAMENTE
+                  // Al hacer esto, el navegador usará este texto exacto como nombre por defecto del PDF
+                  document.title = `TICKET-${numeroTicket}`;
 
-                // 3. LE CAMBIAMOS EL NOMBRE AL ARCHIVO AUTOMÁTICAMENTE
-                // Al hacer esto, el navegador usará este texto exacto como nombre por defecto del PDF
-                document.title = `TICKET-${numeroTicket}`;
-
-                // 4. EL TRUCO CONTRA LA SEGUNDA HOJA: Creamos un estilo temporal ultra-estricto para la impresión
-                const estiloImpresion = document.createElement('style');
-                estiloImpresion.innerHTML = `
+                  // 4. EL TRUCO CONTRA LA SEGUNDA HOJA: Creamos un estilo temporal ultra-estricto para la impresión
+                  const estiloImpresion = document.createElement('style');
+                  estiloImpresion.innerHTML = `
       @media print {
         @page {
           size: letter !important; /* Forzamos tamaño carta */
@@ -3729,196 +3735,196 @@ export default function App() {
         }
       }
     `;
-                document.head.appendChild(estiloImpresion);
+                  document.head.appendChild(estiloImpresion);
 
-                // 5. Mandamos a imprimir / Guardar PDF
-                window.print();
+                  // 5. Mandamos a imprimir / Guardar PDF
+                  window.print();
 
-                // 6. LIMPIEZA: Cuando se cierre el asistente de PDF, regresamos todo a la normalidad
-                setTimeout(() => {
-                  document.title = tituloOriginal; // Regresa el nombre normal de tu app a la pestaña
-                  document.head.removeChild(estiloImpresion); // Quitamos el parche de impresión temporal
-                }, 1000);
-              }}
-              className="bg-amber-500 hover:bg-amber-600 text-white font-bold py-2 px-4 rounded shadow flex items-center gap-2 text-sm transition-colors"
-            >
-              🖨️ Imprimir / PDF
-            </button>
-            {/* BOTÓN REGRESAR AL MENÚ */}
-            <button
-              onClick={() => {
-                // Aquí cerramos la vista del ticket
-                // Busca cómo se llama la variable que usas para abrirlo, seguramente es algo como:
-                setTicketDataToPrint(null);
-              }}
-              className="bg-slate-800 hover:bg-slate-900 text-white font-bold py-2 px-4 rounded shadow flex items-center gap-2 text-sm transition-colors"
-            >
-              ⬅️ Regresar al Menú
-            </button>
-          </div>
+                  // 6. LIMPIEZA: Cuando se cierre el asistente de PDF, regresamos todo a la normalidad
+                  setTimeout(() => {
+                    document.title = tituloOriginal; // Regresa el nombre normal de tu app a la pestaña
+                    document.head.removeChild(estiloImpresion); // Quitamos el parche de impresión temporal
+                  }, 1000);
+                }}
+                className="bg-amber-500 hover:bg-amber-600 text-white font-bold py-2 px-4 rounded shadow flex items-center gap-2 text-sm transition-colors"
+              >
+                🖨️ Imprimir / PDF
+              </button>
+              {/* BOTÓN REGRESAR AL MENÚ */}
+              <button
+                onClick={() => {
+                  // Aquí cerramos la vista del ticket
+                  // Busca cómo se llama la variable que usas para abrirlo, seguramente es algo como:
+                  setTicketDataToPrint(null);
+                }}
+                className="bg-slate-800 hover:bg-slate-900 text-white font-bold py-2 px-4 rounded shadow flex items-center gap-2 text-sm transition-colors"
+              >
+                ⬅️ Regresar al Menú
+              </button>
+            </div>
 
-          {/* ÁREA DEL TICKET */}
-          <div className="w-full max-w-2xl flex justify-center print:w-full">
-            <div className="w-full bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col border border-gray-200 print:shadow-none print:border-gray-400 print:rounded-none">
+            {/* ÁREA DEL TICKET */}
+            <div className="w-full max-w-2xl flex justify-center print:w-full">
+              <div className="w-full bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col border border-gray-200 print:shadow-none print:border-gray-400 print:rounded-none">
 
-              <div className="bg-slate-900 text-white p-8 relative overflow-hidden">
-                <div className="absolute top-0 right-0 p-8 opacity-10">
-                  <SuvIcon size={150} />
-                </div>
-
-                <div className="relative z-10 flex justify-between items-start">
-                  <div>
-                    <h1 className="text-3xl font-black tracking-wider text-amber-500 uppercase">Ballard</h1>
-                    <p className="text-sm font-medium tracking-widest text-slate-300 uppercase">Tour Services</p>
-                  </div>
-                  <div className="text-right">
-                    <div className="inline-block bg-amber-500 text-slate-900 font-bold px-3 py-1 rounded text-xs tracking-wider mb-2 uppercase">
-                      {ticketLang === 'EN' ? 'CONFIRMED' : 'CONFIRMADO'}
-                    </div>
-                    {/* El folio dinámico: Si no tiene reserva, usa su ID corto */}
-                    <p className="font-mono text-sm text-slate-300 uppercase font-bold">Folio: {ticketDataToPrint.reserva || ticketDataToPrint.id.slice(-5)}</p>
-                  </div>
-                </div>
-
-                <div className="mt-8 flex justify-between items-end relative z-10">
-                  <div>
-                    <h2 className="text-xl font-bold tracking-wide uppercase">{ticketLang === 'EN' ? 'PRIVATE TRANSPORTATION' : 'TRANSPORTE PRIVADO'}</h2>
-                    <p className="text-slate-400 text-sm mt-1 flex items-center gap-2">
-                      <ShieldCheck size={16} className="text-amber-500" />
-                      Boleto Seguro / Safe Ticket
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="relative h-4 bg-white">
-                <div className="absolute w-full border-t-2 border-dashed border-gray-300 top-1/2"></div>
-                <div className="absolute left-0 top-1/2 -mt-3 -ml-3 w-6 h-6 bg-gray-100 print:bg-white rounded-full"></div>
-                <div className="absolute right-0 top-1/2 -mt-3 -mr-3 w-6 h-6 bg-gray-100 print:bg-white rounded-full"></div>
-              </div>
-
-              <div className="p-8 pb-6 grid grid-cols-1 md:grid-cols-2 gap-y-6 gap-x-8">
-                <div className="space-y-5">
-                  <div>
-                    <p className="text-xs text-gray-500 font-bold uppercase tracking-wider mb-1">{ticketLang === 'EN' ? 'Passenger Name' : 'Nombre del Pasajero'}</p>
-                    <p className="text-lg font-bold text-slate-800 flex items-center gap-2 uppercase">
-                      <User size={18} className="text-amber-500" />
-                      {ticketDataToPrint.nombre} {ticketDataToPrint.apellido}
-                    </p>
+                <div className="bg-slate-900 text-white p-8 relative overflow-hidden">
+                  <div className="absolute top-0 right-0 p-8 opacity-10">
+                    <SuvIcon size={150} />
                   </div>
 
-                  <div>
-                    <p className="text-xs text-gray-500 font-bold uppercase tracking-wider mb-1">
-                      {ticketLang === 'EN'
-                        ? (ticketDataToPrint.tipoServicio === 'Llegada' ? 'Arrival Date & Time' : 'Pick Up Date & Time')
-                        : (ticketDataToPrint.tipoServicio === 'Llegada' ? 'Fecha y Hora de Llegada' : 'Fecha y Hora de Pick Up')}
-                    </p>
-                    <div className="flex flex-col gap-1">
-                      <p className="text-base font-bold text-slate-800 flex items-center gap-2">
-                        <Calendar size={18} className="text-amber-500" />
-                        {ticketDataToPrint.fecha}
-                      </p>
-                      <p className="text-base font-bold text-slate-800 flex items-center gap-2">
-                        <Clock size={18} className="text-amber-500" />
-                        {ticketDataToPrint.hora} {ticketDataToPrint.tipoServicio === 'Salida' ? '(Lobby)' : ''}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-5">
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="relative z-10 flex justify-between items-start">
                     <div>
-                      <p className="text-xs text-gray-500 font-bold uppercase tracking-wider mb-1">PAX</p>
-                      <p className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                        <Users size={18} className="text-amber-500" />
-                        {ticketDataToPrint.pax}
+                      <h1 className="text-3xl font-black tracking-wider text-amber-500 uppercase">Ballard</h1>
+                      <p className="text-sm font-medium tracking-widest text-slate-300 uppercase">Tour Services</p>
+                    </div>
+                    <div className="text-right">
+                      <div className="inline-block bg-amber-500 text-slate-900 font-bold px-3 py-1 rounded text-xs tracking-wider mb-2 uppercase">
+                        {ticketLang === 'EN' ? 'CONFIRMED' : 'CONFIRMADO'}
+                      </div>
+                      {/* El folio dinámico: Si no tiene reserva, usa su ID corto */}
+                      <p className="font-mono text-sm text-slate-300 uppercase font-bold">Folio: {ticketDataToPrint.reserva || ticketDataToPrint.id.slice(-5)}</p>
+                    </div>
+                  </div>
+
+                  <div className="mt-8 flex justify-between items-end relative z-10">
+                    <div>
+                      <h2 className="text-xl font-bold tracking-wide uppercase">{ticketLang === 'EN' ? 'PRIVATE TRANSPORTATION' : 'TRANSPORTE PRIVADO'}</h2>
+                      <p className="text-slate-400 text-sm mt-1 flex items-center gap-2">
+                        <ShieldCheck size={16} className="text-amber-500" />
+                        Boleto Seguro / Safe Ticket
                       </p>
                     </div>
+                  </div>
+                </div>
+
+                <div className="relative h-4 bg-white">
+                  <div className="absolute w-full border-t-2 border-dashed border-gray-300 top-1/2"></div>
+                  <div className="absolute left-0 top-1/2 -mt-3 -ml-3 w-6 h-6 bg-gray-100 print:bg-white rounded-full"></div>
+                  <div className="absolute right-0 top-1/2 -mt-3 -mr-3 w-6 h-6 bg-gray-100 print:bg-white rounded-full"></div>
+                </div>
+
+                <div className="p-8 pb-6 grid grid-cols-1 md:grid-cols-2 gap-y-6 gap-x-8">
+                  <div className="space-y-5">
                     <div>
-                      <p className="text-xs text-gray-500 font-bold uppercase tracking-wider mb-1">{ticketLang === 'EN' ? 'Flight' : 'Vuelo'}</p>
+                      <p className="text-xs text-gray-500 font-bold uppercase tracking-wider mb-1">{ticketLang === 'EN' ? 'Passenger Name' : 'Nombre del Pasajero'}</p>
                       <p className="text-lg font-bold text-slate-800 flex items-center gap-2 uppercase">
-                        <Plane size={18} className="text-amber-500" />
-                        {ticketDataToPrint.vuelo || 'N/A'}
+                        <User size={18} className="text-amber-500" />
+                        {ticketDataToPrint.nombre} {ticketDataToPrint.apellido}
                       </p>
+                    </div>
+
+                    <div>
+                      <p className="text-xs text-gray-500 font-bold uppercase tracking-wider mb-1">
+                        {ticketLang === 'EN'
+                          ? (ticketDataToPrint.tipoServicio === 'Llegada' ? 'Arrival Date & Time' : 'Pick Up Date & Time')
+                          : (ticketDataToPrint.tipoServicio === 'Llegada' ? 'Fecha y Hora de Llegada' : 'Fecha y Hora de Pick Up')}
+                      </p>
+                      <div className="flex flex-col gap-1">
+                        <p className="text-base font-bold text-slate-800 flex items-center gap-2">
+                          <Calendar size={18} className="text-amber-500" />
+                          {ticketDataToPrint.fecha}
+                        </p>
+                        <p className="text-base font-bold text-slate-800 flex items-center gap-2">
+                          <Clock size={18} className="text-amber-500" />
+                          {ticketDataToPrint.hora} {ticketDataToPrint.tipoServicio === 'Salida' ? '(Lobby)' : ''}
+                        </p>
+                      </div>
                     </div>
                   </div>
 
-                  <div>
-                    <p className="text-xs text-gray-500 font-bold uppercase tracking-wider mb-1">{ticketLang === 'EN' ? 'Hotel / Destination' : 'Hotel / Destino'}</p>
-                    <p className="text-base font-bold text-slate-800 flex items-start gap-2">
-                      <MapPin size={18} className="text-amber-500 min-w-max mt-0.5" />
-                      <span className="leading-tight uppercase">{ticketDataToPrint.hotel}</span>
-                    </p>
+                  <div className="space-y-5">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-xs text-gray-500 font-bold uppercase tracking-wider mb-1">PAX</p>
+                        <p className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                          <Users size={18} className="text-amber-500" />
+                          {ticketDataToPrint.pax}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500 font-bold uppercase tracking-wider mb-1">{ticketLang === 'EN' ? 'Flight' : 'Vuelo'}</p>
+                        <p className="text-lg font-bold text-slate-800 flex items-center gap-2 uppercase">
+                          <Plane size={18} className="text-amber-500" />
+                          {ticketDataToPrint.vuelo || 'N/A'}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div>
+                      <p className="text-xs text-gray-500 font-bold uppercase tracking-wider mb-1">{ticketLang === 'EN' ? 'Hotel / Destination' : 'Hotel / Destino'}</p>
+                      <p className="text-base font-bold text-slate-800 flex items-start gap-2">
+                        <MapPin size={18} className="text-amber-500 min-w-max mt-0.5" />
+                        <span className="leading-tight uppercase">{ticketDataToPrint.hotel}</span>
+                      </p>
+                    </div>
+
+                    {/* NUEVA SECCIÓN DE PAGO */}
+                    <div>
+                      <p className="text-xs text-gray-500 font-bold uppercase tracking-wider mb-1">{ticketLang === 'EN' ? 'Payment / Method' : 'Cobro / Método'}</p>
+                      <p className="text-base font-bold text-slate-800 flex items-center gap-2 uppercase">
+                        {/* Ícono de dinero hecho a medida */}
+                        <span className="bg-amber-500 text-slate-900 rounded-full w-5 h-5 flex items-center justify-center font-black text-xs">
+                          $
+                        </span>
+                        {/* Lógica: Si hay cobro lo muestra con su método, si está vacío o es 0 dice PREPAGADO */}
+                        {ticketDataToPrint.cobro && ticketDataToPrint.cobro !== '0'
+                          ? `$${ticketDataToPrint.cobro} ${ticketDataToPrint.metodoPago ? `(${ticketDataToPrint.metodoPago})` : ''}`
+                          : (ticketLang === 'EN' ? 'PREPAID' : 'PREPAGADO')}
+                      </p>
+                    </div>
+
                   </div>
+                </div>
 
-                  {/* NUEVA SECCIÓN DE PAGO */}
-                  <div>
-                    <p className="text-xs text-gray-500 font-bold uppercase tracking-wider mb-1">{ticketLang === 'EN' ? 'Payment / Method' : 'Cobro / Método'}</p>
-                    <p className="text-base font-bold text-slate-800 flex items-center gap-2 uppercase">
-                      {/* Ícono de dinero hecho a medida */}
-                      <span className="bg-amber-500 text-slate-900 rounded-full w-5 h-5 flex items-center justify-center font-black text-xs">
-                        $
-                      </span>
-                      {/* Lógica: Si hay cobro lo muestra con su método, si está vacío o es 0 dice PREPAGADO */}
-                      {ticketDataToPrint.cobro && ticketDataToPrint.cobro !== '0'
-                        ? `$${ticketDataToPrint.cobro} ${ticketDataToPrint.metodoPago ? `(${ticketDataToPrint.metodoPago})` : ''}`
-                        : (ticketLang === 'EN' ? 'PREPAID' : 'PREPAGADO')}
-                    </p>
+                <div className="px-8 flex justify-center mb-6">
+                  <svg className="h-12 w-full max-w-sm" preserveAspectRatio="none" viewBox="0 0 200 50" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="0" y="0" width="4" height="50" className="text-slate-800" /><rect x="6" y="0" width="2" height="50" className="text-slate-800" /><rect x="12" y="0" width="6" height="50" className="text-slate-800" /><rect x="22" y="0" width="2" height="50" className="text-slate-800" /><rect x="26" y="0" width="8" height="50" className="text-slate-800" /><rect x="38" y="0" width="4" height="50" className="text-slate-800" /><rect x="46" y="0" width="2" height="50" className="text-slate-800" /><rect x="52" y="0" width="6" height="50" className="text-slate-800" /><rect x="62" y="0" width="10" height="50" className="text-slate-800" /><rect x="76" y="0" width="4" height="50" className="text-slate-800" /><rect x="84" y="0" width="2" height="50" className="text-slate-800" /><rect x="90" y="0" width="8" height="50" className="text-slate-800" /><rect x="102" y="0" width="4" height="50" className="text-slate-800" /><rect x="110" y="0" width="6" height="50" className="text-slate-800" /><rect x="120" y="0" width="2" height="50" className="text-slate-800" /><rect x="126" y="0" width="8" height="50" className="text-slate-800" /><rect x="138" y="0" width="4" height="50" className="text-slate-800" /><rect x="146" y="0" width="2" height="50" className="text-slate-800" /><rect x="152" y="0" width="12" height="50" className="text-slate-800" /><rect x="168" y="0" width="4" height="50" className="text-slate-800" /><rect x="176" y="0" width="6" height="50" className="text-slate-800" /><rect x="186" y="0" width="2" height="50" className="text-slate-800" /><rect x="192" y="0" width="8" height="50" className="text-slate-800" />
+                  </svg>
+                </div>
+
+                {/* INSTRUCCIONES DINÁMICAS (Llegada vs Salida / EN vs ES) */}
+                <div className="bg-amber-50 p-6 mx-4 rounded-xl border border-amber-200 mb-4">
+                  <h3 className="text-sm font-bold text-amber-900 flex items-center gap-2 mb-2">
+                    <Info size={16} />
+                    {ticketDataToPrint.tipoServicio === 'Llegada'
+                      ? (ticketLang === 'EN' ? 'How to spot your driver upon arrival?' : '¿Cómo ubicar a su chofer al llegar?')
+                      : (ticketLang === 'EN' ? 'Pick-up Instructions' : 'Instrucciones de Pick-up')}
+                  </h3>
+                  <p className="text-sm text-amber-800/80 leading-relaxed text-justify">
+                    {ticketDataToPrint.tipoServicio === 'Llegada'
+                      ? (ticketLang === 'EN'
+                        ? 'All transport companies are waiting outside the departure gate. You just have to walk to the parking lot to look for your name on a sign. We are usually located in Shadow 3 or Terminal 1 is "SALIDA DE GRUPOS". So when you get there, just walk into the parking lot and you will see some staff members standing under these curtains holding up their signs, one of them will have your name on it.'
+                        : 'Todas las empresas de transporte esperan afuera de la puerta de salida. Camine al estacionamiento y busque su nombre en un letrero. Usualmente estamos en la Sombra 3 o Terminal 1 "SALIDA DE GRUPOS". Al llegar, camine al estacionamiento y verá a nuestro personal bajo los toldos con su letrero.')
+                      : (ticketLang === 'EN'
+                        ? 'Please be ready in the hotel lobby 15 minutes before your scheduled pick-up time. Look for the driver holding a Ballard Tour Services sign. If you have any issues, please contact us immediately.'
+                        : 'Por favor, esté listo en el lobby del hotel 15 minutos antes de su hora programada de pick-up. Busque al chofer con el letrero de Ballard Tour Services. Si tiene algún problema, contáctenos de inmediato.')}
+                  </p>
+                </div>
+
+                <div className="px-6 pb-6 text-center">
+                  <h3 className="text-sm font-bold text-slate-800 mb-1 flex items-center justify-center gap-2">
+                    <Map size={16} className="text-slate-500" />
+                    {ticketLang === 'EN' ? 'You need other activities?' : '¿Buscas otras actividades?'}
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    {ticketLang === 'EN'
+                      ? 'We can take you to see the Arch of Los Cabos, ride a motorcycle, get to know the Historic Center of San Jose del Cabo, the Hotel California in Todos Santos, and much more...'
+                      : 'Podemos llevarte a conocer el Arco de Los Cabos, pasear en cuatrimoto, conocer el Centro Histórico de San José del Cabo, el Hotel California en Todos Santos y mucho más...'}
+                  </p>
+                </div>
+
+                <div className="bg-slate-900 text-slate-300 p-4 text-xs flex flex-col md:flex-row justify-between items-center gap-3">
+                  <div className="flex items-center gap-4">
+                    <span className="flex items-center gap-1"><Phone size={14} className="text-amber-500" /> +52 624 139 3497</span>
+                    <span className="flex items-center gap-1 hidden sm:flex"><Mail size={14} className="text-amber-500" /> reservationballard@gmail.com</span>
                   </div>
-
+                  <span className="flex items-center gap-1"><Globe size={14} className="text-amber-500" /> www.ballardtours.com</span>
                 </div>
-              </div>
 
-              <div className="px-8 flex justify-center mb-6">
-                <svg className="h-12 w-full max-w-sm" preserveAspectRatio="none" viewBox="0 0 200 50" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-                  <rect x="0" y="0" width="4" height="50" className="text-slate-800" /><rect x="6" y="0" width="2" height="50" className="text-slate-800" /><rect x="12" y="0" width="6" height="50" className="text-slate-800" /><rect x="22" y="0" width="2" height="50" className="text-slate-800" /><rect x="26" y="0" width="8" height="50" className="text-slate-800" /><rect x="38" y="0" width="4" height="50" className="text-slate-800" /><rect x="46" y="0" width="2" height="50" className="text-slate-800" /><rect x="52" y="0" width="6" height="50" className="text-slate-800" /><rect x="62" y="0" width="10" height="50" className="text-slate-800" /><rect x="76" y="0" width="4" height="50" className="text-slate-800" /><rect x="84" y="0" width="2" height="50" className="text-slate-800" /><rect x="90" y="0" width="8" height="50" className="text-slate-800" /><rect x="102" y="0" width="4" height="50" className="text-slate-800" /><rect x="110" y="0" width="6" height="50" className="text-slate-800" /><rect x="120" y="0" width="2" height="50" className="text-slate-800" /><rect x="126" y="0" width="8" height="50" className="text-slate-800" /><rect x="138" y="0" width="4" height="50" className="text-slate-800" /><rect x="146" y="0" width="2" height="50" className="text-slate-800" /><rect x="152" y="0" width="12" height="50" className="text-slate-800" /><rect x="168" y="0" width="4" height="50" className="text-slate-800" /><rect x="176" y="0" width="6" height="50" className="text-slate-800" /><rect x="186" y="0" width="2" height="50" className="text-slate-800" /><rect x="192" y="0" width="8" height="50" className="text-slate-800" />
-                </svg>
               </div>
-
-              {/* INSTRUCCIONES DINÁMICAS (Llegada vs Salida / EN vs ES) */}
-              <div className="bg-amber-50 p-6 mx-4 rounded-xl border border-amber-200 mb-4">
-                <h3 className="text-sm font-bold text-amber-900 flex items-center gap-2 mb-2">
-                  <Info size={16} />
-                  {ticketDataToPrint.tipoServicio === 'Llegada'
-                    ? (ticketLang === 'EN' ? 'How to spot your driver upon arrival?' : '¿Cómo ubicar a su chofer al llegar?')
-                    : (ticketLang === 'EN' ? 'Pick-up Instructions' : 'Instrucciones de Pick-up')}
-                </h3>
-                <p className="text-sm text-amber-800/80 leading-relaxed text-justify">
-                  {ticketDataToPrint.tipoServicio === 'Llegada'
-                    ? (ticketLang === 'EN'
-                      ? 'All transport companies are waiting outside the departure gate. You just have to walk to the parking lot to look for your name on a sign. We are usually located in Shadow 3 or Terminal 1 is "SALIDA DE GRUPOS". So when you get there, just walk into the parking lot and you will see some staff members standing under these curtains holding up their signs, one of them will have your name on it.'
-                      : 'Todas las empresas de transporte esperan afuera de la puerta de salida. Camine al estacionamiento y busque su nombre en un letrero. Usualmente estamos en la Sombra 3 o Terminal 1 "SALIDA DE GRUPOS". Al llegar, camine al estacionamiento y verá a nuestro personal bajo los toldos con su letrero.')
-                    : (ticketLang === 'EN'
-                      ? 'Please be ready in the hotel lobby 15 minutes before your scheduled pick-up time. Look for the driver holding a Ballard Tour Services sign. If you have any issues, please contact us immediately.'
-                      : 'Por favor, esté listo en el lobby del hotel 15 minutos antes de su hora programada de pick-up. Busque al chofer con el letrero de Ballard Tour Services. Si tiene algún problema, contáctenos de inmediato.')}
-                </p>
-              </div>
-
-              <div className="px-6 pb-6 text-center">
-                <h3 className="text-sm font-bold text-slate-800 mb-1 flex items-center justify-center gap-2">
-                  <Map size={16} className="text-slate-500" />
-                  {ticketLang === 'EN' ? 'You need other activities?' : '¿Buscas otras actividades?'}
-                </h3>
-                <p className="text-xs text-slate-500">
-                  {ticketLang === 'EN'
-                    ? 'We can take you to see the Arch of Los Cabos, ride a motorcycle, get to know the Historic Center of San Jose del Cabo, the Hotel California in Todos Santos, and much more...'
-                    : 'Podemos llevarte a conocer el Arco de Los Cabos, pasear en cuatrimoto, conocer el Centro Histórico de San José del Cabo, el Hotel California en Todos Santos y mucho más...'}
-                </p>
-              </div>
-
-              <div className="bg-slate-900 text-slate-300 p-4 text-xs flex flex-col md:flex-row justify-between items-center gap-3">
-                <div className="flex items-center gap-4">
-                  <span className="flex items-center gap-1"><Phone size={14} className="text-amber-500" /> +52 624 139 3497</span>
-                  <span className="flex items-center gap-1 hidden sm:flex"><Mail size={14} className="text-amber-500" /> reservationballard@gmail.com</span>
-                </div>
-                <span className="flex items-center gap-1"><Globe size={14} className="text-amber-500" /> www.ballardtours.com</span>
-              </div>
-
             </div>
           </div>
-        </div>
-      )}
-    </div>
-  );
+        )}
+      </div>
+      );
 }
