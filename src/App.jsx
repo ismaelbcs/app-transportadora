@@ -2689,23 +2689,28 @@ export default function App() {
           { }
           {activeTab === 'roll' && (
             <div className="bg-white rounded-lg shadow-md flex flex-col h-[80vh]">
-              <div className="p-4 border-b flex flex-wrap justify-between items-center gap-4 bg-gray-50 rounded-t-lg">
-                <div className="flex items-center gap-4">
-                  <input type="date" value={rollDate} onChange={(e) => setRollDate(e.target.value)} className="border border-gray-300 rounded-md p-2 shadow-sm font-semibold text-gray-700" />
-                  <span className="text-sm text-gray-500">{rollData.length} servicio(s) encontrado(s)</span>
+              {/* AVISO MÓVIL: GIRA TU TELÉFONO */}
+              <div className="md:hidden bg-blue-100 text-blue-800 p-2 text-center text-xs font-bold animate-pulse rounded-t-lg">
+                📱 Gira tu celular horizontalmente para ver la tabla completa.
+              </div>
+
+              <div className="p-4 border-b flex flex-col sm:flex-row justify-between items-center gap-4 bg-gray-50 md:rounded-t-lg">
+                <div className="flex w-full sm:w-auto items-center justify-between sm:justify-start gap-4">
+                  <input type="date" value={rollDate} onChange={(e) => setRollDate(e.target.value)} className="border border-gray-300 rounded-md p-2 shadow-sm font-semibold text-gray-700 w-full sm:w-auto" />
+                  <span className="text-sm text-gray-500 whitespace-nowrap font-medium bg-white px-2 py-1 rounded border shadow-sm">{rollData.length} servicio(s)</span>
                 </div>
-                <div className="flex gap-2">
-                  {/* Candado: Solo el Admin ve el botón de Guardar */}
+
+                <div className="flex w-full sm:w-auto gap-2 justify-end">
                   {userProfile?.rol === 'admin' && (
-                    <button onClick={saveRollUpdates} className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 flex items-center gap-2 text-sm font-medium transition-colors">
+                    <button onClick={saveRollUpdates} className="flex-1 sm:flex-none bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 flex justify-center items-center gap-2 text-sm font-bold transition-colors shadow-sm">
                       <Save size={16} /> Guardar
                     </button>
                   )}
                   <button
                     onClick={downloadRolPNG}
-                    className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 flex items-center gap-2 shadow-sm"
+                    className="flex-1 sm:flex-none bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex justify-center items-center gap-2 text-sm font-bold transition-colors shadow-sm"
                   >
-                    <Download size={18} /> Descargar PNG
+                    <Download size={18} /> Bajar PNG
                   </button>
                 </div>
               </div>
@@ -3296,14 +3301,14 @@ export default function App() {
               </div>
               {/* FIN DE LA NUEVA CABECERA */}
 
-              {/* PANEL DE FILTROS */}
-              <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 mb-6 flex flex-wrap gap-4 items-end">
-                <div>
+              {/* PANEL DE FILTROS ADAPTABLE */}
+              <div className="flex flex-col sm:flex-row flex-wrap gap-4 mb-6 bg-gray-50 p-4 rounded-lg border border-gray-200 shadow-sm sm:items-end">
+                <div className="w-full sm:w-auto">
                   <label className="block text-xs font-bold text-gray-700 mb-1 uppercase">Origen de Datos</label>
                   <select
                     value={cierreFiltroTipo}
                     onChange={(e) => setCierreFiltroTipo(e.target.value)}
-                    className="block w-48 border border-gray-300 rounded-md shadow-sm p-2 text-sm font-bold text-blue-800 focus:ring-blue-500 focus:border-blue-500 cursor-pointer"
+                    className="block w-full sm:w-48 border border-gray-300 rounded-md shadow-sm p-2 text-sm font-bold text-blue-800 focus:ring-blue-500 focus:border-blue-500 cursor-pointer bg-white"
                   >
                     <option value="general">Ingresos: Base General</option>
                     <option value="callcenter">Ingresos: Call Center</option>
@@ -3311,34 +3316,34 @@ export default function App() {
                   </select>
                 </div>
 
-                <div>
+                <div className="w-full sm:w-auto">
                   <label className="block text-xs font-bold text-gray-700 mb-1 uppercase">Fecha Inicial</label>
                   <input
                     type="date"
                     value={cierreFiltroInicio}
                     onChange={(e) => setCierreFiltroInicio(e.target.value)}
-                    className="block w-40 border border-gray-300 rounded-md shadow-sm p-2 text-sm focus:ring-blue-500 focus:border-blue-500 cursor-pointer"
+                    className="block w-full sm:w-40 border border-gray-300 rounded-md shadow-sm p-2 text-sm focus:ring-blue-500 focus:border-blue-500 cursor-pointer bg-white"
                   />
                 </div>
 
-                <div>
+                <div className="w-full sm:w-auto">
                   <label className="block text-xs font-bold text-gray-700 mb-1 uppercase">Fecha Final</label>
                   <input
                     type="date"
                     value={cierreFiltroFin}
                     onChange={(e) => setCierreFiltroFin(e.target.value)}
-                    className="block w-40 border border-gray-300 rounded-md shadow-sm p-2 text-sm focus:ring-blue-500 focus:border-blue-500 cursor-pointer"
+                    className="block w-full sm:w-40 border border-gray-300 rounded-md shadow-sm p-2 text-sm focus:ring-blue-500 focus:border-blue-500 cursor-pointer bg-white"
                   />
                 </div>
 
                 {/* Filtro de Vehículo (Solo visible para General y Gastos) */}
                 {(cierreFiltroTipo === 'general' || cierreFiltroTipo === 'gastos') && (
-                  <div>
+                  <div className="w-full sm:w-auto">
                     <label className="block text-xs font-bold text-gray-700 mb-1 uppercase">Vehículo</label>
                     <select
                       value={cierreFiltroVehiculo}
                       onChange={(e) => setCierreFiltroVehiculo(e.target.value)}
-                      className="block w-40 border border-gray-300 rounded-md shadow-sm p-2 text-sm focus:ring-blue-500 focus:border-blue-500 cursor-pointer"
+                      className="block w-full sm:w-40 border border-gray-300 rounded-md shadow-sm p-2 text-sm focus:ring-blue-500 focus:border-blue-500 cursor-pointer bg-white"
                     >
                       <option value="">Todos los vehículos</option>
                       <option value="Expedition">Expedition</option>
@@ -3347,17 +3352,18 @@ export default function App() {
                   </div>
                 )}
 
-                <div className="ml-auto">
+                <div className="pb-1 w-full sm:w-auto sm:ml-auto text-right">
                   <button
                     onClick={() => {
                       setCierreFiltroInicio(''); setCierreFiltroFin(''); setCierreFiltroVehiculo('');
                     }}
-                    className="text-xs text-blue-600 hover:text-blue-800 font-bold underline"
+                    className="text-xs text-blue-600 hover:text-blue-800 font-bold underline transition-colors"
                   >
                     Limpiar Filtros
                   </button>
                 </div>
               </div>
+              {/* FIN PANEL DE FILTROS ADAPTABLE */}
 
               {/* TABLA DINÁMICA DE RESULTADOS */}
               <div className="overflow-x-auto w-full border border-gray-200 rounded-lg">
