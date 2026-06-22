@@ -408,6 +408,18 @@ export default function App() {
   const [mostrarAlertaDeudas, setMostrarAlertaDeudas] = useState(false);
   const [deudasParaHoy, setDeudasParaHoy] = useState([]);
 
+  // NUEVO: Estado para abrir/cerrar el menú lateral y hacerlo adaptable a móvil
+  const [isSidebarOpen, setIsSidebarOpen] = useState(window.innerWidth > 768);
+
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth <= 768) setIsSidebarOpen(false);
+      else setIsSidebarOpen(true);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   useEffect(() => {
     // 1. Obtenemos la fecha exacta de hoy (Ej. 2026-06-09)
     const hoy = new Date().toISOString().split('T')[0];
@@ -1775,88 +1787,155 @@ export default function App() {
       )}
 
       {/* ========================================================= */}
-      {/* NUEVO SIDEBAR (MENÚ LATERAL MODERNO)                        */}
+      {/* BOTÓN FLOTANTE (HAMBURGUESA/FLECHA) PARA ABRIR/CERRAR MENÚ*/}
       {/* ========================================================= */}
-      <aside className="w-64 flex-shrink-0 bg-slate-900 flex flex-col h-full shadow-2xl z-20 print:hidden transition-all duration-300">
-        <div className="h-20 bg-white flex items-center justify-center border-b border-gray-200 shadow-sm relative z-10">
-          <BallardLogo className="h-12 w-auto" />
+      <button
+        onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+        className={`fixed top-4 z-[60] bg-slate-900 hover:bg-slate-700 text-white p-2.5 rounded-lg shadow-xl transition-all duration-300 border border-slate-700 ${isSidebarOpen ? 'left-[200px] md:left-[200px]' : 'left-4'}`}
+        title={isSidebarOpen ? "Ocultar menú" : "Mostrar menú"}
+      >
+        {isSidebarOpen ? (
+          // Flecha para ocultar
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>
+        ) : (
+          // Menú hamburguesa para mostrar
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12h18M3 6h18M3 18h18" /></svg>
+        )}
+      </button>
+
+      {/* FONDO OSCURO EN MÓVIL PARA CERRAR EL MENÚ AL TOCAR AFUERA */}
+      {isSidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 md:hidden"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
+
+      {/* ========================================================= */}
+      {/* NUEVO SIDEBAR (MENÚ LATERAL MODERNO Y ADAPTABLE)          */}
+      {/* ========================================================= */}
+      <aside className={`fixed md:relative top-0 left-0 h-full flex-shrink-0 bg-slate-900 flex flex-col shadow-2xl z-50 print:hidden transition-all duration-300 ${isSidebarOpen ? 'w-64 translate-x-0' : 'w-0 -translate-x-full'}`}>
+
+        {/* Cabecera / Logo en Blanco */}
+        <div className="h-20 bg-white flex items-center justify-start pl-4 border-b border-gray-200 shadow-sm relative z-10 overflow-hidden">
+          <div className="min-w-max">
+            <BallardLogo className="h-10 w-auto" />
+          </div>
         </div>
 
-        <nav className="flex-1 overflow-y-auto py-6 px-3 space-y-2 custom-scrollbar">
-          <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-4 px-3">Menú Principal</div>
+        {/* Menú de Navegación Vertical */}
+        <div className={`flex-col h-full ${isSidebarOpen ? 'flex' : 'hidden'}`}>
+          <nav className="flex-1 overflow-y-auto py-6 px-3 space-y-2 custom-scrollbar">
+            <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-4 px-3">Menú Principal</div>
 
-          {(userProfile?.rol === 'admin' || userProfile?.permisos?.vistas?.ingresar_reserva) && (
-            <button onClick={() => setActiveTab('form')} className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl font-medium transition-all ${activeTab === 'form' ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/50' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}>
-              <FileText size={20} /> Ingresar / Buscar
-            </button>
-          )}
-
-          {(userProfile?.rol === 'admin' || userProfile?.permisos?.vistas?.ingreso_cc) && (
-            <button onClick={() => setActiveTab('callcenter')} className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl font-medium transition-all ${activeTab === 'callcenter' ? 'bg-purple-600 text-white shadow-lg shadow-purple-900/50' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}>
-              <Headset size={20} /> Ingreso CC
-            </button>
-          )}
-
-          {(userProfile?.rol === 'admin' || userProfile?.permisos?.rol_diario?.ver_modulo) && (
-            <button onClick={() => setActiveTab('roll')} className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl font-medium transition-all ${activeTab === 'roll' ? 'bg-amber-500 text-white shadow-lg shadow-amber-900/50' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}>
-              <CalendarCheck size={20} /> Rol Diario
-            </button>
-          )}
-
-          {(userProfile?.rol === 'admin' || userProfile?.permisos?.vistas?.control_flota) && (
-            <button onClick={() => setActiveTab('flota')} className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl font-medium transition-all ${activeTab === 'flota' ? 'bg-orange-600 text-white shadow-lg shadow-orange-900/50' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}>
-              <Fuel size={20} /> Control Flota
-            </button>
-          )}
-
-          {(userProfile?.rol === 'admin' || userProfile?.permisos?.vistas?.deudas) && (
-            <button onClick={() => setActiveTab('deudas')} className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl font-medium transition-all ${activeTab === 'deudas' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-900/50' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}>
-              <DollarSign size={20} /> Deudas y Préstamos
-            </button>
-          )}
-
-          {(userProfile?.rol === 'admin' || userProfile?.permisos?.vistas?.base_de_datos) && (
-            <button onClick={() => setActiveTab('database')} className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl font-medium transition-all ${activeTab === 'database' ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/50' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}>
-              <Database size={20} /> Base de Datos
-            </button>
-          )}
-
-          {(userProfile?.rol === 'admin' || userProfile?.permisos?.vistas?.cierre) && (
-            <button onClick={() => setActiveTab('cierre')} className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl font-medium transition-all ${activeTab === 'cierre' ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/50' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}>
-              <Wallet size={20} /> Cierre Financiero
-            </button>
-          )}
-
-          {userProfile?.rol === 'admin' && (
-            <>
-              <div className="mt-8 mb-4 border-t border-slate-700/50"></div>
-              <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-4 px-3">Administración</div>
-              <button onClick={() => setActiveTab('usuarios')} className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl font-medium transition-all ${activeTab === 'usuarios' ? 'bg-red-600 text-white shadow-lg shadow-red-900/50' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}>
-                <ShieldCheck size={20} /> Permisos
+            {(userProfile?.rol === 'admin' || userProfile?.permisos?.vistas?.ingresar_reserva) && (
+              <button
+                onClick={() => { setActiveTab('form'); if (window.innerWidth <= 768) setIsSidebarOpen(false); }}
+                className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl font-medium transition-all ${activeTab === 'form' ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/50' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+              >
+                <FileText size={20} /> Ingresar / Buscar
               </button>
-            </>
-          )}
-        </nav>
+            )}
 
-        <div className="p-4 bg-slate-950 border-t border-slate-800">
-          <div className="flex items-center gap-3 mb-4 px-2">
-            <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-slate-300">
-              <User size={16} />
+            {(userProfile?.rol === 'admin' || userProfile?.permisos?.vistas?.ingreso_cc) && (
+              <button
+                onClick={() => { setActiveTab('callcenter'); if (window.innerWidth <= 768) setIsSidebarOpen(false); }}
+                className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl font-medium transition-all ${activeTab === 'callcenter' ? 'bg-purple-600 text-white shadow-lg shadow-purple-900/50' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+              >
+                <Headset size={20} /> Ingreso CC
+              </button>
+            )}
+
+            {(userProfile?.rol === 'admin' || userProfile?.permisos?.rol_diario?.ver_modulo) && (
+              <button
+                onClick={() => { setActiveTab('roll'); if (window.innerWidth <= 768) setIsSidebarOpen(false); }}
+                className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl font-medium transition-all ${activeTab === 'roll' ? 'bg-amber-500 text-white shadow-lg shadow-amber-900/50' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+              >
+                <CalendarCheck size={20} /> Rol Diario
+              </button>
+            )}
+
+            {(userProfile?.rol === 'admin' || userProfile?.permisos?.vistas?.control_flota) && (
+              <button
+                onClick={() => { setActiveTab('flota'); if (window.innerWidth <= 768) setIsSidebarOpen(false); }}
+                className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl font-medium transition-all ${activeTab === 'flota' ? 'bg-orange-600 text-white shadow-lg shadow-orange-900/50' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+              >
+                <Fuel size={20} /> Control Flota
+              </button>
+            )}
+
+            {(userProfile?.rol === 'admin' || userProfile?.permisos?.vistas?.deudas) && (
+              <button
+                onClick={() => { setActiveTab('deudas'); if (window.innerWidth <= 768) setIsSidebarOpen(false); }}
+                className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl font-medium transition-all ${activeTab === 'deudas' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-900/50' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+              >
+                <DollarSign size={20} /> Deudas y Préstamos
+              </button>
+            )}
+
+            {(userProfile?.rol === 'admin' || userProfile?.permisos?.vistas?.base_de_datos) && (
+              <button
+                onClick={() => { setActiveTab('database'); if (window.innerWidth <= 768) setIsSidebarOpen(false); }}
+                className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl font-medium transition-all ${activeTab === 'database' ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/50' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+              >
+                <Database size={20} /> Base de Datos
+              </button>
+            )}
+
+            {(userProfile?.rol === 'admin' || userProfile?.permisos?.vistas?.cierre) && (
+              <button
+                onClick={() => { setActiveTab('cierre'); if (window.innerWidth <= 768) setIsSidebarOpen(false); }}
+                className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl font-medium transition-all ${activeTab === 'cierre' ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/50' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+              >
+                <Wallet size={20} /> Cierre Financiero
+              </button>
+            )}
+
+            {userProfile?.rol === 'admin' && (
+              <>
+                <div className="mt-8 mb-4 border-t border-slate-700/50"></div>
+                <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-4 px-3">Administración</div>
+
+                <button
+                  onClick={() => { setActiveTab('usuarios'); if (window.innerWidth <= 768) setIsSidebarOpen(false); }}
+                  className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl font-medium transition-all ${activeTab === 'usuarios' ? 'bg-red-600 text-white shadow-lg shadow-red-900/50' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+                >
+                  <ShieldCheck size={20} /> Permisos
+                </button>
+              </>
+            )}
+          </nav>
+
+          <div className="p-4 bg-slate-950 border-t border-slate-800">
+            <div className="flex items-center gap-3 mb-4 px-2">
+              <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-slate-300">
+                <User size={16} />
+              </div>
+              <div className="flex flex-col overflow-hidden">
+                <span className="text-xs text-slate-400">Usuario Activo</span>
+                <span className="text-sm font-bold truncate text-slate-200">{userProfile?.email || email}</span>
+              </div>
             </div>
-            <div className="flex flex-col overflow-hidden">
-              <span className="text-xs text-slate-400">Usuario Activo</span>
-              <span className="text-sm font-bold truncate text-slate-200">{userProfile?.email || email}</span>
-            </div>
+            <button
+              onClick={handleLogout}
+              className="w-full flex justify-center items-center gap-2 bg-red-500/10 hover:bg-red-500/20 text-red-500 py-2.5 rounded-lg text-sm font-bold transition-colors"
+            >
+              Cerrar Sesión
+            </button>
           </div>
-          <button onClick={handleLogout} className="w-full flex justify-center items-center gap-2 bg-red-500/10 hover:bg-red-500/20 text-red-500 py-2.5 rounded-lg text-sm font-bold transition-colors">
-            Cerrar Sesión
-          </button>
         </div>
       </aside>
 
       {/* CONTENEDOR PRINCIPAL DERECHO */}
       <div className="flex-1 flex flex-col h-full overflow-hidden relative print:overflow-visible print:h-auto print:block">
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 w-full bg-gray-100 print:p-0 print:overflow-visible print:h-auto print:block max-w-7xl mx-auto">
+
+        {/* Cabecera Móvil (Solo visible cuando el menú está cerrado en pantallas pequeñas) */}
+        <div className="md:hidden h-16 bg-white flex items-center justify-center shadow-sm relative z-10 shrink-0">
+          <BallardLogo className="h-8 w-auto ml-8" />
+        </div>
+
+        {/* Le bajamos un poco el padding en celular (p-2) para que las tablas tengan más espacio */}
+        <main className="flex-1 overflow-y-auto p-2 sm:p-6 lg:p-8 w-full bg-gray-100 print:p-0 print:overflow-visible print:h-auto print:block max-w-7xl mx-auto">
 
           { }
           {activeTab === 'form' && (
@@ -2953,14 +3032,14 @@ export default function App() {
 
               <div className="flex-1 overflow-x-auto overflow-y-auto p-4 w-full">
 
-                {/* --- BARRA DE FILTROS AVANZADOS --- */}
-                <div className="flex flex-wrap gap-4 mb-4 bg-gray-50 p-3 rounded-lg border border-gray-200 shadow-sm items-end">
-                  <div>
+                {/* --- BARRA DE FILTROS AVANZADOS ADAPTABLE --- */}
+                <div className="flex flex-col sm:flex-row flex-wrap gap-4 mb-4 bg-gray-50 p-4 rounded-lg border border-gray-200 shadow-sm sm:items-end">
+                  <div className="w-full sm:w-auto">
                     <label className="block text-xs font-bold text-gray-700 mb-1 uppercase">Agencia</label>
                     <select
                       value={filtroAgenciaGeneral}
                       onChange={(e) => setFiltroAgenciaGeneral(e.target.value)}
-                      className="block w-40 border border-gray-300 rounded-md shadow-sm p-2 text-sm focus:ring-blue-500 focus:border-blue-500 cursor-pointer"
+                      className="block w-full sm:w-40 border border-gray-300 rounded-md shadow-sm p-2 text-sm focus:ring-blue-500 focus:border-blue-500 cursor-pointer bg-white"
                     >
                       <option value="">Todas las Agencias</option>
                       <option value="USA">USA</option>
@@ -2970,33 +3049,33 @@ export default function App() {
                     </select>
                   </div>
 
-                  <div>
+                  <div className="w-full sm:w-auto">
                     <label className="block text-xs font-bold text-gray-700 mb-1 uppercase">Desde (Fecha)</label>
                     <input
                       type="date"
                       value={filtroFechaInicioGeneral}
                       onChange={(e) => setFiltroFechaInicioGeneral(e.target.value)}
-                      className="block w-40 border border-gray-300 rounded-md shadow-sm p-2 text-sm focus:ring-blue-500 focus:border-blue-500 cursor-pointer"
+                      className="block w-full sm:w-40 border border-gray-300 rounded-md shadow-sm p-2 text-sm focus:ring-blue-500 focus:border-blue-500 cursor-pointer bg-white"
                     />
                   </div>
 
-                  <div>
+                  <div className="w-full sm:w-auto">
                     <label className="block text-xs font-bold text-gray-700 mb-1 uppercase">Hasta (Fecha)</label>
                     <input
                       type="date"
                       value={filtroFechaFinGeneral}
                       onChange={(e) => setFiltroFechaFinGeneral(e.target.value)}
-                      className="block w-40 border border-gray-300 rounded-md shadow-sm p-2 text-sm focus:ring-blue-500 focus:border-blue-500 cursor-pointer"
+                      className="block w-full sm:w-40 border border-gray-300 rounded-md shadow-sm p-2 text-sm focus:ring-blue-500 focus:border-blue-500 cursor-pointer bg-white"
                     />
                   </div>
 
-                  <div className="pb-1 ml-auto">
+                  <div className="pb-1 w-full sm:w-auto sm:ml-auto text-right">
                     <button
                       onClick={() => {
                         setFiltroAgenciaGeneral('');
                         setFiltroFechaInicioGeneral('');
                         setFiltroFechaFinGeneral('');
-                        setDbSearchTerm(''); // Limpia también la barra de búsqueda escrita
+                        setDbSearchTerm('');
                       }}
                       className="text-xs text-blue-600 hover:text-blue-800 font-bold underline transition-colors"
                     >
@@ -3609,108 +3688,108 @@ export default function App() {
           )}
 
         </main>
-        </div> {/* <-- ESTA ES LA LÍNEA NUEVA QUE DEBES AGREGAR */}
+      </div> {/* <-- ESTA ES LA LÍNEA NUEVA QUE DEBES AGREGAR */}
 
-        { }
-        {renderData?.type === 'share' && (
-          <div className="fixed top-0 left-0 -z-50 pointer-events-none opacity-0">
-            <div ref={shareRef} className="bg-white p-6 w-[500px] border-4 border-gray-800 rounded-xl font-sans">
-              <div className="flex justify-between items-center border-b-2 border-gray-200 pb-4 mb-4">
-                <BallardLogo className="h-12" />
-                <div className="text-right">
-                  <div className="text-sm text-gray-500 uppercase tracking-widest">{renderData.data.fecha}</div>
-                  <div className="text-2xl font-bold">{renderData.data.hora}</div>
-                </div>
-              </div>
-              <div className="space-y-4">
-                <div>
-                  <div className="text-xs text-gray-500 uppercase">Pasajero</div>
-                  <div className="text-xl font-bold uppercase">{renderData.data.nombre} {renderData.data.apellido}</div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-gray-50 p-3 rounded">
-                    <div className="text-xs text-gray-500 uppercase flex items-center gap-1"><MapPin size={12} /> Hotel / Destino</div>
-                    <div className="font-semibold">{renderData.data.hotel}</div>
-                  </div>
-                  <div className="bg-gray-50 p-3 rounded">
-                    <div className="text-xs text-gray-500 uppercase">Vuelo</div>
-                    <div className="font-semibold">{renderData.data.vuelo || 'N/A'}</div>
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="border border-gray-200 p-3 rounded flex items-center justify-between">
-                    <span className="text-xs text-gray-500 uppercase flex items-center gap-1"><Users size={12} /> Pasajeros</span>
-                    <span className="font-bold text-lg">{renderData.data.pax}</span>
-                  </div>
-                  <div className="border border-gray-200 p-3 rounded flex items-center justify-between">
-                    <span className="text-xs text-gray-500 uppercase">Servicio</span>
-                    <span className="font-bold text-blue-800">{renderData.data.tipoServicio}</span>
-                  </div>
-                </div>
-                {(renderData.data.carSeat > 0 || renderData.data.babySeat > 0 || renderData.data.booster > 0 || renderData.data.paradaCompras) && (
-                  <div className="bg-blue-50 text-blue-900 p-3 rounded border border-blue-100">
-                    <div className="text-xs uppercase mb-1 font-semibold flex items-center gap-1"><Car size={12} /> Extras</div>
-                    <div className="flex flex-wrap gap-3 font-medium text-sm">
-                      {renderData.data.carSeat > 0 && <span>Car Seat: {renderData.data.carSeat}</span>}
-                      {renderData.data.babySeat > 0 && <span>Baby Seat: {renderData.data.babySeat}</span>}
-                      {renderData.data.booster > 0 && <span>Booster: {renderData.data.booster}</span>}
-                      {renderData.data.paradaCompras && <span className="bg-blue-200 px-2 py-0.5 rounded">Parada de Compras</span>}
-                    </div>
-                  </div>
-                )}
+      { }
+      {renderData?.type === 'share' && (
+        <div className="fixed top-0 left-0 -z-50 pointer-events-none opacity-0">
+          <div ref={shareRef} className="bg-white p-6 w-[500px] border-4 border-gray-800 rounded-xl font-sans">
+            <div className="flex justify-between items-center border-b-2 border-gray-200 pb-4 mb-4">
+              <BallardLogo className="h-12" />
+              <div className="text-right">
+                <div className="text-sm text-gray-500 uppercase tracking-widest">{renderData.data.fecha}</div>
+                <div className="text-2xl font-bold">{renderData.data.hora}</div>
               </div>
             </div>
-          </div>
-        )}
-
-        {renderData?.type === 'sign' && (
-          <div className="fixed top-0 left-0 -z-50 pointer-events-none opacity-0">
-            <div ref={signRef} className="bg-white w-[1122px] h-[793px] flex flex-col items-center justify-center p-12 relative overflow-hidden font-sans">
-              <div className="mb-12 flex justify-center w-full">
-                <BallardLogo className="h-48" />
+            <div className="space-y-4">
+              <div>
+                <div className="text-xs text-gray-500 uppercase">Pasajero</div>
+                <div className="text-xl font-bold uppercase">{renderData.data.nombre} {renderData.data.apellido}</div>
               </div>
-              <div className="text-center w-full max-w-4xl mb-16">
-                <div className="text-[130px] leading-none font-bold uppercase text-black break-words px-4 text-center w-full">
-                  {renderData.data.nombre}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-gray-50 p-3 rounded">
+                  <div className="text-xs text-gray-500 uppercase flex items-center gap-1"><MapPin size={12} /> Hotel / Destino</div>
+                  <div className="font-semibold">{renderData.data.hotel}</div>
                 </div>
-                <div className="text-[130px] leading-tight font-bold uppercase text-black break-words px-4 text-center w-full mt-6">
-                  {renderData.data.apellido}
+                <div className="bg-gray-50 p-3 rounded">
+                  <div className="text-xs text-gray-500 uppercase">Vuelo</div>
+                  <div className="font-semibold">{renderData.data.vuelo || 'N/A'}</div>
                 </div>
               </div>
-              <div className="text-4xl font-medium tracking-[0.4em] text-gray-600 mt-4">
-                WELCOME!
+              <div className="grid grid-cols-2 gap-4">
+                <div className="border border-gray-200 p-3 rounded flex items-center justify-between">
+                  <span className="text-xs text-gray-500 uppercase flex items-center gap-1"><Users size={12} /> Pasajeros</span>
+                  <span className="font-bold text-lg">{renderData.data.pax}</span>
+                </div>
+                <div className="border border-gray-200 p-3 rounded flex items-center justify-between">
+                  <span className="text-xs text-gray-500 uppercase">Servicio</span>
+                  <span className="font-bold text-blue-800">{renderData.data.tipoServicio}</span>
+                </div>
               </div>
+              {(renderData.data.carSeat > 0 || renderData.data.babySeat > 0 || renderData.data.booster > 0 || renderData.data.paradaCompras) && (
+                <div className="bg-blue-50 text-blue-900 p-3 rounded border border-blue-100">
+                  <div className="text-xs uppercase mb-1 font-semibold flex items-center gap-1"><Car size={12} /> Extras</div>
+                  <div className="flex flex-wrap gap-3 font-medium text-sm">
+                    {renderData.data.carSeat > 0 && <span>Car Seat: {renderData.data.carSeat}</span>}
+                    {renderData.data.babySeat > 0 && <span>Baby Seat: {renderData.data.babySeat}</span>}
+                    {renderData.data.booster > 0 && <span>Booster: {renderData.data.booster}</span>}
+                    {renderData.data.paradaCompras && <span className="bg-blue-200 px-2 py-0.5 rounded">Parada de Compras</span>}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
-        )}
-        {/* --- MODAL DEL TICKET DE IMPRESIÓN --- */}
-        {ticketDataToPrint && (
-          <div className="fixed inset-0 z-[9999] bg-gray-100 overflow-y-auto flex flex-col items-center py-8 px-4 font-sans print:p-0 print:bg-white">
+        </div>
+      )}
 
-            {/* Controles superiores (se ocultan al imprimir) */}
-            <div className="mb-8 flex flex-wrap justify-center gap-4 print:hidden">
-              <button
-                onClick={() => setTicketLang(ticketLang === 'EN' ? 'ES' : 'EN')}
-                className="bg-white border-2 border-slate-900 text-slate-900 font-bold py-2 px-6 rounded-xl transition-colors hover:bg-slate-100 shadow-md"
-              >
-                🔄 Cambiar a {ticketLang === 'EN' ? 'Español' : 'English'}
-              </button>
-              <button
-                onClick={() => {
-                  // 1. Conseguimos el folio real del ticket actual (ej. BTS00006)
-                  // Cambia "currentTicket.folio" o "service.reserva" por la variable exacta donde guardas el folio
-                  const numeroTicket = currentService?.folio || currentService?.reserva || "00000";
+      {renderData?.type === 'sign' && (
+        <div className="fixed top-0 left-0 -z-50 pointer-events-none opacity-0">
+          <div ref={signRef} className="bg-white w-[1122px] h-[793px] flex flex-col items-center justify-center p-12 relative overflow-hidden font-sans">
+            <div className="mb-12 flex justify-center w-full">
+              <BallardLogo className="h-48" />
+            </div>
+            <div className="text-center w-full max-w-4xl mb-16">
+              <div className="text-[130px] leading-none font-bold uppercase text-black break-words px-4 text-center w-full">
+                {renderData.data.nombre}
+              </div>
+              <div className="text-[130px] leading-tight font-bold uppercase text-black break-words px-4 text-center w-full mt-6">
+                {renderData.data.apellido}
+              </div>
+            </div>
+            <div className="text-4xl font-medium tracking-[0.4em] text-gray-600 mt-4">
+              WELCOME!
+            </div>
+          </div>
+        </div>
+      )}
+      {/* --- MODAL DEL TICKET DE IMPRESIÓN --- */}
+      {ticketDataToPrint && (
+        <div className="fixed inset-0 z-[9999] bg-gray-100 overflow-y-auto flex flex-col items-center py-8 px-4 font-sans print:p-0 print:bg-white">
 
-                  // 2. Guardamos el título original de la pestaña de tu app
-                  const tituloOriginal = document.title;
+          {/* Controles superiores (se ocultan al imprimir) */}
+          <div className="mb-8 flex flex-wrap justify-center gap-4 print:hidden">
+            <button
+              onClick={() => setTicketLang(ticketLang === 'EN' ? 'ES' : 'EN')}
+              className="bg-white border-2 border-slate-900 text-slate-900 font-bold py-2 px-6 rounded-xl transition-colors hover:bg-slate-100 shadow-md"
+            >
+              🔄 Cambiar a {ticketLang === 'EN' ? 'Español' : 'English'}
+            </button>
+            <button
+              onClick={() => {
+                // 1. Conseguimos el folio real del ticket actual (ej. BTS00006)
+                // Cambia "currentTicket.folio" o "service.reserva" por la variable exacta donde guardas el folio
+                const numeroTicket = currentService?.folio || currentService?.reserva || "00000";
 
-                  // 3. LE CAMBIAMOS EL NOMBRE AL ARCHIVO AUTOMÁTICAMENTE
-                  // Al hacer esto, el navegador usará este texto exacto como nombre por defecto del PDF
-                  document.title = `TICKET-${numeroTicket}`;
+                // 2. Guardamos el título original de la pestaña de tu app
+                const tituloOriginal = document.title;
 
-                  // 4. EL TRUCO CONTRA LA SEGUNDA HOJA: Creamos un estilo temporal ultra-estricto para la impresión
-                  const estiloImpresion = document.createElement('style');
-                  estiloImpresion.innerHTML = `
+                // 3. LE CAMBIAMOS EL NOMBRE AL ARCHIVO AUTOMÁTICAMENTE
+                // Al hacer esto, el navegador usará este texto exacto como nombre por defecto del PDF
+                document.title = `TICKET-${numeroTicket}`;
+
+                // 4. EL TRUCO CONTRA LA SEGUNDA HOJA: Creamos un estilo temporal ultra-estricto para la impresión
+                const estiloImpresion = document.createElement('style');
+                estiloImpresion.innerHTML = `
       @media print {
         @page {
           size: letter !important; /* Forzamos tamaño carta */
@@ -3735,196 +3814,196 @@ export default function App() {
         }
       }
     `;
-                  document.head.appendChild(estiloImpresion);
+                document.head.appendChild(estiloImpresion);
 
-                  // 5. Mandamos a imprimir / Guardar PDF
-                  window.print();
+                // 5. Mandamos a imprimir / Guardar PDF
+                window.print();
 
-                  // 6. LIMPIEZA: Cuando se cierre el asistente de PDF, regresamos todo a la normalidad
-                  setTimeout(() => {
-                    document.title = tituloOriginal; // Regresa el nombre normal de tu app a la pestaña
-                    document.head.removeChild(estiloImpresion); // Quitamos el parche de impresión temporal
-                  }, 1000);
-                }}
-                className="bg-amber-500 hover:bg-amber-600 text-white font-bold py-2 px-4 rounded shadow flex items-center gap-2 text-sm transition-colors"
-              >
-                🖨️ Imprimir / PDF
-              </button>
-              {/* BOTÓN REGRESAR AL MENÚ */}
-              <button
-                onClick={() => {
-                  // Aquí cerramos la vista del ticket
-                  // Busca cómo se llama la variable que usas para abrirlo, seguramente es algo como:
-                  setTicketDataToPrint(null);
-                }}
-                className="bg-slate-800 hover:bg-slate-900 text-white font-bold py-2 px-4 rounded shadow flex items-center gap-2 text-sm transition-colors"
-              >
-                ⬅️ Regresar al Menú
-              </button>
-            </div>
+                // 6. LIMPIEZA: Cuando se cierre el asistente de PDF, regresamos todo a la normalidad
+                setTimeout(() => {
+                  document.title = tituloOriginal; // Regresa el nombre normal de tu app a la pestaña
+                  document.head.removeChild(estiloImpresion); // Quitamos el parche de impresión temporal
+                }, 1000);
+              }}
+              className="bg-amber-500 hover:bg-amber-600 text-white font-bold py-2 px-4 rounded shadow flex items-center gap-2 text-sm transition-colors"
+            >
+              🖨️ Imprimir / PDF
+            </button>
+            {/* BOTÓN REGRESAR AL MENÚ */}
+            <button
+              onClick={() => {
+                // Aquí cerramos la vista del ticket
+                // Busca cómo se llama la variable que usas para abrirlo, seguramente es algo como:
+                setTicketDataToPrint(null);
+              }}
+              className="bg-slate-800 hover:bg-slate-900 text-white font-bold py-2 px-4 rounded shadow flex items-center gap-2 text-sm transition-colors"
+            >
+              ⬅️ Regresar al Menú
+            </button>
+          </div>
 
-            {/* ÁREA DEL TICKET */}
-            <div className="w-full max-w-2xl flex justify-center print:w-full">
-              <div className="w-full bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col border border-gray-200 print:shadow-none print:border-gray-400 print:rounded-none">
+          {/* ÁREA DEL TICKET */}
+          <div className="w-full max-w-2xl flex justify-center print:w-full">
+            <div className="w-full bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col border border-gray-200 print:shadow-none print:border-gray-400 print:rounded-none">
 
-                <div className="bg-slate-900 text-white p-8 relative overflow-hidden">
-                  <div className="absolute top-0 right-0 p-8 opacity-10">
-                    <SuvIcon size={150} />
+              <div className="bg-slate-900 text-white p-8 relative overflow-hidden">
+                <div className="absolute top-0 right-0 p-8 opacity-10">
+                  <SuvIcon size={150} />
+                </div>
+
+                <div className="relative z-10 flex justify-between items-start">
+                  <div>
+                    <h1 className="text-3xl font-black tracking-wider text-amber-500 uppercase">Ballard</h1>
+                    <p className="text-sm font-medium tracking-widest text-slate-300 uppercase">Tour Services</p>
                   </div>
-
-                  <div className="relative z-10 flex justify-between items-start">
-                    <div>
-                      <h1 className="text-3xl font-black tracking-wider text-amber-500 uppercase">Ballard</h1>
-                      <p className="text-sm font-medium tracking-widest text-slate-300 uppercase">Tour Services</p>
+                  <div className="text-right">
+                    <div className="inline-block bg-amber-500 text-slate-900 font-bold px-3 py-1 rounded text-xs tracking-wider mb-2 uppercase">
+                      {ticketLang === 'EN' ? 'CONFIRMED' : 'CONFIRMADO'}
                     </div>
-                    <div className="text-right">
-                      <div className="inline-block bg-amber-500 text-slate-900 font-bold px-3 py-1 rounded text-xs tracking-wider mb-2 uppercase">
-                        {ticketLang === 'EN' ? 'CONFIRMED' : 'CONFIRMADO'}
-                      </div>
-                      {/* El folio dinámico: Si no tiene reserva, usa su ID corto */}
-                      <p className="font-mono text-sm text-slate-300 uppercase font-bold">Folio: {ticketDataToPrint.reserva || ticketDataToPrint.id.slice(-5)}</p>
-                    </div>
-                  </div>
-
-                  <div className="mt-8 flex justify-between items-end relative z-10">
-                    <div>
-                      <h2 className="text-xl font-bold tracking-wide uppercase">{ticketLang === 'EN' ? 'PRIVATE TRANSPORTATION' : 'TRANSPORTE PRIVADO'}</h2>
-                      <p className="text-slate-400 text-sm mt-1 flex items-center gap-2">
-                        <ShieldCheck size={16} className="text-amber-500" />
-                        Boleto Seguro / Safe Ticket
-                      </p>
-                    </div>
+                    {/* El folio dinámico: Si no tiene reserva, usa su ID corto */}
+                    <p className="font-mono text-sm text-slate-300 uppercase font-bold">Folio: {ticketDataToPrint.reserva || ticketDataToPrint.id.slice(-5)}</p>
                   </div>
                 </div>
 
-                <div className="relative h-4 bg-white">
-                  <div className="absolute w-full border-t-2 border-dashed border-gray-300 top-1/2"></div>
-                  <div className="absolute left-0 top-1/2 -mt-3 -ml-3 w-6 h-6 bg-gray-100 print:bg-white rounded-full"></div>
-                  <div className="absolute right-0 top-1/2 -mt-3 -mr-3 w-6 h-6 bg-gray-100 print:bg-white rounded-full"></div>
-                </div>
-
-                <div className="p-8 pb-6 grid grid-cols-1 md:grid-cols-2 gap-y-6 gap-x-8">
-                  <div className="space-y-5">
-                    <div>
-                      <p className="text-xs text-gray-500 font-bold uppercase tracking-wider mb-1">{ticketLang === 'EN' ? 'Passenger Name' : 'Nombre del Pasajero'}</p>
-                      <p className="text-lg font-bold text-slate-800 flex items-center gap-2 uppercase">
-                        <User size={18} className="text-amber-500" />
-                        {ticketDataToPrint.nombre} {ticketDataToPrint.apellido}
-                      </p>
-                    </div>
-
-                    <div>
-                      <p className="text-xs text-gray-500 font-bold uppercase tracking-wider mb-1">
-                        {ticketLang === 'EN'
-                          ? (ticketDataToPrint.tipoServicio === 'Llegada' ? 'Arrival Date & Time' : 'Pick Up Date & Time')
-                          : (ticketDataToPrint.tipoServicio === 'Llegada' ? 'Fecha y Hora de Llegada' : 'Fecha y Hora de Pick Up')}
-                      </p>
-                      <div className="flex flex-col gap-1">
-                        <p className="text-base font-bold text-slate-800 flex items-center gap-2">
-                          <Calendar size={18} className="text-amber-500" />
-                          {ticketDataToPrint.fecha}
-                        </p>
-                        <p className="text-base font-bold text-slate-800 flex items-center gap-2">
-                          <Clock size={18} className="text-amber-500" />
-                          {ticketDataToPrint.hora} {ticketDataToPrint.tipoServicio === 'Salida' ? '(Lobby)' : ''}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="space-y-5">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <p className="text-xs text-gray-500 font-bold uppercase tracking-wider mb-1">PAX</p>
-                        <p className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                          <Users size={18} className="text-amber-500" />
-                          {ticketDataToPrint.pax}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-500 font-bold uppercase tracking-wider mb-1">{ticketLang === 'EN' ? 'Flight' : 'Vuelo'}</p>
-                        <p className="text-lg font-bold text-slate-800 flex items-center gap-2 uppercase">
-                          <Plane size={18} className="text-amber-500" />
-                          {ticketDataToPrint.vuelo || 'N/A'}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div>
-                      <p className="text-xs text-gray-500 font-bold uppercase tracking-wider mb-1">{ticketLang === 'EN' ? 'Hotel / Destination' : 'Hotel / Destino'}</p>
-                      <p className="text-base font-bold text-slate-800 flex items-start gap-2">
-                        <MapPin size={18} className="text-amber-500 min-w-max mt-0.5" />
-                        <span className="leading-tight uppercase">{ticketDataToPrint.hotel}</span>
-                      </p>
-                    </div>
-
-                    {/* NUEVA SECCIÓN DE PAGO */}
-                    <div>
-                      <p className="text-xs text-gray-500 font-bold uppercase tracking-wider mb-1">{ticketLang === 'EN' ? 'Payment / Method' : 'Cobro / Método'}</p>
-                      <p className="text-base font-bold text-slate-800 flex items-center gap-2 uppercase">
-                        {/* Ícono de dinero hecho a medida */}
-                        <span className="bg-amber-500 text-slate-900 rounded-full w-5 h-5 flex items-center justify-center font-black text-xs">
-                          $
-                        </span>
-                        {/* Lógica: Si hay cobro lo muestra con su método, si está vacío o es 0 dice PREPAGADO */}
-                        {ticketDataToPrint.cobro && ticketDataToPrint.cobro !== '0'
-                          ? `$${ticketDataToPrint.cobro} ${ticketDataToPrint.metodoPago ? `(${ticketDataToPrint.metodoPago})` : ''}`
-                          : (ticketLang === 'EN' ? 'PREPAID' : 'PREPAGADO')}
-                      </p>
-                    </div>
-
+                <div className="mt-8 flex justify-between items-end relative z-10">
+                  <div>
+                    <h2 className="text-xl font-bold tracking-wide uppercase">{ticketLang === 'EN' ? 'PRIVATE TRANSPORTATION' : 'TRANSPORTE PRIVADO'}</h2>
+                    <p className="text-slate-400 text-sm mt-1 flex items-center gap-2">
+                      <ShieldCheck size={16} className="text-amber-500" />
+                      Boleto Seguro / Safe Ticket
+                    </p>
                   </div>
                 </div>
-
-                <div className="px-8 flex justify-center mb-6">
-                  <svg className="h-12 w-full max-w-sm" preserveAspectRatio="none" viewBox="0 0 200 50" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-                    <rect x="0" y="0" width="4" height="50" className="text-slate-800" /><rect x="6" y="0" width="2" height="50" className="text-slate-800" /><rect x="12" y="0" width="6" height="50" className="text-slate-800" /><rect x="22" y="0" width="2" height="50" className="text-slate-800" /><rect x="26" y="0" width="8" height="50" className="text-slate-800" /><rect x="38" y="0" width="4" height="50" className="text-slate-800" /><rect x="46" y="0" width="2" height="50" className="text-slate-800" /><rect x="52" y="0" width="6" height="50" className="text-slate-800" /><rect x="62" y="0" width="10" height="50" className="text-slate-800" /><rect x="76" y="0" width="4" height="50" className="text-slate-800" /><rect x="84" y="0" width="2" height="50" className="text-slate-800" /><rect x="90" y="0" width="8" height="50" className="text-slate-800" /><rect x="102" y="0" width="4" height="50" className="text-slate-800" /><rect x="110" y="0" width="6" height="50" className="text-slate-800" /><rect x="120" y="0" width="2" height="50" className="text-slate-800" /><rect x="126" y="0" width="8" height="50" className="text-slate-800" /><rect x="138" y="0" width="4" height="50" className="text-slate-800" /><rect x="146" y="0" width="2" height="50" className="text-slate-800" /><rect x="152" y="0" width="12" height="50" className="text-slate-800" /><rect x="168" y="0" width="4" height="50" className="text-slate-800" /><rect x="176" y="0" width="6" height="50" className="text-slate-800" /><rect x="186" y="0" width="2" height="50" className="text-slate-800" /><rect x="192" y="0" width="8" height="50" className="text-slate-800" />
-                  </svg>
-                </div>
-
-                {/* INSTRUCCIONES DINÁMICAS (Llegada vs Salida / EN vs ES) */}
-                <div className="bg-amber-50 p-6 mx-4 rounded-xl border border-amber-200 mb-4">
-                  <h3 className="text-sm font-bold text-amber-900 flex items-center gap-2 mb-2">
-                    <Info size={16} />
-                    {ticketDataToPrint.tipoServicio === 'Llegada'
-                      ? (ticketLang === 'EN' ? 'How to spot your driver upon arrival?' : '¿Cómo ubicar a su chofer al llegar?')
-                      : (ticketLang === 'EN' ? 'Pick-up Instructions' : 'Instrucciones de Pick-up')}
-                  </h3>
-                  <p className="text-sm text-amber-800/80 leading-relaxed text-justify">
-                    {ticketDataToPrint.tipoServicio === 'Llegada'
-                      ? (ticketLang === 'EN'
-                        ? 'All transport companies are waiting outside the departure gate. You just have to walk to the parking lot to look for your name on a sign. We are usually located in Shadow 3 or Terminal 1 is "SALIDA DE GRUPOS". So when you get there, just walk into the parking lot and you will see some staff members standing under these curtains holding up their signs, one of them will have your name on it.'
-                        : 'Todas las empresas de transporte esperan afuera de la puerta de salida. Camine al estacionamiento y busque su nombre en un letrero. Usualmente estamos en la Sombra 3 o Terminal 1 "SALIDA DE GRUPOS". Al llegar, camine al estacionamiento y verá a nuestro personal bajo los toldos con su letrero.')
-                      : (ticketLang === 'EN'
-                        ? 'Please be ready in the hotel lobby 15 minutes before your scheduled pick-up time. Look for the driver holding a Ballard Tour Services sign. If you have any issues, please contact us immediately.'
-                        : 'Por favor, esté listo en el lobby del hotel 15 minutos antes de su hora programada de pick-up. Busque al chofer con el letrero de Ballard Tour Services. Si tiene algún problema, contáctenos de inmediato.')}
-                  </p>
-                </div>
-
-                <div className="px-6 pb-6 text-center">
-                  <h3 className="text-sm font-bold text-slate-800 mb-1 flex items-center justify-center gap-2">
-                    <Map size={16} className="text-slate-500" />
-                    {ticketLang === 'EN' ? 'You need other activities?' : '¿Buscas otras actividades?'}
-                  </h3>
-                  <p className="text-xs text-slate-500">
-                    {ticketLang === 'EN'
-                      ? 'We can take you to see the Arch of Los Cabos, ride a motorcycle, get to know the Historic Center of San Jose del Cabo, the Hotel California in Todos Santos, and much more...'
-                      : 'Podemos llevarte a conocer el Arco de Los Cabos, pasear en cuatrimoto, conocer el Centro Histórico de San José del Cabo, el Hotel California en Todos Santos y mucho más...'}
-                  </p>
-                </div>
-
-                <div className="bg-slate-900 text-slate-300 p-4 text-xs flex flex-col md:flex-row justify-between items-center gap-3">
-                  <div className="flex items-center gap-4">
-                    <span className="flex items-center gap-1"><Phone size={14} className="text-amber-500" /> +52 624 139 3497</span>
-                    <span className="flex items-center gap-1 hidden sm:flex"><Mail size={14} className="text-amber-500" /> reservationballard@gmail.com</span>
-                  </div>
-                  <span className="flex items-center gap-1"><Globe size={14} className="text-amber-500" /> www.ballardtours.com</span>
-                </div>
-
               </div>
+
+              <div className="relative h-4 bg-white">
+                <div className="absolute w-full border-t-2 border-dashed border-gray-300 top-1/2"></div>
+                <div className="absolute left-0 top-1/2 -mt-3 -ml-3 w-6 h-6 bg-gray-100 print:bg-white rounded-full"></div>
+                <div className="absolute right-0 top-1/2 -mt-3 -mr-3 w-6 h-6 bg-gray-100 print:bg-white rounded-full"></div>
+              </div>
+
+              <div className="p-8 pb-6 grid grid-cols-1 md:grid-cols-2 gap-y-6 gap-x-8">
+                <div className="space-y-5">
+                  <div>
+                    <p className="text-xs text-gray-500 font-bold uppercase tracking-wider mb-1">{ticketLang === 'EN' ? 'Passenger Name' : 'Nombre del Pasajero'}</p>
+                    <p className="text-lg font-bold text-slate-800 flex items-center gap-2 uppercase">
+                      <User size={18} className="text-amber-500" />
+                      {ticketDataToPrint.nombre} {ticketDataToPrint.apellido}
+                    </p>
+                  </div>
+
+                  <div>
+                    <p className="text-xs text-gray-500 font-bold uppercase tracking-wider mb-1">
+                      {ticketLang === 'EN'
+                        ? (ticketDataToPrint.tipoServicio === 'Llegada' ? 'Arrival Date & Time' : 'Pick Up Date & Time')
+                        : (ticketDataToPrint.tipoServicio === 'Llegada' ? 'Fecha y Hora de Llegada' : 'Fecha y Hora de Pick Up')}
+                    </p>
+                    <div className="flex flex-col gap-1">
+                      <p className="text-base font-bold text-slate-800 flex items-center gap-2">
+                        <Calendar size={18} className="text-amber-500" />
+                        {ticketDataToPrint.fecha}
+                      </p>
+                      <p className="text-base font-bold text-slate-800 flex items-center gap-2">
+                        <Clock size={18} className="text-amber-500" />
+                        {ticketDataToPrint.hora} {ticketDataToPrint.tipoServicio === 'Salida' ? '(Lobby)' : ''}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-5">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-xs text-gray-500 font-bold uppercase tracking-wider mb-1">PAX</p>
+                      <p className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                        <Users size={18} className="text-amber-500" />
+                        {ticketDataToPrint.pax}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500 font-bold uppercase tracking-wider mb-1">{ticketLang === 'EN' ? 'Flight' : 'Vuelo'}</p>
+                      <p className="text-lg font-bold text-slate-800 flex items-center gap-2 uppercase">
+                        <Plane size={18} className="text-amber-500" />
+                        {ticketDataToPrint.vuelo || 'N/A'}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div>
+                    <p className="text-xs text-gray-500 font-bold uppercase tracking-wider mb-1">{ticketLang === 'EN' ? 'Hotel / Destination' : 'Hotel / Destino'}</p>
+                    <p className="text-base font-bold text-slate-800 flex items-start gap-2">
+                      <MapPin size={18} className="text-amber-500 min-w-max mt-0.5" />
+                      <span className="leading-tight uppercase">{ticketDataToPrint.hotel}</span>
+                    </p>
+                  </div>
+
+                  {/* NUEVA SECCIÓN DE PAGO */}
+                  <div>
+                    <p className="text-xs text-gray-500 font-bold uppercase tracking-wider mb-1">{ticketLang === 'EN' ? 'Payment / Method' : 'Cobro / Método'}</p>
+                    <p className="text-base font-bold text-slate-800 flex items-center gap-2 uppercase">
+                      {/* Ícono de dinero hecho a medida */}
+                      <span className="bg-amber-500 text-slate-900 rounded-full w-5 h-5 flex items-center justify-center font-black text-xs">
+                        $
+                      </span>
+                      {/* Lógica: Si hay cobro lo muestra con su método, si está vacío o es 0 dice PREPAGADO */}
+                      {ticketDataToPrint.cobro && ticketDataToPrint.cobro !== '0'
+                        ? `$${ticketDataToPrint.cobro} ${ticketDataToPrint.metodoPago ? `(${ticketDataToPrint.metodoPago})` : ''}`
+                        : (ticketLang === 'EN' ? 'PREPAID' : 'PREPAGADO')}
+                    </p>
+                  </div>
+
+                </div>
+              </div>
+
+              <div className="px-8 flex justify-center mb-6">
+                <svg className="h-12 w-full max-w-sm" preserveAspectRatio="none" viewBox="0 0 200 50" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="0" y="0" width="4" height="50" className="text-slate-800" /><rect x="6" y="0" width="2" height="50" className="text-slate-800" /><rect x="12" y="0" width="6" height="50" className="text-slate-800" /><rect x="22" y="0" width="2" height="50" className="text-slate-800" /><rect x="26" y="0" width="8" height="50" className="text-slate-800" /><rect x="38" y="0" width="4" height="50" className="text-slate-800" /><rect x="46" y="0" width="2" height="50" className="text-slate-800" /><rect x="52" y="0" width="6" height="50" className="text-slate-800" /><rect x="62" y="0" width="10" height="50" className="text-slate-800" /><rect x="76" y="0" width="4" height="50" className="text-slate-800" /><rect x="84" y="0" width="2" height="50" className="text-slate-800" /><rect x="90" y="0" width="8" height="50" className="text-slate-800" /><rect x="102" y="0" width="4" height="50" className="text-slate-800" /><rect x="110" y="0" width="6" height="50" className="text-slate-800" /><rect x="120" y="0" width="2" height="50" className="text-slate-800" /><rect x="126" y="0" width="8" height="50" className="text-slate-800" /><rect x="138" y="0" width="4" height="50" className="text-slate-800" /><rect x="146" y="0" width="2" height="50" className="text-slate-800" /><rect x="152" y="0" width="12" height="50" className="text-slate-800" /><rect x="168" y="0" width="4" height="50" className="text-slate-800" /><rect x="176" y="0" width="6" height="50" className="text-slate-800" /><rect x="186" y="0" width="2" height="50" className="text-slate-800" /><rect x="192" y="0" width="8" height="50" className="text-slate-800" />
+                </svg>
+              </div>
+
+              {/* INSTRUCCIONES DINÁMICAS (Llegada vs Salida / EN vs ES) */}
+              <div className="bg-amber-50 p-6 mx-4 rounded-xl border border-amber-200 mb-4">
+                <h3 className="text-sm font-bold text-amber-900 flex items-center gap-2 mb-2">
+                  <Info size={16} />
+                  {ticketDataToPrint.tipoServicio === 'Llegada'
+                    ? (ticketLang === 'EN' ? 'How to spot your driver upon arrival?' : '¿Cómo ubicar a su chofer al llegar?')
+                    : (ticketLang === 'EN' ? 'Pick-up Instructions' : 'Instrucciones de Pick-up')}
+                </h3>
+                <p className="text-sm text-amber-800/80 leading-relaxed text-justify">
+                  {ticketDataToPrint.tipoServicio === 'Llegada'
+                    ? (ticketLang === 'EN'
+                      ? 'All transport companies are waiting outside the departure gate. You just have to walk to the parking lot to look for your name on a sign. We are usually located in Shadow 3 or Terminal 1 is "SALIDA DE GRUPOS". So when you get there, just walk into the parking lot and you will see some staff members standing under these curtains holding up their signs, one of them will have your name on it.'
+                      : 'Todas las empresas de transporte esperan afuera de la puerta de salida. Camine al estacionamiento y busque su nombre en un letrero. Usualmente estamos en la Sombra 3 o Terminal 1 "SALIDA DE GRUPOS". Al llegar, camine al estacionamiento y verá a nuestro personal bajo los toldos con su letrero.')
+                    : (ticketLang === 'EN'
+                      ? 'Please be ready in the hotel lobby 15 minutes before your scheduled pick-up time. Look for the driver holding a Ballard Tour Services sign. If you have any issues, please contact us immediately.'
+                      : 'Por favor, esté listo en el lobby del hotel 15 minutos antes de su hora programada de pick-up. Busque al chofer con el letrero de Ballard Tour Services. Si tiene algún problema, contáctenos de inmediato.')}
+                </p>
+              </div>
+
+              <div className="px-6 pb-6 text-center">
+                <h3 className="text-sm font-bold text-slate-800 mb-1 flex items-center justify-center gap-2">
+                  <Map size={16} className="text-slate-500" />
+                  {ticketLang === 'EN' ? 'You need other activities?' : '¿Buscas otras actividades?'}
+                </h3>
+                <p className="text-xs text-slate-500">
+                  {ticketLang === 'EN'
+                    ? 'We can take you to see the Arch of Los Cabos, ride a motorcycle, get to know the Historic Center of San Jose del Cabo, the Hotel California in Todos Santos, and much more...'
+                    : 'Podemos llevarte a conocer el Arco de Los Cabos, pasear en cuatrimoto, conocer el Centro Histórico de San José del Cabo, el Hotel California en Todos Santos y mucho más...'}
+                </p>
+              </div>
+
+              <div className="bg-slate-900 text-slate-300 p-4 text-xs flex flex-col md:flex-row justify-between items-center gap-3">
+                <div className="flex items-center gap-4">
+                  <span className="flex items-center gap-1"><Phone size={14} className="text-amber-500" /> +52 624 139 3497</span>
+                  <span className="flex items-center gap-1 hidden sm:flex"><Mail size={14} className="text-amber-500" /> reservationballard@gmail.com</span>
+                </div>
+                <span className="flex items-center gap-1"><Globe size={14} className="text-amber-500" /> www.ballardtours.com</span>
+              </div>
+
             </div>
           </div>
-        )}
-      </div>
-      );
+        </div>
+      )}
+    </div>
+  );
 }
