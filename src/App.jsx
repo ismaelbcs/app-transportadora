@@ -1419,9 +1419,34 @@ export default function App() {
     setTimeout(async () => {
       try {
         const canvas = await window.html2canvas(shareRef.current, { scale: 2, useCORS: true });
+        const dataUrl = canvas.toDataURL('image/png');
+        const filename = `Servicio_${item.nombre}_${item.apellido}.png`;
+
+        try {
+          const res = await fetch(dataUrl);
+          const blob = await res.blob();
+          const file = new File([blob], filename, { type: 'image/png' });
+          if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            await navigator.share({
+              files: [file],
+              title: `Servicio ${item.nombre}`,
+              text: 'Detalles del servicio'
+            });
+            setRenderData(null);
+            showToast('Compartido con éxito');
+            return;
+          }
+        } catch (error) {
+          if (error.name === 'AbortError') {
+            setRenderData(null);
+            return;
+          }
+          console.error('Error sharing:', error);
+        }
+
         const link = document.createElement('a');
-        link.download = `Servicio_${item.nombre}_${item.apellido}.png`;
-        link.href = canvas.toDataURL('image/png');
+        link.download = filename;
+        link.href = dataUrl;
         link.click();
         setRenderData(null);
         showToast('Imagen PNG generada');
@@ -1481,10 +1506,31 @@ export default function App() {
         }
       });
 
-      const link = document.createElement('a');
+      const dataUrl = canvas.toDataURL('image/png');
       const fecha = new Date().toISOString().split('T')[0];
-      link.download = `Rol_Diario_${fecha}.png`;
-      link.href = canvas.toDataURL('image/png');
+      const filename = `Rol_Diario_${fecha}.png`;
+
+      try {
+        const res = await fetch(dataUrl);
+        const blob = await res.blob();
+        const file = new File([blob], filename, { type: 'image/png' });
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          await navigator.share({
+            files: [file],
+            title: `Rol Diario ${fecha}`,
+            text: 'Rol Diario'
+          });
+          showToast('Compartido con éxito');
+          return;
+        }
+      } catch (error) {
+        if (error.name === 'AbortError') return;
+        console.error('Error sharing:', error);
+      }
+
+      const link = document.createElement('a');
+      link.download = filename;
+      link.href = dataUrl;
       link.click();
 
       showToast('Imagen HD descargada correctamente');
