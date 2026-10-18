@@ -4067,7 +4067,7 @@ export default function App() {
 
               <div className="bg-slate-900 text-slate-300 p-4 text-xs flex flex-col md:flex-row justify-between items-center gap-3">
                 <div className="flex items-center gap-4">
-                  <span className="flex items-center gap-1"><Phone size={14} className="text-amber-500" /> +52 624 139 3497</span>
+                  <span className="flex items-center gap-1"><Phone size={14} className="text-amber-500" /> +52 612 194 3286</span>
                   <span className="flex items-center gap-1 hidden sm:flex"><Mail size={14} className="text-amber-500" /> reservationballard@gmail.com</span>
                 </div>
                 <span className="flex items-center gap-1"><Globe size={14} className="text-amber-500" /> www.ballardtours.com</span>

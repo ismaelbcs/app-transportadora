@@ -1486,7 +1486,7 @@ export default function Presupuestos({
                   <tbody>
                     <tr>
                       <td style={{ padding: '15px 25px', textAlign: 'center', fontSize: '12px', border: 'none' }}>
-                        <span style={{ color: '#FFB300', marginRight: '15px' }}>&#9742; +52 624 139 3497</span>
+                        <span style={{ color: '#FFB300', marginRight: '15px' }}>&#9742; +52 612 194 3286</span>
                         <span style={{ marginRight: '15px', color: '#ffffff' }}>&#9993; reservationballard@gmail.com</span>
                         <span style={{ color: '#ffffff' }}>&#127760; www.ballardtours.com</span>
                       </td>
