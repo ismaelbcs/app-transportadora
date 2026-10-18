@@ -53,7 +53,10 @@ export default function Presupuestos({
         origen: 'Aeropuerto SJD',
         destino: '',
         fecha: '',
+        horaRecogida: '',
+        horaRegreso: '',
         hora: '',
+        pax: '2',
         precio: ''
       },
       {
@@ -64,7 +67,10 @@ export default function Presupuestos({
         origen: '',
         destino: '',
         fecha: '',
+        horaRecogida: '',
+        horaRegreso: '',
         hora: '',
+        pax: '2',
         precio: ''
       },
       {
@@ -75,7 +81,10 @@ export default function Presupuestos({
         origen: '',
         destino: 'Aeropuerto SJD',
         fecha: '',
+        horaRecogida: '',
+        horaRegreso: '',
         hora: '',
+        pax: '2',
         precio: ''
       }
     ]
@@ -199,7 +208,10 @@ export default function Presupuestos({
         origen: prev.hotelPrincipal || '',
         destino: '',
         fecha: '',
+        horaRecogida: '',
+        horaRegreso: '',
         hora: '',
+        pax: prev.pax || '2',
         precio: ''
       };
 
@@ -287,6 +299,16 @@ export default function Presupuestos({
         });
       }
 
+      // Si cambió el PAX general, sincronizarlo en las etapas que no tengan un valor personalizado
+      if (field === 'pax' && value) {
+        updated.etapas = prev.etapas.map(e => {
+          if (!e.pax || e.pax === prev.pax) {
+            return { ...e, pax: value };
+          }
+          return e;
+        });
+      }
+
       return updated;
     });
   };
@@ -344,7 +366,10 @@ export default function Presupuestos({
           origen: 'Aeropuerto SJD',
           destino: '',
           fecha: '',
+          horaRecogida: '',
+          horaRegreso: '',
           hora: '',
+          pax: '2',
           precio: ''
         },
         {
@@ -355,7 +380,10 @@ export default function Presupuestos({
           origen: '',
           destino: '',
           fecha: '',
+          horaRecogida: '',
+          horaRegreso: '',
           hora: '',
+          pax: '2',
           precio: ''
         },
         {
@@ -366,7 +394,10 @@ export default function Presupuestos({
           origen: '',
           destino: 'Aeropuerto SJD',
           fecha: '',
+          horaRecogida: '',
+          horaRegreso: '',
           hora: '',
+          pax: '2',
           precio: ''
         }
       ]
@@ -544,6 +575,10 @@ export default function Presupuestos({
         ? `${etapa.origen} → ${etapa.destino}`
         : (etapa.tipo === 'llegada' ? `Aeropuerto SJD → ${hotelTramo}` : (etapa.tipo === 'salida' ? `${hotelTramo} → Aeropuerto SJD` : (etapa.destino || 'Destino')));
 
+      const horaPickUpCalculada = etapa.horaRecogida || (etapa.tipo === 'salida' ? (c.horaCheckout || etapa.hora || '') : (etapa.hora || ''));
+      const horaServicioCalculada = etapa.hora || etapa.horaRecogida || '';
+      const notaRegreso = etapa.horaRegreso ? ` [Hora Regreso: ${etapa.horaRegreso}]` : '';
+
       return {
         idLocal: `conv-${idx}-${Date.now()}`,
         etapaId: etapa.id,
@@ -553,17 +588,17 @@ export default function Presupuestos({
         apellido: apellido,
         agencia: 'Directo',
         tipoServicio: tipoServicio,
-        pax: c.pax || '2',
+        pax: etapa.pax?.toString() || c.pax?.toString() || '2',
         telefono: '',
         fecha: etapa.fecha || (idx === 0 ? c.fechaEmision : ''),
-        hora: etapa.hora || '',
+        hora: horaServicioCalculada,
         vuelo: etapa.tipo === 'llegada' ? (c.aerolineaVuelo || '') : '',
-        pickUp: etapa.tipo === 'salida' ? (c.horaCheckout || etapa.hora || '') : (etapa.hora || ''),
+        pickUp: horaPickUpCalculada,
         hotel: hotelTramo,
         cobro: etapa.precio || (idx === 0 && c.precioTotal ? c.precioTotal : ''),
         metodoPago: c.metodoPago || 'Efectivo',
         tipoViaje: 'One way',
-        comentario: `Cotización ${c.folio} - ${trayectoDesc}`
+        comentario: `Cotización ${c.folio} - ${trayectoDesc}${notaRegreso}`
       };
     });
 
@@ -712,7 +747,10 @@ export default function Presupuestos({
     itinerarioTitulo: idioma === 'EN' ? 'Requested Itinerary and Destinations' : 'Itinerario y Destinos Solicitados',
     colEtapa: idioma === 'EN' ? 'STAGE' : 'ETAPA',
     colDescripcion: idioma === 'EN' ? 'ROUTE / DESTINATION DESCRIPTION' : 'DESCRIPCIÓN DEL TRAYECTO / DESTINO',
+    colPax: idioma === 'EN' ? 'PAX' : 'PAX',
     colFechaHora: idioma === 'EN' ? 'DATE AND TIME' : 'FECHA Y HORA',
+    recogidaLabel: idioma === 'EN' ? 'Pick-up:' : 'Recogida:',
+    regresoLabel: idioma === 'EN' ? 'Return:' : 'Regreso:',
     totalPresupuesto: idioma === 'EN' ? 'TOTAL QUOTE:' : 'TOTAL DEL PRESUPUESTO:',
     tituloInstrucciones: idioma === 'EN' ? '• How to find your driver upon arrival?' : '• ¿Cómo encontrar a su chofer a la llegada?',
     textoInstrucciones: idioma === 'EN'
@@ -1037,49 +1075,90 @@ export default function Presupuestos({
                       )}
                     </div>
 
-                    <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
+                      {/* ORIGEN */}
                       <div>
-                        <label className="text-[10px] font-bold text-slate-500 uppercase">Origen</label>
+                        <label className="text-[10px] font-bold text-slate-500 uppercase">
+                          {idioma === 'EN' ? 'Origin' : 'Origen'}
+                        </label>
                         <input
                           type="text"
+                          list="lista-hoteles-cotizacion"
                           value={etapa.origen}
                           onChange={(e) => handleEtapaChange(etapa.id, 'origen', e.target.value)}
-                          placeholder="Lugar origen"
-                          className="w-full px-2 py-1.5 border border-slate-300 rounded focus:ring-1 focus:ring-amber-500 text-xs"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-[10px] font-bold text-slate-500 uppercase">Destino</label>
-                        <input
-                          type="text"
-                          value={etapa.destino}
-                          onChange={(e) => handleEtapaChange(etapa.id, 'destino', e.target.value)}
-                          placeholder="Lugar destino"
-                          className="w-full px-2 py-1.5 border border-slate-300 rounded focus:ring-1 focus:ring-amber-500 text-xs"
+                          placeholder={idioma === 'EN' ? 'Origin place' : 'Lugar origen'}
+                          className="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg focus:ring-1 focus:ring-amber-500 text-xs"
                         />
                       </div>
 
+                      {/* DESTINO */}
+                      <div>
+                        <label className="text-[10px] font-bold text-slate-500 uppercase">
+                          {idioma === 'EN' ? 'Destination' : 'Destino'}
+                        </label>
+                        <input
+                          type="text"
+                          list="lista-hoteles-cotizacion"
+                          value={etapa.destino}
+                          onChange={(e) => handleEtapaChange(etapa.id, 'destino', e.target.value)}
+                          placeholder={idioma === 'EN' ? 'Destination place' : 'Lugar destino'}
+                          className="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg focus:ring-1 focus:ring-amber-500 text-xs"
+                        />
+                      </div>
+
+                      {/* FECHA Y PASAJEROS (PAX) */}
                       <div>
                         <label className="text-[10px] font-bold text-slate-500 uppercase flex items-center gap-1">
-                          <Calendar size={10} /> Fecha
+                          <Calendar size={11} className="text-amber-500" /> {idioma === 'EN' ? 'Date' : 'Fecha'}
                         </label>
                         <input
                           type="date"
                           value={etapa.fecha}
                           onChange={(e) => handleEtapaChange(etapa.id, 'fecha', e.target.value)}
-                          className="w-full px-2 py-1.5 border border-slate-300 rounded focus:ring-1 focus:ring-amber-500 text-xs"
+                          className="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg focus:ring-1 focus:ring-amber-500 text-xs"
                         />
                       </div>
 
                       <div>
                         <label className="text-[10px] font-bold text-slate-500 uppercase flex items-center gap-1">
-                          <Clock size={10} /> Hora
+                          <Users size={11} className="text-amber-500" /> {idioma === 'EN' ? 'Passengers (PAX)' : 'Pasajeros (PAX)'}
+                        </label>
+                        <input
+                          type="number"
+                          min="1"
+                          value={etapa.pax ?? cotizacion.pax ?? '2'}
+                          onChange={(e) => handleEtapaChange(etapa.id, 'pax', e.target.value)}
+                          placeholder="PAX"
+                          className="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg focus:ring-1 focus:ring-amber-500 text-xs font-bold text-slate-800"
+                        />
+                      </div>
+
+                      {/* HORA DE RECOGIDA Y HORA DE REGRESO */}
+                      <div>
+                        <label className="text-[10px] font-bold text-slate-500 uppercase flex items-center gap-1">
+                          <Clock size={11} className="text-blue-500" /> {idioma === 'EN' ? 'Pick-up Time' : 'Hora de Recogida'}
                         </label>
                         <input
                           type="time"
-                          value={etapa.hora}
-                          onChange={(e) => handleEtapaChange(etapa.id, 'hora', e.target.value)}
-                          className="w-full px-2 py-1.5 border border-slate-300 rounded focus:ring-1 focus:ring-amber-500 text-xs"
+                          value={etapa.horaRecogida || etapa.hora || ''}
+                          onChange={(e) => {
+                            handleEtapaChange(etapa.id, 'horaRecogida', e.target.value);
+                            handleEtapaChange(etapa.id, 'hora', e.target.value);
+                          }}
+                          className="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg focus:ring-1 focus:ring-amber-500 text-xs font-semibold"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-[10px] font-bold text-slate-500 uppercase flex items-center gap-1">
+                          <Clock size={11} className="text-amber-600" /> {idioma === 'EN' ? 'Return Time' : 'Hora de Regreso'}
+                        </label>
+                        <input
+                          type="time"
+                          value={etapa.horaRegreso || ''}
+                          onChange={(e) => handleEtapaChange(etapa.id, 'horaRegreso', e.target.value)}
+                          placeholder="HH:MM"
+                          className="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg focus:ring-1 focus:ring-amber-500 text-xs font-semibold"
                         />
                       </div>
                     </div>
@@ -1265,11 +1344,14 @@ export default function Presupuestos({
                   <table style={{ width: '100%', marginBottom: '25px', borderBottom: '1px solid #eee', borderCollapse: 'collapse', border: 'none' }}>
                     <thead>
                       <tr style={{ backgroundColor: '#f9f9f9' }}>
-                        <th style={{ width: '25%', padding: '10px', borderBottom: '1px solid #ddd', textAlign: 'left', fontSize: '11px', color: '#7A7A7A', fontWeight: 'bold', textTransform: 'uppercase' }}>
+                        <th style={{ width: '20%', padding: '10px', borderBottom: '1px solid #ddd', textAlign: 'left', fontSize: '11px', color: '#7A7A7A', fontWeight: 'bold', textTransform: 'uppercase' }}>
                           {t.colEtapa}
                         </th>
-                        <th style={{ width: '45%', padding: '10px', borderBottom: '1px solid #ddd', textAlign: 'left', fontSize: '11px', color: '#7A7A7A', fontWeight: 'bold', textTransform: 'uppercase' }}>
+                        <th style={{ width: '38%', padding: '10px', borderBottom: '1px solid #ddd', textAlign: 'left', fontSize: '11px', color: '#7A7A7A', fontWeight: 'bold', textTransform: 'uppercase' }}>
                           {t.colDescripcion}
+                        </th>
+                        <th style={{ width: '12%', padding: '10px', borderBottom: '1px solid #ddd', textAlign: 'center', fontSize: '11px', color: '#7A7A7A', fontWeight: 'bold', textTransform: 'uppercase' }}>
+                          {t.colPax}
                         </th>
                         <th style={{ width: '30%', padding: '10px', borderBottom: '1px solid #ddd', textAlign: 'left', fontSize: '11px', color: '#7A7A7A', fontWeight: 'bold', textTransform: 'uppercase' }}>
                           {t.colFechaHora}
@@ -1294,9 +1376,11 @@ export default function Presupuestos({
                           descripcionTrayecto = etapa.destino ? `Hacia ${etapa.destino}` : '[Lugar Origen → Lugar Destino]';
                         }
 
-                        // Fecha y hora formateada
+                        // Fecha y horas formateadas
                         const fechaFormateada = etapa.fecha || '[DD-MMM-AAAA]';
-                        const horaFormateada = etapa.hora || '[HH:MM]';
+                        const paxTramo = etapa.pax || cotizacion.pax || '1';
+                        const horaPickUp = etapa.horaRecogida || etapa.hora;
+                        const horaReturn = etapa.horaRegreso;
 
                         return (
                           <tr key={etapa.id} style={{ backgroundColor: backgroundFila }}>
@@ -1308,8 +1392,34 @@ export default function Presupuestos({
                             <td style={{ padding: '12px 10px', borderBottom: '1px solid #eee', fontSize: '14px', verticalAlign: 'top', color: '#222' }}>
                               {descripcionTrayecto}
                             </td>
-                            <td style={{ padding: '12px 10px', borderBottom: '1px solid #eee', fontWeight: 'bold', fontSize: '13px', verticalAlign: 'top', color: '#161D2D' }}>
-                              {fechaFormateada} | {horaFormateada}
+                            <td style={{ padding: '12px 10px', borderBottom: '1px solid #eee', textAlign: 'center', verticalAlign: 'top', fontWeight: 'bold', fontSize: '14px', color: '#161D2D' }}>
+                              {paxTramo}
+                            </td>
+                            <td style={{ padding: '12px 10px', borderBottom: '1px solid #eee', verticalAlign: 'top', color: '#161D2D' }}>
+                              <div style={{ fontWeight: 'bold', fontSize: '13px', marginBottom: '2px' }}>
+                                {fechaFormateada}
+                              </div>
+                              {horaPickUp && (
+                                <div style={{ fontSize: '12px', color: '#334155' }}>
+                                  <span style={{ fontWeight: 'bold', color: '#0284c7' }}>
+                                    {t.recogidaLabel}{' '}
+                                  </span>
+                                  {horaPickUp}
+                                </div>
+                              )}
+                              {horaReturn && (
+                                <div style={{ fontSize: '12px', color: '#334155' }}>
+                                  <span style={{ fontWeight: 'bold', color: '#d97706' }}>
+                                    {t.regresoLabel}{' '}
+                                  </span>
+                                  {horaReturn}
+                                </div>
+                              )}
+                              {!horaPickUp && !horaReturn && (
+                                <div style={{ fontSize: '12px', color: '#64748b' }}>
+                                  [HH:MM]
+                                </div>
+                              )}
                             </td>
                           </tr>
                         );
