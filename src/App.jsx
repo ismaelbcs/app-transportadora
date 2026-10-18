@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Search, Save, Download, Send, Printer, Calendar, Clock, Wallet, DollarSign, CalendarCheck, MapPin, Users, Car, FileText, CheckCircle, AlertCircle, X, Database, Headset, Fuel, Plane, User, Info, Phone, Mail, Globe, Map, ShieldCheck, Ticket, Play, Flag } from 'lucide-react';
 import { supabase } from './supabaseClient';
+import Presupuestos from './components/Presupuestos';
 
 const SuvIcon = ({ size = 24, className = "" }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={className}>
@@ -1937,6 +1938,15 @@ export default function App() {
               </button>
             )}
 
+            {(userProfile?.rol === 'admin' || userProfile?.permisos?.vistas?.presupuestos !== false) && (
+              <button
+                onClick={() => { setActiveTab('presupuestos'); if (window.innerWidth <= 768) setIsSidebarOpen(false); }}
+                className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl font-medium transition-all ${activeTab === 'presupuestos' ? 'bg-amber-500 text-slate-950 font-bold shadow-lg shadow-amber-900/50' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+              >
+                <FileText size={20} /> Presupuestos
+              </button>
+            )}
+
             {userProfile?.rol === 'admin' && (
               <>
                 <div className="mt-8 mb-4 border-t border-slate-700/50"></div>
@@ -3681,7 +3691,7 @@ export default function App() {
                           </div>
                           <div className="p-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 bg-white">
                             {/* Generamos los botones manualmente para asegurarnos de que existan */}
-                            {['ingresar_reserva', 'ingreso_cc', 'control_flota', 'base_de_datos', 'cierre'].map((llave) => (
+                            {['ingresar_reserva', 'ingreso_cc', 'control_flota', 'base_de_datos', 'cierre', 'presupuestos'].map((llave) => (
                               <label key={llave} className="flex items-center gap-3 cursor-pointer p-2 hover:bg-purple-50 rounded border border-transparent hover:border-purple-200 transition-colors">
                                 <input
                                   type="checkbox"
@@ -3737,6 +3747,17 @@ export default function App() {
 
               </div>
             </div>
+          )}
+
+          {activeTab === 'presupuestos' && (
+            <Presupuestos
+              services={services}
+              LISTA_HOTELES={LISTA_HOTELES}
+              supabase={supabase}
+              fetchAllData={fetchAllData}
+              showToast={showToast}
+              userProfile={userProfile}
+            />
           )}
 
         </main>
