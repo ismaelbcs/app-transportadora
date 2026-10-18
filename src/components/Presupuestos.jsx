@@ -424,95 +424,131 @@ export default function Presupuestos({
     if (showToast) showToast(`Presupuesto ${folio} eliminado`, 'success');
   };
 
-  // Generar y descargar PDF Nativo con jsPDF + html2canvas
-  const handleDescargarPDF = async () => {
+  // Exportar a PDF Nativo Vectorial (100% texto seleccionable, sin cortes y con toda la información completa)
+  const handleExportarPDFNativo = () => {
     const elemento = ticketRef.current;
     if (!elemento) {
-      if (showToast) showToast('No se encontró el elemento del ticket', 'error');
+      if (showToast) showToast('No se encontró el elemento del presupuesto', 'error');
       return;
     }
 
     try {
-      setGenerandoPDF(true);
-      if (showToast) showToast('Generando PDF nativo de alta resolución...', 'success');
+      const nombreLimpio = (cotizacion.nombreCliente || 'Cliente').replace(/[^a-zA-Z0-9]/g, '_');
+      const nombreDocumento = `Presupuesto_Ballard_${cotizacion.folio}_${nombreLimpio}`;
+      const tituloAnterior = document.title;
+      document.title = nombreDocumento;
 
-      // Si no están cargadas las librerías en window, intentar cargar o esperar
-      if (!window.html2canvas || !window.jspdf) {
-        throw new Error('Librerías de PDF no disponibles aún');
+      // Remover cualquier iframe anterior si existiera
+      let printIframe = document.getElementById('iframe-impresion-presupuesto');
+      if (printIframe && document.body.contains(printIframe)) {
+        document.body.removeChild(printIframe);
       }
 
-      const canvas = await window.html2canvas(elemento, {
-        scale: 2.5, // Alta resolución para nitidez vectorial
-        useCORS: true,
-        backgroundColor: '#ffffff',
-        logging: false
-      });
+      // Crear iframe oculto e independiente para no colisionar con estilos ni scroll de la app
+      printIframe = document.createElement('iframe');
+      printIframe.id = 'iframe-impresion-presupuesto';
+      printIframe.style.position = 'fixed';
+      printIframe.style.right = '0';
+      printIframe.style.bottom = '0';
+      printIframe.style.width = '0';
+      printIframe.style.height = '0';
+      printIframe.style.border = '0';
+      printIframe.style.visibility = 'hidden';
+      document.body.appendChild(printIframe);
 
-      const imgData = canvas.toDataURL('image/png');
-      const { jsPDF } = window.jspdf;
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+      const htmlContent = elemento.outerHTML;
 
-      pdf.addImage(imgData, 'PNG', 0, 5, pdfWidth, pdfHeight);
+      const iframeDoc = printIframe.contentWindow.document;
+      iframeDoc.open();
+      iframeDoc.write(`
+        <!DOCTYPE html>
+        <html lang="${idioma === 'EN' ? 'en' : 'es'}">
+        <head>
+          <meta charset="UTF-8">
+          <title>${nombreDocumento}</title>
+          <style>
+            @page {
+              size: letter portrait;
+              margin: 10mm 12mm 12mm 12mm;
+            }
+            *, *::before, *::after {
+              box-sizing: border-box;
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+              color-adjust: exact !important;
+            }
+            body {
+              margin: 0;
+              padding: 0;
+              background-color: #ffffff;
+              font-family: 'Segoe UI', Arial, sans-serif;
+              color: #161D2D;
+              -webkit-font-smoothing: antialiased;
+            }
+            #area-impresion-presupuesto {
+              width: 100% !important;
+              max-width: 100% !important;
+              box-shadow: none !important;
+              border: 1px solid #d1d5db !important;
+              border-radius: 12px !important;
+              overflow: visible !important;
+              background-color: #ffffff !important;
+            }
+            table {
+              width: 100% !important;
+              border-collapse: collapse !important;
+              page-break-inside: auto;
+            }
+            tr {
+              page-break-inside: avoid !important;
+              page-break-after: auto;
+            }
+            td, th {
+              vertical-align: top;
+            }
+            .no-break {
+              page-break-inside: avoid !important;
+            }
+          </style>
+        </head>
+        <body>
+          ${htmlContent}
+        </body>
+        </html>
+      `);
+      iframeDoc.close();
 
-      const nombreLimpio = (cotizacion.nombreCliente || 'Cliente').replace(/[^a-zA-Z0-9]/g, '_');
-      const filename = `Presupuesto_Ballard_${cotizacion.folio}_${nombreLimpio}.pdf`;
+      if (showToast) showToast('Abriendo cuadro de guardado en PDF nativo...', 'success');
 
-      pdf.save(filename);
-      if (showToast) showToast('PDF descargado con éxito', 'success');
+      // Esperar brevemente a que el DOM del iframe se renderice completamente
+      setTimeout(() => {
+        try {
+          printIframe.contentWindow.focus();
+          printIframe.contentWindow.print();
+        } catch (e) {
+          console.error('Error al imprimir iframe:', e);
+          window.print();
+        } finally {
+          setTimeout(() => {
+            document.title = tituloAnterior;
+            if (document.body.contains(printIframe)) {
+              document.body.removeChild(printIframe);
+            }
+          }, 3000);
+        }
+      }, 400);
     } catch (err) {
-      console.error('Error al generar PDF:', err);
-      // Fallback a impresión nativa
-      handleImprimirNativo();
-    } finally {
-      setGenerandoPDF(false);
+      console.error('Error al preparar PDF:', err);
+      if (showToast) showToast('Error al preparar PDF', 'error');
     }
   };
 
-  // Imprimir con diálogo del navegador (Guardar como PDF nativo de Chrome/Edge)
+  const handleDescargarPDF = () => {
+    handleExportarPDFNativo();
+  };
+
   const handleImprimirNativo = () => {
-    const tituloOriginal = document.title;
-    const nombreLimpio = (cotizacion.nombreCliente || 'Cliente').replace(/[^a-zA-Z0-9]/g, '_');
-    document.title = `Presupuesto_Ballard_${cotizacion.folio}_${nombreLimpio}`;
-
-    const estilo = document.createElement('style');
-    estilo.innerHTML = `
-      @media print {
-        body * {
-          visibility: hidden !important;
-        }
-        #area-impresion-presupuesto, #area-impresion-presupuesto * {
-          visibility: visible !important;
-        }
-        #area-impresion-presupuesto {
-          position: fixed !important;
-          left: 0 !important;
-          top: 0 !important;
-          width: 100% !important;
-          margin: 0 !important;
-          padding: 0 !important;
-          background: white !important;
-          box-shadow: none !important;
-          border: none !important;
-        }
-        @page {
-          size: letter portrait;
-          margin: 8mm;
-        }
-      }
-    `;
-    document.head.appendChild(estilo);
-
-    window.print();
-
-    setTimeout(() => {
-      document.title = tituloOriginal;
-      if (document.head.contains(estilo)) {
-        document.head.removeChild(estilo);
-      }
-    }, 1200);
+    handleExportarPDFNativo();
   };
 
   // Copiar el contenido HTML del ticket para pegar en Word / Outlook / Excel
@@ -1199,10 +1235,11 @@ export default function Presupuestos({
               </div>
 
               <div className="flex items-center gap-2">
+
                 {/* BOTÓN COPIAR AL PORTAPAPELES */}
                 <button
                   onClick={handleCopiarPortapapeles}
-                  className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-1.5 px-3 rounded-lg text-xs flex items-center gap-1.5 border border-slate-300 transition-colors"
+                  className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2 px-3 rounded-xl text-xs flex items-center gap-1.5 border border-slate-300 transition-colors"
                   title="Copiar para pegar en Word, Excel o Correo"
                 >
                   {copiado ? <Check size={14} className="text-emerald-600" /> : <Copy size={14} />}
@@ -1211,22 +1248,12 @@ export default function Presupuestos({
 
                 {/* BOTÓN GUARDAR PDF NATIVO */}
                 <button
-                  onClick={handleDescargarPDF}
-                  disabled={generandoPDF}
-                  className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold py-1.5 px-3 rounded-lg text-xs flex items-center gap-1.5 shadow-sm transition-colors disabled:opacity-50"
-                  title="Descargar archivo PDF nativo"
+                  onClick={handleExportarPDFNativo}
+                  className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold py-2 px-4 rounded-xl text-xs flex items-center gap-2 shadow-sm transition-colors"
+                  title="Guardar como PDF Nativo vectorial, texto seleccionable y multi-página sin cortes"
                 >
-                  <Download size={14} />
-                  {generandoPDF ? 'Generando...' : 'Descargar PDF'}
-                </button>
-
-                {/* BOTÓN IMPRIMIR / PDF DEL NAVEGADOR */}
-                <button
-                  onClick={handleImprimirNativo}
-                  className="bg-slate-900 hover:bg-slate-800 text-white font-bold py-1.5 px-3 rounded-lg text-xs flex items-center gap-1.5 shadow-sm transition-colors"
-                  title="Imprimir o Guardar como PDF de Alta Definición con el navegador"
-                >
-                  <Printer size={14} /> Imprimir / PDF
+                  <Download size={15} />
+                  Guardar en PDF Nativo
                 </button>
               </div>
             </div>
@@ -1564,6 +1591,18 @@ export default function Presupuestos({
                             title="Editar en Diseñador"
                           >
                             <Eye size={16} />
+                          </button>
+
+                          {/* BOTÓN DESCARGAR PDF NATIVO DIRECTO */}
+                          <button
+                            onClick={() => {
+                              handleCargarCotizacion(c);
+                              setTimeout(() => handleExportarPDFNativo(), 300);
+                            }}
+                            className="p-1.5 text-amber-600 hover:bg-amber-100 rounded transition-colors"
+                            title="Descargar PDF Nativo Completo"
+                          >
+                            <Download size={16} />
                           </button>
 
                           {/* BOTÓN CONVERTIR A RESERVA */}
