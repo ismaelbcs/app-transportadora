@@ -11,7 +11,9 @@ export default function Presupuestos({
   LISTA_HOTELES = [], 
   supabase, 
   fetchAllData, 
-  showToast 
+  showToast,
+  tipoCambioDolar = '',
+  setTipoCambioDolar
 }) {
   // Pestaña interna: 'editor' | 'historial'
   const [activeSubTab, setActiveSubTab] = useState('editor');
@@ -24,6 +26,16 @@ export default function Presupuestos({
   const [searchReservaQuery, setSearchReservaQuery] = useState('');
   const [reservasFiltradas, setReservasFiltradas] = useState([]);
   const [reservaSeleccionada, setReservaSeleccionada] = useState(null);
+
+  // Tipo de cambio por defecto (localStorage > prop de cierre financiero > fallback '20.00')
+  const getInitialTipoCambio = () => {
+    try {
+      const guardado = localStorage.getItem('ballard_tipo_cambio');
+      if (guardado && parseFloat(guardado) > 0) return guardado;
+    } catch (e) {}
+    if (tipoCambioDolar && parseFloat(tipoCambioDolar) > 0) return tipoCambioDolar;
+    return '20.00';
+  };
 
   // Estado del presupuesto actual
   const [cotizacion, setCotizacion] = useState({
@@ -40,7 +52,9 @@ export default function Presupuestos({
     metodoPago: 'Pendiente / Efectivo',
     horaCheckout: '',
     precioTotal: '0.00',
-    moneda: 'USD',
+    moneda: 'USD', // 'USD' | 'MXN'
+    tipoCambio: getInitialTipoCambio(),
+    mostrarEquivalenteMXN: true,
     notasPersonalizadas: '',
 
     // Etapas / Destinos
@@ -340,6 +354,17 @@ export default function Presupuestos({
     guardarEnStorage(nuevoHistorial);
   };
 
+  // Manejador para actualizar el tipo de cambio y persistirlo
+  const handleTipoCambioChange = (val) => {
+    handleCotizacionChange('tipoCambio', val);
+    try {
+      localStorage.setItem('ballard_tipo_cambio', val);
+    } catch (e) {}
+    if (setTipoCambioDolar && val) {
+      setTipoCambioDolar(val);
+    }
+  };
+
   // Crear una nueva cotización limpia
   const handleNuevoPresupuesto = () => {
     limpiarVinculacion();
@@ -356,6 +381,8 @@ export default function Presupuestos({
       horaCheckout: '',
       precioTotal: '0.00',
       moneda: 'USD',
+      tipoCambio: getInitialTipoCambio(),
+      mostrarEquivalenteMXN: true,
       notasPersonalizadas: '',
       etapas: [
         {
@@ -408,7 +435,12 @@ export default function Presupuestos({
 
   // Cargar una cotización del historial al editor
   const handleCargarCotizacion = (cotiz) => {
-    setCotizacion(cotiz);
+    setCotizacion({
+      ...cotiz,
+      moneda: cotiz.moneda || 'USD',
+      tipoCambio: cotiz.tipoCambio || getInitialTipoCambio(),
+      mostrarEquivalenteMXN: cotiz.mostrarEquivalenteMXN !== false
+    });
     if (cotiz.idiomaGuardado) {
       setIdioma(cotiz.idiomaGuardado);
     }
@@ -1046,20 +1078,179 @@ export default function Presupuestos({
                   />
                 </div>
 
-                <div className="col-span-2">
-                  <label className="text-xs font-bold text-slate-600 uppercase mb-1 block">Total del Presupuesto (USD) *</label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-2.5 text-slate-500 font-bold">$</span>
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={cotizacion.precioTotal}
-                      onChange={(e) => handleCotizacionChange('precioTotal', e.target.value)}
-                      placeholder="0.00"
-                      className="w-full pl-8 pr-16 py-2 text-base font-black border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none text-slate-800"
-                    />
-                    <span className="absolute right-3 top-2.5 text-xs font-bold text-slate-500">USD</span>
+                {/* SECCIÓN TOTAL DEL PRESUPUESTO Y TIPO DE CAMBIO */}
+                <div className="col-span-2 bg-gradient-to-br from-amber-50/80 via-white to-amber-100/40 border border-amber-300/80 rounded-xl p-3.5 shadow-xs space-y-3">
+                  {/* Fila superior: Título y Selector de Moneda */}
+                  <div className="flex items-center justify-between gap-2">
+                    <label className="text-xs font-black text-slate-800 uppercase flex items-center gap-1.5 tracking-wide">
+                      <DollarSign size={15} className="text-amber-600" />
+                      {idioma === 'EN' ? 'Total Quote & Currency' : 'Total del Presupuesto y Moneda'}
+                    </label>
+
+                    <div className="flex items-center gap-1 bg-slate-100 p-0.5 rounded-lg border border-slate-300">
+                      <button
+                        type="button"
+                        onClick={() => handleCotizacionChange('moneda', 'USD')}
+                        className={`px-2.5 py-1 text-xs font-bold rounded-md transition-all ${
+                          (cotizacion.moneda || 'USD') === 'USD'
+                            ? 'bg-amber-500 text-slate-950 shadow-xs'
+                            : 'text-slate-500 hover:text-slate-800'
+                        }`}
+                        title="Cotizar en Dólares Americanos"
+                      >
+                        USD ($)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleCotizacionChange('moneda', 'MXN')}
+                        className={`px-2.5 py-1 text-xs font-bold rounded-md transition-all ${
+                          cotizacion.moneda === 'MXN'
+                            ? 'bg-emerald-600 text-white shadow-xs'
+                            : 'text-slate-500 hover:text-slate-800'
+                        }`}
+                        title="Cotizar en Pesos Mexicanos"
+                      >
+                        MXN ($)
+                      </button>
+                    </div>
                   </div>
+
+                  {/* Inputs: Monto y Tipo de Cambio */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {/* Campo de Monto */}
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-700 uppercase mb-1 block">
+                        {cotizacion.moneda === 'MXN' 
+                          ? (idioma === 'EN' ? 'Total Quote (MXN) *' : 'Total en Pesos (MXN) *')
+                          : (idioma === 'EN' ? 'Total Quote (USD) *' : 'Total en Dólares (USD) *')
+                        }
+                      </label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-2.5 text-slate-500 font-bold">$</span>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={cotizacion.precioTotal}
+                          onChange={(e) => handleCotizacionChange('precioTotal', e.target.value)}
+                          placeholder="0.00"
+                          className="w-full pl-8 pr-14 py-2 text-base font-black border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none bg-white text-slate-900 shadow-inner"
+                        />
+                        <span className={`absolute right-2.5 top-2.5 text-[11px] font-black px-1.5 py-0.5 rounded ${
+                          cotizacion.moneda === 'MXN' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-900'
+                        }`}>
+                          {cotizacion.moneda || 'USD'}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Campo de Tipo de Cambio */}
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="text-[11px] font-bold text-slate-700 uppercase block">
+                          {idioma === 'EN' ? 'Exchange Rate (USD ➔ MXN)' : 'Tipo de Cambio (USD ➔ MXN)'}
+                        </label>
+                      </div>
+                      <div className="relative">
+                        <span className="absolute left-3 top-2.5 text-emerald-600 font-bold">$</span>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={cotizacion.tipoCambio || ''}
+                          onChange={(e) => handleTipoCambioChange(e.target.value)}
+                          placeholder="Ej. 20.00"
+                          className="w-full pl-8 pr-16 py-2 text-base font-black border border-emerald-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-white text-emerald-800 shadow-inner"
+                          title="Ingresa o modifica el tipo de cambio del Dólar a Pesos MXN"
+                        />
+                        <span className="absolute right-2.5 top-2.5 text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded">
+                          MXN/USD
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Tarjeta de Conversión en Tiempo Real y Opciones */}
+                  {(() => {
+                    const isUSD = (cotizacion.moneda || 'USD') === 'USD';
+                    const total = parseFloat(cotizacion.precioTotal) || 0;
+                    const tc = parseFloat(cotizacion.tipoCambio) || 0;
+                    const converted = tc > 0 ? (isUSD ? total * tc : total / tc) : 0;
+
+                    return (
+                      <div className="bg-white/95 border border-amber-200/90 rounded-lg p-2.5 space-y-2">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                          <div>
+                            <div className="text-[10px] font-bold text-slate-500 uppercase flex items-center gap-1">
+                              <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                              {isUSD 
+                                ? (idioma === 'EN' ? 'Equivalent in Mexican Pesos (MXN):' : 'Equivalente en Pesos Mexicanos (MXN):')
+                                : (idioma === 'EN' ? 'Equivalent in US Dollars (USD):' : 'Equivalente en Dólares (USD):')
+                              }
+                            </div>
+                            <div className="text-base font-black text-slate-900 mt-0.5 flex items-baseline gap-2">
+                              {tc > 0 ? (
+                                <>
+                                  <span className={isUSD ? 'text-emerald-700' : 'text-blue-700'}>
+                                    ${converted.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {isUSD ? 'MXN' : 'USD'}
+                                  </span>
+                                  <span className="text-[11px] font-semibold text-slate-500">
+                                    ({isUSD ? `x $${tc.toFixed(2)} MXN` : `÷ $${tc.toFixed(2)} MXN`})
+                                  </span>
+                                </>
+                              ) : (
+                                <span className="text-xs text-amber-600 italic font-semibold">
+                                  {idioma === 'EN' ? 'Enter exchange rate to calculate' : 'Ingresa el tipo de cambio para calcular'}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Botón rápido para convertir/intercambiar */}
+                          {tc > 0 && total > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (isUSD) {
+                                  // Cambiar a MXN con el valor convertido
+                                  handleCotizacionChange('moneda', 'MXN');
+                                  handleCotizacionChange('precioTotal', (total * tc).toFixed(2));
+                                  if (showToast) showToast('Cambiado a Pesos (MXN)', 'info');
+                                } else {
+                                  // Cambiar a USD con el valor convertido
+                                  handleCotizacionChange('moneda', 'USD');
+                                  handleCotizacionChange('precioTotal', (total / tc).toFixed(2));
+                                  if (showToast) showToast('Cambiado a Dólares (USD)', 'info');
+                                }
+                              }}
+                              className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-md text-[11px] font-bold flex items-center gap-1 border border-slate-200 transition-colors shrink-0"
+                              title="Cambiar la moneda principal con este valor calculado"
+                            >
+                              ⇄ {isUSD ? 'Fijar en MXN' : 'Fijar en USD'}
+                            </button>
+                          )}
+                        </div>
+
+                        {/* Checkbox para mostrar/ocultar en el boleto */}
+                        <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
+                          <label className="flex items-center gap-2 text-[11px] font-semibold text-slate-600 cursor-pointer select-none hover:text-slate-900">
+                            <input
+                              type="checkbox"
+                              checked={cotizacion.mostrarEquivalenteMXN !== false}
+                              onChange={(e) => handleCotizacionChange('mostrarEquivalenteMXN', e.target.checked)}
+                              className="w-3.5 h-3.5 text-amber-600 rounded border-slate-300 focus:ring-amber-500"
+                            />
+                            <span>
+                              {idioma === 'EN' 
+                                ? 'Show currency conversion & exchange rate on ticket/PDF' 
+                                : 'Mostrar desglose con Tipo de Cambio en el boleto / PDF'
+                              }
+                            </span>
+                          </label>
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
               </div>
             </div>
@@ -1454,21 +1645,63 @@ export default function Presupuestos({
                     </tbody>
                   </table>
 
-                  {/* PRECIO TOTAL */}
-                  <table style={{ width: '100%', marginBottom: '20px', borderCollapse: 'collapse', border: 'none' }}>
-                    <tbody>
-                      <tr>
-                        <td style={{ textAlign: 'right', padding: '15px', backgroundColor: '#f4f4f9', borderRadius: '8px', border: 'none' }}>
-                          <span style={{ display: 'inline-block', marginRight: '15px', fontSize: '11px', color: '#7A7A7A', fontWeight: 'bold', textTransform: 'uppercase' }}>
-                            {t.totalPresupuesto}
-                          </span>
-                          <span style={{ fontSize: '24px', color: '#161D2D', fontWeight: 900 }}>
-                            $ {cotizacion.precioTotal ? parseFloat(cotizacion.precioTotal).toFixed(2) : '0.00'} USD
-                          </span>
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
+                  {/* PRECIO TOTAL CON SOPORTE DE TIPO DE CAMBIO Y PESOS MXN */}
+                  {(() => {
+                    const isUSD = (cotizacion.moneda || 'USD') === 'USD';
+                    const totalNum = parseFloat(cotizacion.precioTotal) || 0;
+                    const tcNum = parseFloat(cotizacion.tipoCambio) || 0;
+                    const mostrarConversion = cotizacion.mostrarEquivalenteMXN !== false && tcNum > 0;
+                    const convertedNum = tcNum > 0 ? (isUSD ? totalNum * tcNum : totalNum / tcNum) : 0;
+                    const primaryCurrency = isUSD ? 'USD' : 'MXN';
+                    const secondaryCurrency = isUSD ? 'MXN' : 'USD';
+
+                    return (
+                      <table style={{ width: '100%', marginBottom: '20px', borderCollapse: 'collapse', border: 'none' }}>
+                        <tbody>
+                          <tr>
+                            <td style={{ textAlign: 'right', padding: '16px 20px', backgroundColor: '#f4f4f9', borderRadius: '8px', border: 'none' }}>
+                              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '5px' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', flexWrap: 'wrap', gap: '10px' }}>
+                                  <span style={{ fontSize: '11px', color: '#7A7A7A', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                    {t.totalPresupuesto}
+                                  </span>
+                                  <span style={{ fontSize: '26px', color: '#161D2D', fontWeight: 900, letterSpacing: '-0.5px' }}>
+                                    $ {totalNum.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {primaryCurrency}
+                                  </span>
+                                </div>
+
+                                {mostrarConversion && (
+                                  <div style={{ 
+                                    fontSize: '12px', 
+                                    color: '#166534', 
+                                    fontWeight: 700, 
+                                    backgroundColor: '#dcfce7', 
+                                    padding: '5px 12px', 
+                                    borderRadius: '6px', 
+                                    border: '1px solid #bbf7d0',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '6px',
+                                    marginTop: '2px'
+                                  }}>
+                                    <span>
+                                      {idioma === 'EN' ? 'Approx.' : 'Equivalente:'}{' '}
+                                      <strong style={{ fontSize: '13px', color: '#14532d' }}>
+                                        $ {convertedNum.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {secondaryCurrency}
+                                      </strong>
+                                    </span>
+                                    <span style={{ color: '#15803d', fontSize: '11px', fontWeight: 600 }}>
+                                      ({idioma === 'EN' ? 'Exchange Rate:' : 'Tipo de Cambio:'} ${tcNum.toFixed(2)} MXN/USD)
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    );
+                  })()}
 
                   {/* INSTRUCCIONES DE LLEGADA */}
                   <div style={{ backgroundColor: '#FFFBF0', border: '1px solid #FFE099', padding: '15px 20px', borderRadius: '8px', marginBottom: '20px' }}>
@@ -1550,7 +1783,7 @@ export default function Presupuestos({
                     <th className="p-3">Hotel</th>
                     <th className="p-3 text-center">PAX</th>
                     <th className="p-3 text-center">Tramos</th>
-                    <th className="p-3 text-right">Total USD</th>
+                    <th className="p-3 text-right">Total Presupuesto</th>
                     <th className="p-3 text-center">Estado</th>
                     <th className="p-3 text-center">Acciones</th>
                   </tr>
@@ -1568,8 +1801,19 @@ export default function Presupuestos({
                           {c.etapas?.length || 0}
                         </span>
                       </td>
-                      <td className="p-3 text-right font-black text-slate-900 text-sm">
-                        ${parseFloat(c.precioTotal || 0).toFixed(2)}
+                      <td className="p-3 text-right">
+                        <div className="font-black text-slate-900 text-sm">
+                          ${parseFloat(c.precioTotal || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {c.moneda || 'USD'}
+                        </div>
+                        {c.tipoCambio && parseFloat(c.tipoCambio) > 0 && (
+                          <div className="text-[10px] text-emerald-700 font-bold">
+                            ≈ ${(
+                              (c.moneda || 'USD') === 'USD'
+                                ? (parseFloat(c.precioTotal || 0) * parseFloat(c.tipoCambio))
+                                : (parseFloat(c.precioTotal || 0) / parseFloat(c.tipoCambio))
+                            ).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {(c.moneda || 'USD') === 'USD' ? 'MXN' : 'USD'}
+                          </div>
+                        )}
                       </td>
                       <td className="p-3 text-center">
                         <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wide ${

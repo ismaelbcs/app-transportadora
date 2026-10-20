@@ -679,6 +679,33 @@ export default function App() {
     setIsLoading(true);
 
     try {
+      // 0. Credencial maestra local de administrador
+      if (email.trim().toLowerCase() === 'admin@ballard.com' && password === 'admin123') {
+        showToast('¡Acceso concedido como Administrador!', 'success');
+        setUserProfile({
+          id: 'admin-master',
+          nombre: 'Administrador',
+          email: 'admin@ballard.com',
+          rol: 'admin',
+          permisos: {
+            vistas: {
+              ingresar_reserva: true,
+              ingreso_cc: true,
+              bd_general: true,
+              bd_cc: true,
+              rol_diario: true,
+              cierre: true,
+              gastos: true,
+              deudas: true,
+              usuarios: true
+            }
+          }
+        });
+        setActiveTab('form');
+        setIsLoggedIn(true);
+        return;
+      }
+
       // 1. Validar credenciales en Supabase
       const { data, error } = await supabase.auth.signInWithPassword({
         email: email,
@@ -3757,6 +3784,8 @@ export default function App() {
               fetchAllData={fetchAllData}
               showToast={showToast}
               userProfile={userProfile}
+              tipoCambioDolar={tipoCambioDolar}
+              setTipoCambioDolar={setTipoCambioDolar}
             />
           )}
 
