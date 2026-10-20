@@ -116,7 +116,32 @@ const LISTA_HOTELES = [
   { nombre: "Diamante Cabo San Lucas", zona: 4 },
   { nombre: "Montecristo Estates Luxury Villas", zona: 4 },
   { nombre: "Quivira Novaispania Residences", zona: 4 },
-  { nombre: "The St. Regis Los Cabos at Quivira", zona: 4 }
+  { nombre: "The St. Regis Los Cabos at Quivira", zona: 4 },
+
+  // ZONA 5 - LA PAZ BCS (CASAS, VILLAS Y RENTAS VACACIONALES)
+  // Casas y Villas con Alberca (Renta Vacacional)
+  { nombre: "Casa Luna", zona: 5, descripcion: "Capacidad para 6 personas, piscina privada, jardín, cocina equipada, A/C y estacionamiento privado" },
+  { nombre: "Casa Isla Tortuga", zona: 5, descripcion: "140 m², 7 huéspedes, 2 dormitorios, 2 baños, cocina completa y piscina privada" },
+  { nombre: "Casa Moderna La Paz BCS", zona: 5, descripcion: "Villa vacacional de 3 recámaras con alberca privada" },
+  { nombre: "Casa Altamar", zona: 5, descripcion: "Villa a pasos del malecón con rooftop, vistas panorámicas y piscina" },
+  { nombre: "House With Private Pool For Family Use", zona: 5, descripcion: "Casa familiar de renta diaria con alberca de uso exclusivo" },
+
+  // Cabañas y Casas Céntricas / Frente al Malecón
+  { nombre: "Bonita Casa Céntrica", zona: 5, descripcion: "Hasta 7 personas a 10 minutos del malecón, 2 recámaras, sala y cocina equipada" },
+  { nombre: "Cabañas Rústicas (SS 3A, SS 5A, SS 9C)", zona: 5, descripcion: "Propiedades de estilo rústico frente al malecón de La Paz" },
+  { nombre: "Cabañas Rústicas", zona: 5, descripcion: "Cabañas rústicas frente al malecón de La Paz" },
+  { nombre: "Casa Colibrí", zona: 5, descripcion: "Casa vacacional altamente solicitada en La Paz" },
+  { nombre: "El Aposento Alto", zona: 5, descripcion: "Casa de renta entera para estancias privadas" },
+  { nombre: "Salvatierra Home", zona: 5, descripcion: "Casa de renta entera para estancias privadas" },
+  { nombre: "El Aposento Alto y Salvatierra Home", zona: 5, descripcion: "Casas de renta entera para estancias privadas" },
+  { nombre: "Casa Navarro", zona: 5, descripcion: "Renta residencial diaria en el área central" },
+
+  // Departamentos y Penthouses Privados
+  { nombre: "Sunset Apartment", zona: 5, descripcion: "B&B/departamento a una cuadra del malecón con vista a la bahía, piscina, jardín (4 pax)" },
+  { nombre: "V-1pb", zona: 5, descripcion: "Departamento para 6 personas con 2 albercas, gimnasio y convenios para excursiones" },
+  { nombre: "Marina Penthouse Ocean View", zona: 5, descripcion: "Penthouse de lujo con vistas directas al mar y la marina" },
+  { nombre: "Lyla´s Casita", zona: 5, descripcion: "Departamento para 5 huéspedes con jardín, área de barbacoa y piscina" },
+  { nombre: "Lyla's Casita", zona: 5, descripcion: "Departamento para 5 huéspedes con jardín, área de barbacoa y piscina" }
 ];
 
 import { Document, Page, Text, View, StyleSheet, pdf } from '@react-pdf/renderer';

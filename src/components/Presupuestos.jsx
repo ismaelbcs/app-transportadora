@@ -3,7 +3,7 @@ import {
   Plus, Trash2, Download, Printer, Copy, Check, CheckCircle, 
   AlertCircle, Search, Calendar, Clock, DollarSign, Users, Plane, 
   MapPin, Globe, Mail, Phone, ArrowRight, ShieldCheck, FileText, 
-  Eye, Edit3, X, Languages, ArrowLeft
+  Eye, Edit3, X, Languages, ArrowLeft, Car
 } from 'lucide-react';
 
 export default function Presupuestos({ 
@@ -47,6 +47,7 @@ export default function Presupuestos({
     // Datos del cliente
     nombreCliente: '',
     pax: '2',
+    tipoVehiculo: 'SUV', // 'SUV' | 'VAN'
     aerolineaVuelo: '',
     hotelPrincipal: '',
     metodoPago: 'Pendiente / Efectivo',
@@ -191,6 +192,7 @@ export default function Presupuestos({
         nombreCliente: nombreCompleto || prev.nombreCliente,
         hotelPrincipal: reserva.hotel || prev.hotelPrincipal,
         pax: reserva.pax ? String(reserva.pax) : prev.pax,
+        tipoVehiculo: (reserva.vehiculo?.toLowerCase().includes('hiace') || parseInt(reserva.pax, 10) > 6) ? 'VAN' : (prev.tipoVehiculo || 'SUV'),
         aerolineaVuelo: reserva.vuelo || prev.aerolineaVuelo,
         metodoPago: reserva.metodoPago || prev.metodoPago,
         horaCheckout: reserva.pickUp || prev.horaCheckout,
@@ -375,6 +377,7 @@ export default function Presupuestos({
       estado: 'EN REVISIÓN',
       nombreCliente: '',
       pax: '2',
+      tipoVehiculo: 'SUV',
       aerolineaVuelo: '',
       hotelPrincipal: '',
       metodoPago: 'Pendiente / Efectivo',
@@ -437,6 +440,7 @@ export default function Presupuestos({
   const handleCargarCotizacion = (cotiz) => {
     setCotizacion({
       ...cotiz,
+      tipoVehiculo: cotiz.tipoVehiculo || 'SUV',
       moneda: cotiz.moneda || 'USD',
       tipoCambio: cotiz.tipoCambio || getInitialTipoCambio(),
       mostrarEquivalenteMXN: cotiz.mostrarEquivalenteMXN !== false
@@ -657,6 +661,7 @@ export default function Presupuestos({
         agencia: 'Directo',
         tipoServicio: tipoServicio,
         pax: etapa.pax?.toString() || c.pax?.toString() || '2',
+        vehiculo: c.tipoVehiculo === 'VAN' ? 'Hiace' : 'Expedition',
         telefono: '',
         fecha: etapa.fecha || (idx === 0 ? c.fechaEmision : ''),
         hora: horaServicioCalculada,
@@ -666,7 +671,7 @@ export default function Presupuestos({
         cobro: etapa.precio || (idx === 0 && c.precioTotal ? c.precioTotal : ''),
         metodoPago: c.metodoPago || 'Efectivo',
         tipoViaje: 'One way',
-        comentario: `Cotización ${c.folio} - ${trayectoDesc}${notaRegreso}`
+        comentario: `Cotización ${c.folio} [${c.tipoVehiculo || 'SUV'}] - ${trayectoDesc}${c.tipoCambio ? ` (TC: $${c.tipoCambio} MXN/USD)` : ''}${notaRegreso}`
       };
     });
 
@@ -740,7 +745,7 @@ export default function Presupuestos({
         parada_compras: false,
         comentario: s.comentario || `Generado de cotización ${cotizacionAConvertir.folio}`,
         chofer: '',
-        vehiculo: '',
+        vehiculo: s.vehiculo || (cotizacionAConvertir.tipoVehiculo === 'VAN' ? 'Hiace' : 'Expedition'),
         proveedor: '',
         costo_proveedor: ''
       }));
@@ -800,7 +805,9 @@ export default function Presupuestos({
   // Textos y etiquetas según el idioma seleccionado
   const t = {
     tituloPrincipal: idioma === 'EN' ? 'TRANSPORTATION QUOTE' : 'PRESUPUESTO DE TRANSPORTE',
-    subtituloSeguro: idioma === 'EN' ? '✔ Private Transportation / Safe Ticket' : '✔ Transporte Privado / Boleto Seguro',
+    subtituloSeguro: idioma === 'EN' 
+      ? `✔ Private Transportation (${cotizacion.tipoVehiculo || 'SUV'}) / Safe Ticket` 
+      : `✔ Transporte Privado (${cotizacion.tipoVehiculo || 'SUV'}) / Boleto Seguro`,
     badgeEstado: idioma === 'EN' 
       ? (cotizacion.estado === 'CONVERTIDO' ? 'RESERVED' : (cotizacion.estado === 'APROBADO' ? 'CONFIRMED' : 'IN REVIEW'))
       : cotizacion.estado,
@@ -808,6 +815,7 @@ export default function Presupuestos({
     fechaLabel: idioma === 'EN' ? 'DATE:' : 'FECHA:',
     nombreClienteLabel: idioma === 'EN' ? 'PASSENGER / CLIENT NAME' : 'NOMBRE DEL PASAJERO / CLIENTE',
     paxLabel: idioma === 'EN' ? 'PASSENGERS (PAX)' : 'PASAJEROS (PAX)',
+    vehiculoLabel: idioma === 'EN' ? 'VEHICLE TYPE' : 'TIPO DE VEHÍCULO',
     vueloLabel: idioma === 'EN' ? 'AIRLINE & FLIGHT' : 'AEROLÍNEA Y VUELO',
     hotelLabel: idioma === 'EN' ? 'HOTEL / MAIN LODGING' : 'HOTEL / ALOJAMIENTO PRINCIPAL',
     metodoPagoLabel: idioma === 'EN' ? 'PAYMENT METHOD' : 'MÉTODO DE PAGO',
@@ -1034,6 +1042,52 @@ export default function Presupuestos({
                     placeholder="Ej. AA 1234 / DL 567"
                     className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none uppercase"
                   />
+                </div>
+
+                {/* TIPO DE CARRO / VEHÍCULO (SUV o VAN) */}
+                <div className="col-span-2 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-xs font-bold text-slate-700 uppercase flex items-center gap-1.5">
+                      <Car size={15} className="text-amber-500" />
+                      {idioma === 'EN' ? 'Vehicle Type (Car) *' : 'Tipo de Carro / Vehículo *'}
+                    </label>
+                    <span className="text-[10px] font-semibold text-slate-500">
+                      {cotizacion.tipoVehiculo === 'VAN' ? '🚐 VAN (Hiace / hasta 10-14 pax)' : '🚙 SUV (Expedition / hasta 5-6 pax)'}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleCotizacionChange('tipoVehiculo', 'SUV')}
+                      className={`py-2 px-3 rounded-lg font-black text-xs sm:text-sm flex items-center justify-center gap-2 border-2 transition-all ${
+                        (cotizacion.tipoVehiculo || 'SUV') === 'SUV'
+                          ? 'bg-amber-500 text-slate-950 border-amber-500 shadow-sm'
+                          : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300 hover:bg-slate-100'
+                      }`}
+                    >
+                      <span className="text-base">🚙</span>
+                      <div className="text-left">
+                        <div className="leading-tight font-black">SUV</div>
+                        <div className="text-[10px] font-normal opacity-75">Expedition / Suburban</div>
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleCotizacionChange('tipoVehiculo', 'VAN')}
+                      className={`py-2 px-3 rounded-lg font-black text-xs sm:text-sm flex items-center justify-center gap-2 border-2 transition-all ${
+                        cotizacion.tipoVehiculo === 'VAN'
+                          ? 'bg-amber-500 text-slate-950 border-amber-500 shadow-sm'
+                          : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300 hover:bg-slate-100'
+                      }`}
+                    >
+                      <span className="text-base">🚐</span>
+                      <div className="text-left">
+                        <div className="leading-tight font-black">VAN</div>
+                        <div className="text-[10px] font-normal opacity-75">Toyota Hiace / Van</div>
+                      </div>
+                    </button>
+                  </div>
                 </div>
 
                 <div className="col-span-2">
@@ -1494,18 +1548,19 @@ export default function Presupuestos({
                 {/* CUERPO DEL TICKET */}
                 <div style={{ padding: '20px 25px' }}>
                   {/* DATOS DEL CLIENTE Y VUELO */}
+                  {/* DATOS DEL CLIENTE, VEHÍCULO Y VUELO */}
                   <table style={{ width: '100%', marginBottom: '20px', borderCollapse: 'collapse', border: 'none' }}>
                     <tbody>
                       <tr>
-                        <td style={{ width: '40%', padding: '8px 15px', verticalAlign: 'top', border: 'none' }}>
+                        <td style={{ width: '34%', padding: '8px 12px', verticalAlign: 'top', border: 'none' }}>
                           <div style={{ fontSize: '11px', color: '#7A7A7A', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '2px' }}>
                             {t.nombreClienteLabel}
                           </div>
-                          <div style={{ fontSize: '18px', color: '#161D2D', fontWeight: 'bold' }}>
+                          <div style={{ fontSize: '17px', color: '#161D2D', fontWeight: 'bold' }}>
                             {cotizacion.nombreCliente || (idioma === 'EN' ? '[Client Name]' : '[Nombre del Cliente]')}
                           </div>
                         </td>
-                        <td style={{ width: '20%', padding: '8px 15px', verticalAlign: 'top', border: 'none' }}>
+                        <td style={{ width: '14%', padding: '8px 12px', verticalAlign: 'top', border: 'none' }}>
                           <div style={{ fontSize: '11px', color: '#7A7A7A', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '2px' }}>
                             {t.paxLabel}
                           </div>
@@ -1513,38 +1568,59 @@ export default function Presupuestos({
                             {cotizacion.pax || '1'}
                           </div>
                         </td>
-                        <td style={{ width: '40%', padding: '8px 15px', verticalAlign: 'top', border: 'none' }}>
+                        <td style={{ width: '22%', padding: '8px 12px', verticalAlign: 'top', border: 'none' }}>
+                          <div style={{ fontSize: '11px', color: '#7A7A7A', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '2px' }}>
+                            {t.vehiculoLabel}
+                          </div>
+                          <div style={{ 
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '5px',
+                            backgroundColor: cotizacion.tipoVehiculo === 'VAN' ? '#e0f2fe' : '#fef3c7',
+                            color: cotizacion.tipoVehiculo === 'VAN' ? '#0369a1' : '#92400e',
+                            fontWeight: 900,
+                            fontSize: '13px',
+                            padding: '4px 10px',
+                            borderRadius: '6px',
+                            border: cotizacion.tipoVehiculo === 'VAN' ? '1px solid #bae6fd' : '1px solid #fde68a',
+                            letterSpacing: '0.5px'
+                          }}>
+                            <span>{cotizacion.tipoVehiculo === 'VAN' ? '🚐' : '🚙'}</span>
+                            <span>{cotizacion.tipoVehiculo === 'VAN' ? 'VAN (Hiace)' : 'SUV (Expedition)'}</span>
+                          </div>
+                        </td>
+                        <td style={{ width: '30%', padding: '8px 12px', verticalAlign: 'top', border: 'none' }}>
                           <div style={{ fontSize: '11px', color: '#7A7A7A', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '2px' }}>
                             {t.vueloLabel}
                           </div>
-                          <div style={{ fontSize: '16px', color: '#161D2D', fontWeight: 'bold', textTransform: 'uppercase' }}>
+                          <div style={{ fontSize: '15px', color: '#161D2D', fontWeight: 'bold', textTransform: 'uppercase' }}>
                             {cotizacion.aerolineaVuelo || (idioma === 'EN' ? '[Airline & Flight]' : '[Aerolínea y Vuelo]')}
                           </div>
                         </td>
                       </tr>
-                      <tr><td colSpan="3" style={{ height: '15px', padding: 0, border: 'none' }}></td></tr>
+                      <tr><td colSpan="4" style={{ height: '12px', padding: 0, border: 'none' }}></td></tr>
                       <tr>
-                        <td style={{ padding: '8px 15px', verticalAlign: 'top', border: 'none' }}>
+                        <td style={{ padding: '8px 12px', verticalAlign: 'top', border: 'none' }}>
                           <div style={{ fontSize: '11px', color: '#7A7A7A', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '2px' }}>
                             {t.hotelLabel}
                           </div>
-                          <div style={{ fontSize: '16px', color: '#161D2D', fontWeight: 'bold' }}>
+                          <div style={{ fontSize: '15px', color: '#161D2D', fontWeight: 'bold' }}>
                             {cotizacion.hotelPrincipal || (idioma === 'EN' ? '[Hotel or Villa Name]' : '[Nombre del Hotel o Villa]')}
                           </div>
                         </td>
-                        <td style={{ padding: '8px 15px', verticalAlign: 'top', border: 'none' }}>
+                        <td colSpan="2" style={{ padding: '8px 12px', verticalAlign: 'top', border: 'none' }}>
                           <div style={{ fontSize: '11px', color: '#7A7A7A', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '2px' }}>
                             {t.metodoPagoLabel}
                           </div>
-                          <div style={{ fontSize: '16px', color: '#161D2D', fontWeight: 'bold' }}>
+                          <div style={{ fontSize: '15px', color: '#161D2D', fontWeight: 'bold' }}>
                             {cotizacion.metodoPago || (idioma === 'EN' ? '[Pending / Cash]' : '[Pendiente / Efectivo]')}
                           </div>
                         </td>
-                        <td style={{ padding: '8px 15px', verticalAlign: 'top', border: 'none' }}>
+                        <td style={{ padding: '8px 12px', verticalAlign: 'top', border: 'none' }}>
                           <div style={{ fontSize: '11px', color: '#7A7A7A', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '2px' }}>
                             {t.horaCheckoutLabel}
                           </div>
-                          <div style={{ fontSize: '16px', color: '#D97706', fontWeight: 'bold' }}>
+                          <div style={{ fontSize: '15px', color: '#D97706', fontWeight: 'bold' }}>
                             {cotizacion.horaCheckout ? `${cotizacion.horaCheckout} HRS` : '[HH:MM HRS]'}
                           </div>
                         </td>
@@ -1781,7 +1857,7 @@ export default function Presupuestos({
                     <th className="p-3">Fecha</th>
                     <th className="p-3">Cliente</th>
                     <th className="p-3">Hotel</th>
-                    <th className="p-3 text-center">PAX</th>
+                    <th className="p-3 text-center">PAX / Vehículo</th>
                     <th className="p-3 text-center">Tramos</th>
                     <th className="p-3 text-right">Total Presupuesto</th>
                     <th className="p-3 text-center">Estado</th>
@@ -1795,7 +1871,14 @@ export default function Presupuestos({
                       <td className="p-3 text-slate-600">{c.fechaEmision}</td>
                       <td className="p-3 font-bold text-slate-800">{c.nombreCliente}</td>
                       <td className="p-3 text-slate-600">{c.hotelPrincipal || 'N/A'}</td>
-                      <td className="p-3 text-center font-bold text-slate-700">{c.pax}</td>
+                      <td className="p-3 text-center font-bold text-slate-700">
+                        <div>{c.pax} PAX</div>
+                        <span className={`inline-block mt-0.5 text-[10px] px-2 py-0.5 rounded-full font-black ${
+                          c.tipoVehiculo === 'VAN' ? 'bg-sky-100 text-sky-800' : 'bg-amber-100 text-amber-900'
+                        }`}>
+                          {c.tipoVehiculo === 'VAN' ? '🚐 VAN' : '🚙 SUV'}
+                        </span>
+                      </td>
                       <td className="p-3 text-center">
                         <span className="bg-slate-200 text-slate-800 px-2 py-0.5 rounded-full text-[11px] font-bold">
                           {c.etapas?.length || 0}
@@ -2069,9 +2152,22 @@ export default function Presupuestos({
                           />
                         </div>
 
+                        {/* VEHÍCULO */}
+                        <div>
+                          <label className="block font-bold text-slate-600 uppercase mb-1">Vehículo</label>
+                          <select
+                            value={srv.vehiculo || (cotizacionAConvertir.tipoVehiculo === 'VAN' ? 'Hiace' : 'Expedition')}
+                            onChange={(e) => handleCambioServicioConversion(idx, 'vehiculo', e.target.value)}
+                            className="w-full px-2 py-1.5 border border-slate-300 rounded text-xs font-bold bg-white text-slate-800"
+                          >
+                            <option value="Expedition">Expedition (SUV)</option>
+                            <option value="Hiace">Hiace (VAN)</option>
+                          </select>
+                        </div>
+
                         {/* COBRO */}
                         <div>
-                          <label className="block font-bold text-slate-600 uppercase mb-1">Cobro ($ USD)</label>
+                          <label className="block font-bold text-slate-600 uppercase mb-1">Cobro ({cotizacionAConvertir.moneda || 'USD'})</label>
                           <input
                             type="number"
                             step="0.01"
