@@ -3,7 +3,8 @@ import {
   Plus, Trash2, Download, Printer, Copy, Check, CheckCircle, 
   AlertCircle, Search, Calendar, Clock, DollarSign, Users, Plane, 
   MapPin, Globe, Mail, Phone, ArrowRight, ShieldCheck, FileText, 
-  Eye, Edit3, X, Languages, ArrowLeft, Car, Receipt, ShoppingBag, BadgeCheck
+  Eye, Edit3, X, Languages, ArrowLeft, Car, Receipt, ShoppingBag, BadgeCheck,
+  Cloud, Database, RefreshCw
 } from 'lucide-react';
 
 export default function Presupuestos({ 
@@ -259,7 +260,138 @@ export default function Presupuestos({
   const [copiado, setCopiado] = useState(false);
   const [generandoPDF, setGenerandoPDF] = useState(false);
 
-  // Cargar historial de localStorage al iniciar
+  // Estado de sincronización con Supabase (Base de Datos)
+  const [cargandoHistorialBD, setCargandoHistorialBD] = useState(false);
+  const [sincronizandoBD, setSincronizandoBD] = useState(false);
+  const [tablaSupabaseExiste, setTablaSupabaseExiste] = useState(null); // null (desconocido) | true | false
+  const [mostrarModalSQL, setMostrarModalSQL] = useState(false);
+  const [sqlCopiado, setSqlCopiado] = useState(false);
+
+  // Script SQL para crear la tabla 'presupuestos' en Supabase si no existe
+  const SQL_CREAR_TABLA_PRESUPUESTOS = `-- 1. Crear tabla de presupuestos y cotizaciones en Supabase
+CREATE TABLE IF NOT EXISTS public.presupuestos (
+  id TEXT PRIMARY KEY,
+  folio TEXT,
+  numero_ticket TEXT,
+  tipo_documento TEXT DEFAULT 'PRESUPUESTO',
+  fecha_emision DATE,
+  estado TEXT,
+  nombre_cliente TEXT,
+  pax TEXT,
+  tipo_vehiculo TEXT,
+  aerolinea_vuelo TEXT,
+  hotel_principal TEXT,
+  metodo_pago TEXT,
+  hora_checkout TEXT,
+  precio_total NUMERIC,
+  moneda TEXT DEFAULT 'USD',
+  tipo_cambio NUMERIC,
+  mostrar_equivalente_mxn BOOLEAN DEFAULT true,
+  notas_personalizadas TEXT,
+  etapas JSONB,
+  data_completa JSONB,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 2. Habilitar seguridad de nivel de fila y permisos de lectura/escritura
+ALTER TABLE public.presupuestos ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Permitir todo en presupuestos" ON public.presupuestos;
+CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USING (true) WITH CHECK (true);`;
+
+  // Mapear registro de Supabase al objeto cotizacion de React
+  const mapSupabaseToCotizacion = (row) => {
+    if (row.data_completa && typeof row.data_completa === 'object') {
+      return {
+        ...row.data_completa,
+        id: row.id || row.data_completa.id,
+        folio: row.folio || row.data_completa.folio,
+        numeroTicket: row.numero_ticket || row.data_completa.numeroTicket,
+        tipoDocumento: row.tipo_documento || row.data_completa.tipoDocumento || 'PRESUPUESTO',
+        estado: row.estado || row.data_completa.estado,
+        fechaEmision: row.fecha_emision || row.data_completa.fechaEmision
+      };
+    }
+    return {
+      id: row.id,
+      folio: row.folio,
+      numeroTicket: row.numero_ticket,
+      tipoDocumento: row.tipo_documento || 'PRESUPUESTO',
+      fechaEmision: row.fecha_emision,
+      estado: row.estado,
+      nombreCliente: row.nombre_cliente || '',
+      pax: row.pax?.toString() || '2',
+      tipoVehiculo: row.tipo_vehiculo || 'SUV',
+      aerolineaVuelo: row.aerolinea_vuelo || '',
+      hotelPrincipal: row.hotel_principal || '',
+      metodoPago: row.metodo_pago || 'Pendiente / Efectivo',
+      horaCheckout: row.hora_checkout || '',
+      precioTotal: row.precio_total?.toString() || '0.00',
+      moneda: row.moneda || 'USD',
+      tipoCambio: row.tipo_cambio?.toString() || '20.00',
+      mostrarEquivalenteMXN: row.mostrar_equivalente_mxn !== false,
+      notasPersonalizadas: row.notas_personalizadas || '',
+      etapas: Array.isArray(row.etapas) ? row.etapas : []
+    };
+  };
+
+  // Mapear cotizacion de React al formato de Supabase
+  const mapCotizacionToSupabase = (cotiz) => ({
+    id: cotiz.id,
+    folio: cotiz.folio,
+    numero_ticket: cotiz.numeroTicket || null,
+    tipo_documento: cotiz.tipoDocumento || 'PRESUPUESTO',
+    fecha_emision: cotiz.fechaEmision || new Date().toISOString().split('T')[0],
+    estado: cotiz.estado || 'EN REVISIÓN',
+    nombre_cliente: cotiz.nombreCliente || '',
+    pax: cotiz.pax?.toString() || '2',
+    tipo_vehiculo: cotiz.tipoVehiculo || 'SUV',
+    aerolinea_vuelo: cotiz.aerolineaVuelo || '',
+    hotel_principal: cotiz.hotelPrincipal || '',
+    metodo_pago: cotiz.metodoPago || 'Pendiente / Efectivo',
+    hora_checkout: cotiz.horaCheckout || '',
+    precio_total: parseFloat(cotiz.precioTotal) || 0,
+    moneda: cotiz.moneda || 'USD',
+    tipo_cambio: parseFloat(cotiz.tipoCambio) || 20,
+    mostrar_equivalente_mxn: cotiz.mostrarEquivalenteMXN !== false,
+    notas_personalizadas: cotiz.notasPersonalizadas || '',
+    etapas: cotiz.etapas || [],
+    data_completa: cotiz,
+    updated_at: new Date().toISOString()
+  });
+
+  // Cargar historial desde Supabase
+  const cargarHistorialDeSupabase = async () => {
+    if (!supabase) return;
+    setCargandoHistorialBD(true);
+    try {
+      const { data, error } = await supabase
+        .from('presupuestos')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        if (error.code === '42P01' || error.message?.includes('schema cache') || error.message?.includes('does not exist')) {
+          setTablaSupabaseExiste(false);
+        } else {
+          console.warn('Error al consultar presupuestos en Supabase:', error.message);
+        }
+      } else if (data) {
+        setTablaSupabaseExiste(true);
+        const mapeados = data.map(mapSupabaseToCotizacion);
+        setHistorialCotizaciones(mapeados);
+        try {
+          localStorage.setItem('ballard_presupuestos_v1', JSON.stringify(mapeados));
+        } catch (e) {}
+      }
+    } catch (err) {
+      console.warn('Error al conectar con Supabase:', err);
+    } finally {
+      setCargandoHistorialBD(false);
+    }
+  };
+
+  // Cargar historial al iniciar (localStorage primero, luego Supabase)
   useEffect(() => {
     try {
       const guardado = localStorage.getItem('ballard_presupuestos_v1');
@@ -267,17 +399,75 @@ export default function Presupuestos({
         setHistorialCotizaciones(JSON.parse(guardado));
       }
     } catch (e) {
-      console.error('Error al cargar historial de presupuestos:', e);
+      console.error('Error al cargar historial de presupuestos local:', e);
     }
+
+    cargarHistorialDeSupabase();
   }, []);
 
-  // Guardar historial en localStorage
-  const guardarEnStorage = (nuevoHistorial) => {
+  // Guardar historial en localStorage y en Supabase (Base de Datos)
+  const guardarEnStorage = async (nuevoHistorial, itemModificado = null) => {
     setHistorialCotizaciones(nuevoHistorial);
     try {
       localStorage.setItem('ballard_presupuestos_v1', JSON.stringify(nuevoHistorial));
     } catch (e) {
       console.error('Error al guardar en storage:', e);
+    }
+
+    // Persistir automáticamente en la base de datos Supabase
+    if (supabase && itemModificado) {
+      try {
+        const dbRecord = mapCotizacionToSupabase(itemModificado);
+        const { error } = await supabase.from('presupuestos').upsert(dbRecord);
+        if (error) {
+          if (error.code === '42P01' || error.message?.includes('schema cache') || error.message?.includes('does not exist')) {
+            setTablaSupabaseExiste(false);
+          } else {
+            console.warn('Advertencia al guardar en Supabase:', error.message);
+          }
+        } else {
+          setTablaSupabaseExiste(true);
+        }
+      } catch (e) {
+        console.warn('Error de red al guardar en Supabase:', e);
+      }
+    }
+  };
+
+  // Sincronizar todo el historial local hacia Supabase
+  const handleSincronizarTodoASupabase = async () => {
+    if (!supabase) return;
+    setSincronizandoBD(true);
+    try {
+      const records = historialCotizaciones.map(mapCotizacionToSupabase);
+      const { error } = await supabase.from('presupuestos').upsert(records);
+      if (error) {
+        if (error.code === '42P01' || error.message?.includes('schema cache') || error.message?.includes('does not exist')) {
+          setTablaSupabaseExiste(false);
+          setMostrarModalSQL(true);
+        } else {
+          if (showToast) showToast(`Error al sincronizar: ${error.message}`, 'error');
+        }
+      } else {
+        setTablaSupabaseExiste(true);
+        if (showToast) showToast(`¡${records.length} presupuestos sincronizados con éxito en Supabase!`, 'success');
+      }
+    } catch (err) {
+      if (showToast) showToast('Error de conexión con Supabase', 'error');
+    } finally {
+      setSincronizandoBD(false);
+    }
+  };
+
+  // Copiar código SQL al portapapeles
+  const copiarSQLAlPortapapeles = async () => {
+    try {
+      await navigator.clipboard.writeText(SQL_CREAR_TABLA_PRESUPUESTOS);
+      setSqlCopiado(true);
+      if (showToast) showToast('¡SQL copiado al portapapeles!', 'success');
+      setTimeout(() => setSqlCopiado(false), 2500);
+    } catch (e) {
+      if (showToast) showToast('No se pudo copiar el texto', 'error');
     }
   };
 
@@ -483,6 +673,8 @@ export default function Presupuestos({
     const esVentaDoc = cotizacion.tipoDocumento === 'VENTA' || cotizacion.estado === 'VENTA';
     const tagDoc = esVentaDoc ? `Ticket de Venta ${cotizacion.numeroTicket || cotizacion.folio}` : `Presupuesto ${cotizacion.folio}`;
     
+    const indexExistente = historialCotizaciones.findIndex(c => c.id === cotizacion.id);
+    let nuevoHistorial;
     if (indexExistente >= 0) {
       nuevoHistorial = [...historialCotizaciones];
       nuevoHistorial[indexExistente] = nuevaCotizacion;
@@ -492,7 +684,7 @@ export default function Presupuestos({
       if (showToast) showToast(`${tagDoc} guardado en el historial`, 'success');
     }
 
-    guardarEnStorage(nuevoHistorial);
+    guardarEnStorage(nuevoHistorial, nuevaCotizacion);
   };
 
   // Manejador para actualizar el tipo de cambio y persistirlo
@@ -596,10 +788,22 @@ export default function Presupuestos({
   };
 
   // Eliminar cotización del historial
-  const handleEliminarCotizacion = (id, folio) => {
+  const handleEliminarCotizacion = async (id, folio) => {
     if (!window.confirm(`¿Estás seguro de eliminar el presupuesto ${folio}?`)) return;
     const filtrado = historialCotizaciones.filter(c => c.id !== id);
-    guardarEnStorage(filtrado);
+    setHistorialCotizaciones(filtrado);
+    try {
+      localStorage.setItem('ballard_presupuestos_v1', JSON.stringify(filtrado));
+    } catch (e) {}
+
+    if (supabase) {
+      try {
+        await supabase.from('presupuestos').delete().eq('id', id);
+      } catch (e) {
+        console.warn('Error al eliminar en Supabase:', e);
+      }
+    }
+
     if (showToast) showToast(`Presupuesto ${folio} eliminado`, 'success');
   };
 
@@ -2120,6 +2324,73 @@ export default function Presupuestos({
             </div>
           </div>
 
+          {/* BARRA DE ESTADO DE LA BASE DE DATOS SUPABASE */}
+          {tablaSupabaseExiste === false ? (
+            <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-300 rounded-xl p-3.5 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 text-xs shadow-xs">
+              <div className="flex items-start gap-2.5">
+                <Database size={20} className="text-amber-600 shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-bold text-amber-950 flex items-center gap-1.5">
+                    <span>Guardado en la Nube (Base de Datos Supabase)</span>
+                    <span className="bg-amber-200 text-amber-900 text-[10px] px-1.5 py-0.5 rounded font-black">Activar 1 Clic</span>
+                  </p>
+                  <p className="text-amber-800 text-[11px] mt-0.5 leading-relaxed">
+                    Tus presupuestos están seguros en este navegador. Para sincronizarlos automáticamente en Supabase y verlos en todos tus dispositivos, crea la tabla <code>presupuestos</code> en tu panel de Supabase.
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 shrink-0 w-full md:w-auto justify-end">
+                <button
+                  type="button"
+                  onClick={() => setMostrarModalSQL(true)}
+                  className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold px-3 py-1.5 rounded-lg shadow-sm transition-colors text-xs flex items-center gap-1.5"
+                >
+                  <Copy size={13} /> Ver / Copiar SQL
+                </button>
+                <button
+                  type="button"
+                  onClick={cargarHistorialDeSupabase}
+                  disabled={cargandoHistorialBD}
+                  className="bg-white hover:bg-slate-100 text-slate-700 font-bold px-3 py-1.5 rounded-lg border border-slate-300 transition-colors text-xs flex items-center gap-1"
+                  title="Reintentar conexión con Supabase"
+                >
+                  <RefreshCw size={13} className={cargandoHistorialBD ? 'animate-spin' : ''} />
+                  {cargandoHistorialBD ? 'Verificando...' : 'Verificar'}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="bg-slate-50 border border-slate-200 rounded-xl p-2.5 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-600">
+              <div className="flex items-center gap-2">
+                <Cloud size={16} className="text-emerald-600 shrink-0" />
+                <span className="font-medium">
+                  Base de Datos: <strong className="text-emerald-700">Conectada con Supabase</strong> (los presupuestos y ventas se guardan en la nube)
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleSincronizarTodoASupabase}
+                  disabled={sincronizandoBD}
+                  className="bg-white hover:bg-slate-100 text-slate-700 px-2.5 py-1 rounded-lg border border-slate-300 font-bold text-[11px] flex items-center gap-1 transition-colors"
+                  title="Subir todos los presupuestos locales a la nube"
+                >
+                  <Cloud size={12} className={sincronizandoBD ? 'animate-pulse' : ''} />
+                  {sincronizandoBD ? 'Sincronizando...' : 'Subir a Nube'}
+                </button>
+                <button
+                  type="button"
+                  onClick={cargarHistorialDeSupabase}
+                  disabled={cargandoHistorialBD}
+                  className="p-1 text-slate-500 hover:text-slate-800 rounded transition-colors"
+                  title="Refrescar historial desde la nube"
+                >
+                  <RefreshCw size={14} className={cargandoHistorialBD ? 'animate-spin' : ''} />
+                </button>
+              </div>
+            </div>
+          )}
+
           {cotizacionesFiltradas.length === 0 ? (
             <div className="text-center py-16 text-slate-400">
               <FileText size={48} className="mx-auto mb-3 opacity-30 text-amber-500" />
@@ -2500,6 +2771,75 @@ export default function Presupuestos({
               >
                 <CheckCircle size={16} />
                 {guardandoReservas ? 'Guardando en la Nube...' : `Confirmar y Crear ${serviciosAConvertir.length} Reservas`}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL PARA VER Y COPIAR SCRIPT SQL DE SUPABASE */}
+      {mostrarModalSQL && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-xl w-full overflow-hidden border border-slate-200">
+            <div className="bg-slate-900 text-white p-4 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Database className="text-amber-400" size={18} />
+                <h3 className="font-bold text-sm">Crear tabla "presupuestos" en Supabase</h3>
+              </div>
+              <button
+                onClick={() => setMostrarModalSQL(false)}
+                className="text-slate-400 hover:text-white p-1 rounded transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="p-5 space-y-3">
+              <p className="text-xs text-slate-600 leading-relaxed">
+                Para que todos tus presupuestos y tickets se guarden en la base de datos Supabase y estén sincronizados en cualquier computadora o celular, copia este código SQL y pégalo en el <strong>SQL Editor</strong> de tu proyecto Supabase:
+              </p>
+
+              <div className="relative">
+                <pre className="bg-slate-950 text-slate-200 p-3.5 rounded-xl text-[11px] font-mono overflow-x-auto max-h-60 border border-slate-800">
+                  {SQL_CREAR_TABLA_PRESUPUESTOS}
+                </pre>
+                <button
+                  type="button"
+                  onClick={copiarSQLAlPortapapeles}
+                  className="absolute top-2 right-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 shadow-sm transition-all"
+                >
+                  {sqlCopiado ? <Check size={14} /> : <Copy size={14} />}
+                  {sqlCopiado ? '¡Copiado!' : 'Copiar SQL'}
+                </button>
+              </div>
+
+              <div className="bg-blue-50 border border-blue-200 p-3 rounded-xl text-[11px] text-blue-900 space-y-1">
+                <p className="font-bold">Pasos rápidos en Supabase:</p>
+                <ol className="list-decimal list-inside space-y-0.5 text-blue-800">
+                  <li>Entra a tu panel de Supabase y ve a <strong>SQL Editor</strong> en el menú lateral.</li>
+                  <li>Haz clic en <strong>+ New Query</strong>, pega el código copiado y presiona <strong>Run</strong>.</li>
+                  <li>Regresa aquí y presiona <strong>Verificar Conexión</strong>. ¡Listo!</li>
+                </ol>
+              </div>
+            </div>
+
+            <div className="bg-slate-100 p-4 border-t border-slate-200 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setMostrarModalSQL(false)}
+                className="px-4 py-2 text-xs font-bold text-slate-600 hover:text-slate-800 rounded-lg"
+              >
+                Cerrar
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setMostrarModalSQL(false);
+                  cargarHistorialDeSupabase();
+                }}
+                className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold px-4 py-2 rounded-lg text-xs shadow-sm transition-colors flex items-center gap-1.5"
+              >
+                <RefreshCw size={13} /> Verificar Conexión
               </button>
             </div>
           </div>
