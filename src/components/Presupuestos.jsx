@@ -614,7 +614,7 @@ export default function Presupuestos({
     try {
       const esVentaDoc = cotizacion.tipoDocumento === 'VENTA' || cotizacion.estado === 'VENTA';
       const nombreLimpio = (cotizacion.nombreCliente || 'Cliente').replace(/[^a-zA-Z0-9]/g, '_');
-      const prefijoDoc = esVentaDoc ? 'Ticket_Venta_Ballard' : 'Presupuesto_Ballard';
+      const prefijoDoc = esVentaDoc ? 'Ticket_Venta' : 'Presupuesto';
       const numFolio = cotizacion.numeroTicket || cotizacion.folio;
       const nombreDocumento = `${prefijoDoc}_${numFolio}_${nombreLimpio}`;
       const tituloAnterior = document.title;
