@@ -3903,16 +3903,15 @@ export default function App() {
             </button>
             <button
               onClick={() => {
-                // 1. Conseguimos el folio real del ticket actual (ej. BTS00006)
-                // Cambia "currentTicket.folio" o "service.reserva" por la variable exacta donde guardas el folio
-                const numeroTicket = currentService?.folio || currentService?.reserva || "00000";
+                // 1. Conseguimos el número de reserva del ticket actual (ej. OWNCINGN)
+                const numeroReserva = (ticketDataToPrint?.reserva || ticketDataToPrint?.folio || (ticketDataToPrint?.id ? ticketDataToPrint.id.slice(-5) : "00000")).toString().trim().replace(/[/\\?%*:|"<>]/g, '_');
 
                 // 2. Guardamos el título original de la pestaña de tu app
                 const tituloOriginal = document.title;
 
                 // 3. LE CAMBIAMOS EL NOMBRE AL ARCHIVO AUTOMÁTICAMENTE
                 // Al hacer esto, el navegador usará este texto exacto como nombre por defecto del PDF
-                document.title = `TICKET-${numeroTicket}`;
+                document.title = `TICKET-${numeroReserva}`;
 
                 // 4. EL TRUCO CONTRA LA SEGUNDA HOJA: Creamos un estilo temporal ultra-estricto para la impresión
                 const estiloImpresion = document.createElement('style');
