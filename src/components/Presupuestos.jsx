@@ -1572,21 +1572,8 @@ export default function Presupuestos({
                           <div style={{ fontSize: '11px', color: '#7A7A7A', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '2px' }}>
                             {t.vehiculoLabel}
                           </div>
-                          <div style={{ 
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '5px',
-                            backgroundColor: cotizacion.tipoVehiculo === 'VAN' ? '#e0f2fe' : '#fef3c7',
-                            color: cotizacion.tipoVehiculo === 'VAN' ? '#0369a1' : '#92400e',
-                            fontWeight: 900,
-                            fontSize: '13px',
-                            padding: '4px 10px',
-                            borderRadius: '6px',
-                            border: cotizacion.tipoVehiculo === 'VAN' ? '1px solid #bae6fd' : '1px solid #fde68a',
-                            letterSpacing: '0.5px'
-                          }}>
-                            <span>{cotizacion.tipoVehiculo === 'VAN' ? '🚐' : '🚙'}</span>
-                            <span>{cotizacion.tipoVehiculo === 'VAN' ? 'VAN (Hiace)' : 'SUV (Expedition)'}</span>
+                          <div style={{ fontSize: '16px', color: '#161D2D', fontWeight: 'bold' }}>
+                            {cotizacion.tipoVehiculo === 'VAN' ? 'VAN' : 'SUV'}
                           </div>
                         </td>
                         <td style={{ width: '30%', padding: '8px 12px', verticalAlign: 'top', border: 'none' }}>
