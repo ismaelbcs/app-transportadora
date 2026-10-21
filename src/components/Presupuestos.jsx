@@ -3,7 +3,7 @@ import {
   Plus, Trash2, Download, Printer, Copy, Check, CheckCircle, 
   AlertCircle, Search, Calendar, Clock, DollarSign, Users, Plane, 
   MapPin, Globe, Mail, Phone, ArrowRight, ShieldCheck, FileText, 
-  Eye, Edit3, X, Languages, ArrowLeft, Car
+  Eye, Edit3, X, Languages, ArrowLeft, Car, Receipt, ShoppingBag, BadgeCheck
 } from 'lucide-react';
 
 export default function Presupuestos({ 
@@ -42,7 +42,9 @@ export default function Presupuestos({
     id: `COT-${Date.now()}`,
     folio: `COT-${Math.floor(1000 + Math.random() * 9000)}`,
     fechaEmision: new Date().toISOString().split('T')[0],
-    estado: 'EN REVISIÓN', // 'EN REVISIÓN' | 'COTIZADO' | 'APROBADO' | 'CONVERTIDO'
+    estado: 'EN REVISIÓN', // 'EN REVISIÓN' | 'COTIZADO' | 'APROBADO' | 'CONVERTIDO' | 'VENTA'
+    tipoDocumento: 'PRESUPUESTO', // 'PRESUPUESTO' | 'VENTA'
+    numeroTicket: null, // ej. 'TCK-0001'
     
     // Datos del cliente
     nombreCliente: '',
@@ -108,6 +110,142 @@ export default function Presupuestos({
   // Historial de cotizaciones (localStorage con fallback persistente)
   const [historialCotizaciones, setHistorialCotizaciones] = useState([]);
   const [filtroHistorial, setFiltroHistorial] = useState('');
+  const [filtroTipoHistorial, setFiltroTipoHistorial] = useState('TODOS'); // 'TODOS' | 'VENTAS' | 'COTIZACIONES'
+
+  // Próximo número de ticket de venta consecutivo (Prefijo TCK-)
+  const [proximoTicket, setProximoTicket] = useState('TCK-0001');
+
+  // Función para calcular el siguiente número consecutivo de ticket de venta
+  const obtenerSiguienteNumeroTicket = async () => {
+    let maxNum = 0;
+
+    // 1. Revisar en historial de presupuestos/ventas de localStorage
+    try {
+      const guardado = localStorage.getItem('ballard_presupuestos_v1');
+      if (guardado) {
+        const items = JSON.parse(guardado);
+        if (Array.isArray(items)) {
+          items.forEach(item => {
+            const candidates = [item.numeroTicket, item.folio, item.id];
+            candidates.forEach(str => {
+              if (str && typeof str === 'string') {
+                const match = str.match(/TCK-(\d+)/i);
+                if (match) {
+                  const n = parseInt(match[1], 10);
+                  if (!isNaN(n) && n > maxNum) maxNum = n;
+                }
+              }
+            });
+          });
+        }
+      }
+    } catch (e) {
+      console.error('Error calculando consecutivo en localStorage:', e);
+    }
+
+    // 2. Revisar en contador persistente de localStorage
+    try {
+      const guardadoContador = localStorage.getItem('ballard_ultimo_ticket_venta');
+      if (guardadoContador) {
+        const n = parseInt(guardadoContador, 10);
+        if (!isNaN(n) && n > maxNum) maxNum = n;
+      }
+    } catch (e) {}
+
+    // 3. Revisar en Supabase en servicios si existe algún ticket TCK-
+    if (supabase) {
+      try {
+        const { data } = await supabase
+          .from('servicios')
+          .select('reserva, comentario')
+          .or('reserva.ilike.TCK-%,comentario.ilike.%TCK-%');
+
+        if (data && data.length > 0) {
+          data.forEach(item => {
+            const matchRes = item.reserva?.match(/TCK-(\d+)/i);
+            if (matchRes) {
+              const n = parseInt(matchRes[1], 10);
+              if (!isNaN(n) && n > maxNum) maxNum = n;
+            }
+            const matchCom = item.comentario?.match(/TCK-(\d+)/i);
+            if (matchCom) {
+              const n = parseInt(matchCom[1], 10);
+              if (!isNaN(n) && n > maxNum) maxNum = n;
+            }
+          });
+        }
+      } catch (e) {
+        // Fallback transparente sin romper flujo
+      }
+    }
+
+    const siguiente = maxNum + 1;
+    return `TCK-${siguiente.toString().padStart(4, '0')}`;
+  };
+
+  // Recalcular el próximo ticket consecutivo
+  useEffect(() => {
+    let cancelado = false;
+    const actualizarProximo = async () => {
+      const sig = await obtenerSiguienteNumeroTicket();
+      if (!cancelado) setProximoTicket(sig);
+    };
+    actualizarProximo();
+    return () => { cancelado = true; };
+  }, [historialCotizaciones, activeSubTab]);
+
+  // Manejar creación de Venta directa con número de ticket consecutivo
+  const handleRealizarVenta = async () => {
+    let ticketNum = cotizacion.numeroTicket;
+    if (!ticketNum || !ticketNum.startsWith('TCK-')) {
+      ticketNum = await obtenerSiguienteNumeroTicket();
+    }
+
+    const ventaActualizada = {
+      ...cotizacion,
+      tipoDocumento: 'VENTA',
+      numeroTicket: ticketNum,
+      folio: ticketNum,
+      estado: 'VENTA'
+    };
+
+    setCotizacion(ventaActualizada);
+
+    // Guardar último consecutivo numérico
+    const n = parseInt(ticketNum.replace('TCK-', ''), 10);
+    if (!isNaN(n)) {
+      try {
+        localStorage.setItem('ballard_ultimo_ticket_venta', n.toString());
+      } catch (e) {}
+    }
+
+    // Guardar de inmediato en el historial de cotizaciones/ventas
+    const index = historialCotizaciones.findIndex(c => c.id === ventaActualizada.id);
+    let nuevoHistorial = [...historialCotizaciones];
+    if (index >= 0) {
+      nuevoHistorial[index] = ventaActualizada;
+    } else {
+      nuevoHistorial = [ventaActualizada, ...historialCotizaciones];
+    }
+    guardarEnStorage(nuevoHistorial);
+
+    if (showToast) {
+      showToast(`¡Venta realizada con éxito! Ticket Oficial: ${ticketNum}`, 'success');
+    }
+  };
+
+  // Revertir de Venta a Cotización preliminar
+  const handleRevertirACotizacion = () => {
+    const nuevoFolio = `COT-${Math.floor(1000 + Math.random() * 9000)}`;
+    setCotizacion(prev => ({
+      ...prev,
+      tipoDocumento: 'PRESUPUESTO',
+      numeroTicket: null,
+      folio: nuevoFolio,
+      estado: 'EN REVISIÓN'
+    }));
+    if (showToast) showToast('Cambiado a Cotización preliminar', 'info');
+  };
 
   // Modal para convertir cotización a reserva
   const [mostrarModalConversion, setMostrarModalConversion] = useState(false);
@@ -342,15 +480,16 @@ export default function Presupuestos({
       idiomaGuardado: idioma
     };
 
-    const indexExistente = historialCotizaciones.findIndex(c => c.id === cotizacion.id);
-    let nuevoHistorial;
+    const esVentaDoc = cotizacion.tipoDocumento === 'VENTA' || cotizacion.estado === 'VENTA';
+    const tagDoc = esVentaDoc ? `Ticket de Venta ${cotizacion.numeroTicket || cotizacion.folio}` : `Presupuesto ${cotizacion.folio}`;
+    
     if (indexExistente >= 0) {
       nuevoHistorial = [...historialCotizaciones];
       nuevoHistorial[indexExistente] = nuevaCotizacion;
-      if (showToast) showToast(`Presupuesto ${cotizacion.folio} actualizado`, 'success');
+      if (showToast) showToast(`${tagDoc} actualizado`, 'success');
     } else {
       nuevoHistorial = [nuevaCotizacion, ...historialCotizaciones];
-      if (showToast) showToast(`Presupuesto ${cotizacion.folio} guardado en el historial`, 'success');
+      if (showToast) showToast(`${tagDoc} guardado en el historial`, 'success');
     }
 
     guardarEnStorage(nuevoHistorial);
@@ -375,6 +514,8 @@ export default function Presupuestos({
       folio: `COT-${Math.floor(1000 + Math.random() * 9000)}`,
       fechaEmision: new Date().toISOString().split('T')[0],
       estado: 'EN REVISIÓN',
+      tipoDocumento: 'PRESUPUESTO',
+      numeroTicket: null,
       nombreCliente: '',
       pax: '2',
       tipoVehiculo: 'SUV',
@@ -440,6 +581,8 @@ export default function Presupuestos({
   const handleCargarCotizacion = (cotiz) => {
     setCotizacion({
       ...cotiz,
+      tipoDocumento: cotiz.tipoDocumento || (cotiz.estado === 'VENTA' || cotiz.folio?.startsWith('TCK-') ? 'VENTA' : 'PRESUPUESTO'),
+      numeroTicket: cotiz.numeroTicket || (cotiz.folio?.startsWith('TCK-') ? cotiz.folio : null),
       tipoVehiculo: cotiz.tipoVehiculo || 'SUV',
       moneda: cotiz.moneda || 'USD',
       tipoCambio: cotiz.tipoCambio || getInitialTipoCambio(),
@@ -469,8 +612,11 @@ export default function Presupuestos({
     }
 
     try {
+      const esVentaDoc = cotizacion.tipoDocumento === 'VENTA' || cotizacion.estado === 'VENTA';
       const nombreLimpio = (cotizacion.nombreCliente || 'Cliente').replace(/[^a-zA-Z0-9]/g, '_');
-      const nombreDocumento = `Presupuesto_Ballard_${cotizacion.folio}_${nombreLimpio}`;
+      const prefijoDoc = esVentaDoc ? 'Ticket_Venta_Ballard' : 'Presupuesto_Ballard';
+      const numFolio = cotizacion.numeroTicket || cotizacion.folio;
+      const nombreDocumento = `${prefijoDoc}_${numFolio}_${nombreLimpio}`;
       const tituloAnterior = document.title;
       document.title = nombreDocumento;
 
@@ -655,7 +801,7 @@ export default function Presupuestos({
         idLocal: `conv-${idx}-${Date.now()}`,
         etapaId: etapa.id,
         nombreEtapa: etapa.etiquetaES || `Tramo ${idx + 1}`,
-        reserva: c.folio,
+        reserva: c.numeroTicket || c.folio,
         nombre: nombre,
         apellido: apellido,
         agencia: 'Directo',
@@ -671,7 +817,7 @@ export default function Presupuestos({
         cobro: etapa.precio || (idx === 0 && c.precioTotal ? c.precioTotal : ''),
         metodoPago: c.metodoPago || 'Efectivo',
         tipoViaje: 'One way',
-        comentario: `Cotización ${c.folio} [${c.tipoVehiculo || 'SUV'}] - ${trayectoDesc}${c.tipoCambio ? ` (TC: $${c.tipoCambio} MXN/USD)` : ''}${notaRegreso}`
+        comentario: `${c.tipoDocumento === 'VENTA' ? 'Venta Ticket' : 'Cotización'} ${c.numeroTicket || c.folio} [${c.tipoVehiculo || 'SUV'}] - ${trayectoDesc}${c.tipoCambio ? ` (TC: $${c.tipoCambio} MXN/USD)` : ''}${notaRegreso}`
       };
     });
 
@@ -793,11 +939,16 @@ export default function Presupuestos({
 
   // Filtrado de cotizaciones en el historial
   const cotizacionesFiltradas = historialCotizaciones.filter(c => {
+    const esItemVenta = c.tipoDocumento === 'VENTA' || c.estado === 'VENTA' || c.folio?.startsWith('TCK-');
+    if (filtroTipoHistorial === 'VENTAS' && !esItemVenta) return false;
+    if (filtroTipoHistorial === 'COTIZACIONES' && esItemVenta) return false;
+
     if (!filtroHistorial.trim()) return true;
     const q = filtroHistorial.toLowerCase();
     return (
       (c.nombreCliente || '').toLowerCase().includes(q) ||
       (c.folio || '').toLowerCase().includes(q) ||
+      (c.numeroTicket || '').toLowerCase().includes(q) ||
       (c.hotelPrincipal || '').toLowerCase().includes(q)
     );
   });
@@ -844,16 +995,28 @@ export default function Presupuestos({
     return metodo;
   };
 
+  const esVenta = cotizacion.tipoDocumento === 'VENTA' || cotizacion.estado === 'VENTA';
+
   // Textos y etiquetas según el idioma seleccionado
   const t = {
-    tituloPrincipal: idioma === 'EN' ? 'TRANSPORTATION QUOTE' : 'PRESUPUESTO DE TRANSPORTE',
-    subtituloSeguro: idioma === 'EN' 
-      ? `✔ Private Transportation (${cotizacion.tipoVehiculo || 'SUV'}) / Safe Ticket` 
-      : `✔ Transporte Privado (${cotizacion.tipoVehiculo || 'SUV'}) / Boleto Seguro`,
-    badgeEstado: idioma === 'EN' 
-      ? (cotizacion.estado === 'CONVERTIDO' ? 'RESERVED' : (cotizacion.estado === 'APROBADO' ? 'CONFIRMED' : 'IN REVIEW'))
-      : cotizacion.estado,
-    folioLabel: idioma === 'EN' ? 'FOLIO:' : 'FOLIO:',
+    tituloPrincipal: esVenta
+      ? (idioma === 'EN' ? 'OFFICIAL SALES TICKET' : 'TICKET DE VENTA - TRANSPORTE')
+      : (idioma === 'EN' ? 'TRANSPORTATION QUOTE' : 'PRESUPUESTO DE TRANSPORTE'),
+    subtituloSeguro: esVenta
+      ? (idioma === 'EN' 
+          ? `✔ Confirmed Private Transportation (${cotizacion.tipoVehiculo || 'SUV'}) / Official Ticket` 
+          : `✔ Transporte Privado Confirmado (${cotizacion.tipoVehiculo || 'SUV'}) / Boleto Oficial`)
+      : (idioma === 'EN' 
+          ? `✔ Private Transportation (${cotizacion.tipoVehiculo || 'SUV'}) / Safe Ticket` 
+          : `✔ Transporte Privado (${cotizacion.tipoVehiculo || 'SUV'}) / Boleto Seguro`),
+    badgeEstado: esVenta
+      ? (idioma === 'EN' ? 'SALE CONFIRMED' : 'VENTA CONFIRMADA')
+      : (idioma === 'EN' 
+          ? (cotizacion.estado === 'CONVERTIDO' ? 'RESERVED' : (cotizacion.estado === 'APROBADO' ? 'CONFIRMED' : 'IN REVIEW'))
+          : cotizacion.estado),
+    folioLabel: esVenta
+      ? (idioma === 'EN' ? 'SALES TICKET #:' : 'N° TICKET:')
+      : (idioma === 'EN' ? 'FOLIO:' : 'FOLIO:'),
     fechaLabel: idioma === 'EN' ? 'DATE:' : 'FECHA:',
     nombreClienteLabel: idioma === 'EN' ? 'PASSENGER / CLIENT NAME' : 'NOMBRE DEL PASAJERO / CLIENTE',
     paxLabel: idioma === 'EN' ? 'PASSENGERS (PAX)' : 'PASAJEROS (PAX)',
@@ -1048,8 +1211,17 @@ export default function Presupuestos({
             {/* DATOS DEL CLIENTE Y CONFIGURACIÓN */}
             <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
               <h2 className="text-sm font-bold text-slate-800 uppercase tracking-wide border-b pb-2 flex items-center justify-between">
-                <span>Datos del Cliente y Cotización</span>
-                <span className="text-xs font-mono text-slate-500 font-normal">Folio: {cotizacion.folio}</span>
+                <span>{esVenta ? 'Datos del Cliente y Venta' : 'Datos del Cliente y Cotización'}</span>
+                <div className="flex items-center gap-1.5">
+                  {esVenta ? (
+                    <span className="text-xs font-mono font-black text-emerald-800 bg-emerald-100 border border-emerald-300 px-2 py-0.5 rounded-md flex items-center gap-1">
+                      <Receipt size={12} className="text-emerald-600" />
+                      Ticket: {cotizacion.numeroTicket || cotizacion.folio}
+                    </span>
+                  ) : (
+                    <span className="text-xs font-mono text-slate-500 font-normal">Folio: {cotizacion.folio}</span>
+                  )}
+                </div>
               </h2>
 
               <div className="grid grid-cols-2 gap-3">
@@ -1495,12 +1667,47 @@ export default function Presupuestos({
 
             {/* BOTONES DE ACCIÓN PRINCIPALES */}
             <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col gap-2.5">
+              {/* BOTÓN PRINCIPAL PARA REALIZAR VENTA CON TICKET CONSECUTIVO */}
+              {!esVenta ? (
+                <button
+                  type="button"
+                  onClick={handleRealizarVenta}
+                  className="w-full bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white font-black py-3 px-4 rounded-xl flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all text-sm group"
+                  title="Convierte esta cotización en una venta oficial asignándole el siguiente número de ticket consecutivo"
+                >
+                  <Receipt size={18} className="text-amber-300 group-hover:scale-110 transition-transform" />
+                  <span>💳 Realizar Venta / Generar Ticket ({proximoTicket})</span>
+                </button>
+              ) : (
+                <div className="bg-emerald-50 border border-emerald-300 rounded-xl p-3 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle size={18} className="text-emerald-600 shrink-0" />
+                    <div>
+                      <div className="text-xs font-black text-emerald-950">
+                        VENTA REALIZADA • TICKET #{cotizacion.numeroTicket || cotizacion.folio}
+                      </div>
+                      <div className="text-[11px] text-emerald-700 font-medium">
+                        Boleto Oficial de Venta consecutivo activo.
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleRevertirACotizacion}
+                    className="text-[11px] font-bold text-slate-500 hover:text-slate-800 underline px-2 py-1"
+                    title="Volver al modo de cotización preliminar"
+                  >
+                    Revertir a Cotización
+                  </button>
+                </div>
+              )}
+
               <button
                 onClick={handleGuardarCotizacion}
                 className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 shadow-md transition-colors text-sm"
               >
                 <CheckCircle size={18} className="text-amber-400" />
-                Guardar Presupuesto en Historial
+                {esVenta ? 'Guardar Ticket de Venta en Historial' : 'Guardar Presupuesto en Historial'}
               </button>
 
               <button
@@ -1573,14 +1780,24 @@ export default function Presupuestos({
                         <p style={{ margin: 0, fontSize: '14px', letterSpacing: '1px', color: '#ffffff' }}>TOUR SERVICES</p>
                         <br />
                         <h2 style={{ margin: 0, fontSize: '20px', color: '#ffffff', fontWeight: 700 }}>{t.tituloPrincipal}</h2>
-                        <p style={{ margin: 0, fontSize: '12px', color: '#FFB300' }}>{t.subtituloSeguro}</p>
+                        <p style={{ margin: 0, fontSize: '12px', color: esVenta ? '#34d399' : '#FFB300' }}>{t.subtituloSeguro}</p>
                       </td>
                       <td style={{ padding: '25px', textAlign: 'right', width: '40%', verticalAlign: 'top', border: 'none' }}>
-                        <div style={{ backgroundColor: '#FFB300', color: '#161D2D', fontWeight: 'bold', padding: '5px 15px', borderRadius: '5px', display: 'inline-block', fontSize: '14px', marginBottom: '10px' }}>
+                        <div style={{ 
+                          backgroundColor: esVenta ? '#059669' : '#FFB300', 
+                          color: esVenta ? '#ffffff' : '#161D2D', 
+                          fontWeight: 'bold', 
+                          padding: '6px 16px', 
+                          borderRadius: '6px', 
+                          display: 'inline-block', 
+                          fontSize: '13px', 
+                          marginBottom: '10px',
+                          letterSpacing: '0.5px'
+                        }}>
                           {t.badgeEstado}
                         </div>
-                        <p style={{ margin: 0, fontSize: '12px', color: '#a0aabf', fontFamily: 'monospace' }}>
-                          {t.folioLabel} {cotizacion.folio}
+                        <p style={{ margin: 0, fontSize: '13px', color: esVenta ? '#6ee7b7' : '#a0aabf', fontFamily: 'monospace', fontWeight: 'bold' }}>
+                          {t.folioLabel} {cotizacion.numeroTicket || cotizacion.folio}
                         </p>
                         <p style={{ margin: '5px 0 0 0', fontSize: '12px', color: '#a0aabf' }}>
                           {t.fechaLabel} {cotizacion.fechaEmision || new Date().toISOString().split('T')[0]}
@@ -1855,16 +2072,51 @@ export default function Presupuestos({
               </p>
             </div>
 
-            {/* BUSCADOR DENTRO DEL HISTORIAL */}
-            <div className="relative w-full sm:w-72">
-              <Search className="absolute left-3 top-2.5 text-slate-400" size={16} />
-              <input
-                type="text"
-                value={filtroHistorial}
-                onChange={(e) => setFiltroHistorial(e.target.value)}
-                placeholder="Buscar por cliente, folio u hotel..."
-                className="w-full pl-9 pr-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none"
-              />
+            {/* PESTAÑAS DE FILTRO Y BUSCADOR */}
+            <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
+              {/* TABS DE TIPO: TODOS / VENTAS / COTIZACIONES */}
+              <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs font-bold">
+                <button
+                  type="button"
+                  onClick={() => setFiltroTipoHistorial('TODOS')}
+                  className={`px-3 py-1.5 rounded-lg transition-all ${
+                    filtroTipoHistorial === 'TODOS' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  Todos ({historialCotizaciones.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFiltroTipoHistorial('VENTAS')}
+                  className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1 ${
+                    filtroTipoHistorial === 'VENTAS' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  <Receipt size={13} />
+                  Ventas ({historialCotizaciones.filter(c => c.tipoDocumento === 'VENTA' || c.estado === 'VENTA' || c.folio?.startsWith('TCK-')).length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFiltroTipoHistorial('COTIZACIONES')}
+                  className={`px-3 py-1.5 rounded-lg transition-all ${
+                    filtroTipoHistorial === 'COTIZACIONES' ? 'bg-amber-500 text-slate-950 shadow-sm' : 'text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  Cotizaciones ({historialCotizaciones.filter(c => !(c.tipoDocumento === 'VENTA' || c.estado === 'VENTA' || c.folio?.startsWith('TCK-'))).length})
+                </button>
+              </div>
+
+              {/* BUSCADOR DENTRO DEL HISTORIAL */}
+              <div className="relative w-full sm:w-64">
+                <Search className="absolute left-3 top-2.5 text-slate-400" size={16} />
+                <input
+                  type="text"
+                  value={filtroHistorial}
+                  onChange={(e) => setFiltroHistorial(e.target.value)}
+                  placeholder="Buscar cliente, ticket o folio..."
+                  className="w-full pl-9 pr-3 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                />
+              </div>
             </div>
           </div>
 
@@ -1899,7 +2151,17 @@ export default function Presupuestos({
                 <tbody className="divide-y divide-slate-100">
                   {cotizacionesFiltradas.map((c) => (
                     <tr key={c.id} className="hover:bg-slate-50 transition-colors">
-                      <td className="p-3 font-mono font-bold text-slate-800">{c.folio}</td>
+                      <td className="p-3 font-mono font-bold text-slate-800">
+                        {c.tipoDocumento === 'VENTA' || c.estado === 'VENTA' || c.folio?.startsWith('TCK-') ? (
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded border border-emerald-300 font-black">
+                              {c.numeroTicket || c.folio}
+                            </span>
+                          </div>
+                        ) : (
+                          <span>{c.folio}</span>
+                        )}
+                      </td>
                       <td className="p-3 text-slate-600">{c.fechaEmision}</td>
                       <td className="p-3 font-bold text-slate-800">{c.nombreCliente}</td>
                       <td className="p-3 text-slate-600">{c.hotelPrincipal || 'N/A'}</td>
@@ -1931,15 +2193,21 @@ export default function Presupuestos({
                         )}
                       </td>
                       <td className="p-3 text-center">
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wide ${
-                          c.estado === 'CONVERTIDO'
-                            ? 'bg-emerald-100 text-emerald-800'
-                            : c.estado === 'APROBADO'
-                            ? 'bg-blue-100 text-blue-800'
-                            : 'bg-amber-100 text-amber-800'
-                        }`}>
-                          {c.estado}
-                        </span>
+                        {c.tipoDocumento === 'VENTA' || c.estado === 'VENTA' ? (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wide bg-emerald-100 text-emerald-800 border border-emerald-200 inline-flex items-center gap-1">
+                            <CheckCircle size={10} /> VENTA
+                          </span>
+                        ) : (
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wide ${
+                            c.estado === 'CONVERTIDO'
+                              ? 'bg-emerald-100 text-emerald-800'
+                              : c.estado === 'APROBADO'
+                              ? 'bg-blue-100 text-blue-800'
+                              : 'bg-amber-100 text-amber-800'
+                          }`}>
+                            {c.estado}
+                          </span>
+                        )}
                       </td>
                       <td className="p-3 text-center">
                         <div className="flex items-center justify-center gap-1.5">
