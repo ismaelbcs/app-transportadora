@@ -1478,12 +1478,16 @@ export default function App() {
         try {
           const res = await fetch(dataUrl);
           const blob = await res.blob();
-          const file = new File([blob], filename, { type: 'image/png' });
+          const tieneComentarios = item.comentario && item.comentario.trim();
+          const textoCompartir = tieneComentarios
+            ? `Detalles del servicio\n\nCOMENTARIOS:\n${item.comentario.trim()}`
+            : 'Detalles del servicio';
+
           if (navigator.canShare && navigator.canShare({ files: [file] })) {
             await navigator.share({
               files: [file],
               title: `Servicio ${item.nombre}`,
-              text: 'Detalles del servicio'
+              text: textoCompartir
             });
             setRenderData(null);
             showToast('Compartido con éxito');
@@ -3862,6 +3866,12 @@ export default function App() {
                     {renderData.data.booster > 0 && <span>Booster: {renderData.data.booster}</span>}
                     {renderData.data.paradaCompras && <span className="bg-blue-200 px-2 py-0.5 rounded">Parada de Compras</span>}
                   </div>
+                </div>
+              )}
+              {renderData.data.comentario && renderData.data.comentario.trim() && (
+                <div className="bg-amber-50 text-amber-950 p-3 rounded border border-amber-200">
+                  <div className="text-xs uppercase mb-1 font-bold tracking-wider text-amber-800">Comentarios</div>
+                  <div className="font-semibold text-sm whitespace-pre-wrap">{renderData.data.comentario}</div>
                 </div>
               )}
             </div>

@@ -999,7 +999,7 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
 
       const horaPickUpCalculada = etapa.horaRecogida || (etapa.tipo === 'salida' ? (c.horaCheckout || etapa.hora || '') : (etapa.hora || ''));
       const horaServicioCalculada = etapa.hora || etapa.horaRecogida || '';
-      const notaRegreso = etapa.horaRegreso ? ` [Hora Regreso: ${etapa.horaRegreso}]` : '';
+      const comentarioRegreso = etapa.horaRegreso ? `Regreso: ${etapa.horaRegreso}` : '';
 
       return {
         idLocal: `conv-${idx}-${Date.now()}`,
@@ -1021,7 +1021,7 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
         cobro: etapa.precio || (idx === 0 && c.precioTotal ? c.precioTotal : ''),
         metodoPago: c.metodoPago || 'Efectivo',
         tipoViaje: 'One way',
-        comentario: `${c.tipoDocumento === 'VENTA' ? 'Venta Ticket' : 'Cotización'} ${c.numeroTicket || c.folio} [${c.tipoVehiculo || 'SUV'}] - ${trayectoDesc}${c.tipoCambio ? ` (TC: $${c.tipoCambio} MXN/USD)` : ''}${notaRegreso}`
+        comentario: comentarioRegreso
       };
     });
 
@@ -1093,7 +1093,7 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
         baby_seat: 0,
         booster: 0,
         parada_compras: false,
-        comentario: s.comentario || `Generado de cotización ${cotizacionAConvertir.folio}`,
+        comentario: s.comentario || '',
         chofer: '',
         vehiculo: s.vehiculo || (cotizacionAConvertir.tipoVehiculo === 'VAN' ? 'Hiace' : 'Expedition'),
         proveedor: '',
@@ -2606,7 +2606,7 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
                             {idx + 1}
                           </span>
                           <span className="font-bold text-slate-800 text-sm">{srv.nombreEtapa}</span>
-                          <span className="text-xs text-slate-400">({srv.comentario})</span>
+                          {srv.comentario && <span className="text-xs text-slate-500 font-normal bg-slate-100 px-2 py-0.5 rounded">({srv.comentario})</span>}
                         </div>
 
                         <div className="flex items-center gap-2">
@@ -2746,6 +2746,18 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
                             onChange={(e) => handleCambioServicioConversion(idx, 'cobro', e.target.value)}
                             placeholder="0.00"
                             className="w-full px-2 py-1.5 border border-slate-300 rounded text-xs font-bold text-slate-800"
+                          />
+                        </div>
+
+                        {/* COMENTARIO */}
+                        <div className="col-span-1 sm:col-span-2 md:col-span-4">
+                          <label className="block font-bold text-slate-600 uppercase mb-1">Comentario (opcional)</label>
+                          <input
+                            type="text"
+                            value={srv.comentario || ''}
+                            onChange={(e) => handleCambioServicioConversion(idx, 'comentario', e.target.value)}
+                            placeholder="Ej. Regreso: 18:00 (o déjalo vacío si no requieres comentario)"
+                            className="w-full px-2.5 py-1.5 border border-slate-300 rounded text-xs text-slate-800 focus:ring-1 focus:ring-amber-500"
                           />
                         </div>
                       </div>
