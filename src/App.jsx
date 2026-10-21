@@ -1465,6 +1465,23 @@ export default function App() {
     localStorage.setItem('ballard_cc_services', JSON.stringify(updated));
   };
 
+  // Función auxiliar robusta para descargar archivos PNG en PC (compatible con Chrome, Edge, Firefox)
+  const guardarArchivoPNG = (blob, filename) => {
+    const blobUrl = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = blobUrl;
+    link.download = filename;
+    link.style.display = 'none';
+    document.body.appendChild(link);
+    link.click();
+    setTimeout(() => {
+      if (document.body.contains(link)) {
+        document.body.removeChild(link);
+      }
+      URL.revokeObjectURL(blobUrl);
+    }, 1000);
+  };
+
   const generateSharePNG = async (item) => {
     if (!libsLoaded) return showToast('Librerías cargando...', 'error');
     setRenderData({ type: 'share', data: item });
@@ -1472,41 +1489,60 @@ export default function App() {
     setTimeout(async () => {
       try {
         const canvas = await window.html2canvas(shareRef.current, { scale: 2, useCORS: true });
-        const dataUrl = canvas.toDataURL('image/png');
-        const filename = `Servicio_${item.nombre}_${item.apellido}.png`;
+        const filename = `Servicio_${item.nombre || 'Pasajero'}_${item.apellido || ''}.png`;
 
-        try {
-          const res = await fetch(dataUrl);
-          const blob = await res.blob();
-          const tieneComentarios = item.comentario && item.comentario.trim();
-          const textoCompartir = tieneComentarios
-            ? `Detalles del servicio\n\nCOMENTARIOS:\n${item.comentario.trim()}`
-            : 'Detalles del servicio';
+        const tieneComentarios = item.comentario && item.comentario.trim();
+        const textoCompartir = tieneComentarios
+          ? `Detalles del servicio\n\nCOMENTARIOS:\n${item.comentario.trim()}`
+          : 'Detalles del servicio';
 
-          if (navigator.canShare && navigator.canShare({ files: [file] })) {
-            await navigator.share({
-              files: [file],
-              title: `Servicio ${item.nombre}`,
-              text: textoCompartir
-            });
-            setRenderData(null);
-            showToast('Compartido con éxito');
-            return;
-          }
-        } catch (error) {
-          if (error.name === 'AbortError') {
+        canvas.toBlob(async (blob) => {
+          if (!blob) {
+            showToast('Error generando imagen', 'error');
             setRenderData(null);
             return;
           }
-          console.error('Error sharing:', error);
-        }
 
-        const link = document.createElement('a');
-        link.download = filename;
-        link.href = dataUrl;
-        link.click();
-        setRenderData(null);
-        showToast('Imagen PNG generada');
+          const esMovil = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent || '');
+
+          // En celular: usar compartir nativo para enviar por WhatsApp directamente
+          if (esMovil && navigator.canShare) {
+            try {
+              const file = new File([blob], filename, { type: 'image/png' });
+              if (navigator.canShare({ files: [file] })) {
+                await navigator.share({
+                  files: [file],
+                  title: `Servicio ${item.nombre}`,
+                  text: textoCompartir
+                });
+                setRenderData(null);
+                showToast('Compartido con éxito');
+                return;
+              }
+            } catch (error) {
+              if (error.name === 'AbortError') {
+                setRenderData(null);
+                return;
+              }
+              console.error('Error sharing:', error);
+            }
+          }
+
+          // En computadora (PC): descargar directamente el archivo PNG
+          guardarArchivoPNG(blob, filename);
+          if (tieneComentarios && navigator.clipboard) {
+            try {
+              await navigator.clipboard.writeText(textoCompartir);
+              showToast('PNG descargado y comentarios copiados al portapapeles');
+            } catch (e) {
+              showToast('Imagen PNG descargada correctamente');
+            }
+          } else {
+            showToast('Imagen PNG descargada correctamente');
+          }
+          setRenderData(null);
+        }, 'image/png');
+
       } catch (e) {
         console.error(e);
         showToast('Error generando PNG', 'error');
@@ -1550,11 +1586,10 @@ export default function App() {
       showToast('Generando imagen en Alta Calidad (HD)...');
 
       const canvas = await window.html2canvas(element, {
-        scale: 3, // <-- AQUÍ ESTÁ EL CAMBIO: Subimos la escala de 2 a 3 para máxima nitidez
+        scale: 3, // Máxima nitidez
         useCORS: true,
         backgroundColor: '#ffffff',
         logging: false,
-        // Modificamos la foto antes de tomarla para ocultar lo secreto
         onclone: (clonedDoc) => {
           const columnasSecretas = clonedDoc.querySelectorAll('.ocultar-en-foto');
           columnasSecretas.forEach(celda => {
@@ -1563,34 +1598,41 @@ export default function App() {
         }
       });
 
-      const dataUrl = canvas.toDataURL('image/png');
       const fecha = new Date().toISOString().split('T')[0];
       const filename = `Rol_Diario_${fecha}.png`;
 
-      try {
-        const res = await fetch(dataUrl);
-        const blob = await res.blob();
-        const file = new File([blob], filename, { type: 'image/png' });
-        if (navigator.canShare && navigator.canShare({ files: [file] })) {
-          await navigator.share({
-            files: [file],
-            title: `Rol Diario ${fecha}`,
-            text: 'Rol Diario'
-          });
-          showToast('Compartido con éxito');
+      canvas.toBlob(async (blob) => {
+        if (!blob) {
+          showToast('Error al generar la imagen', 'error');
           return;
         }
-      } catch (error) {
-        if (error.name === 'AbortError') return;
-        console.error('Error sharing:', error);
-      }
 
-      const link = document.createElement('a');
-      link.download = filename;
-      link.href = dataUrl;
-      link.click();
+        const esMovil = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent || '');
 
-      showToast('Imagen HD descargada correctamente');
+        // En celular: si soporta compartir nativo
+        if (esMovil && navigator.canShare) {
+          try {
+            const file = new File([blob], filename, { type: 'image/png' });
+            if (navigator.canShare({ files: [file] })) {
+              await navigator.share({
+                files: [file],
+                title: `Rol Diario ${fecha}`,
+                text: 'Rol Diario'
+              });
+              showToast('Compartido con éxito');
+              return;
+            }
+          } catch (error) {
+            if (error.name === 'AbortError') return;
+            console.error('Error sharing:', error);
+          }
+        }
+
+        // En computadora (PC): descargar directamente el archivo PNG
+        guardarArchivoPNG(blob, filename);
+        showToast('Imagen HD descargada correctamente');
+      }, 'image/png');
+
     } catch (error) {
       console.error("Error al generar PNG:", error);
       showToast('Error al generar la imagen', 'error');
