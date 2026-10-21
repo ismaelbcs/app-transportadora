@@ -802,6 +802,48 @@ export default function Presupuestos({
     );
   });
 
+  // Traducción y formateo del método de pago según el idioma
+  const formatearMetodoPago = (metodo, lang) => {
+    if (!metodo) return lang === 'EN' ? '[Pending / Cash]' : '[Pendiente / Efectivo]';
+    if (lang === 'EN') {
+      const lower = metodo.toString().trim().toLowerCase();
+      if ((lower.includes('transferencia') || lower.includes('wire')) && lower.includes('paypal')) {
+        return 'Wire Transfer / PayPal';
+      }
+      if (lower.includes('transferencia') || lower.includes('wire transfer')) {
+        return 'Wire Transfer';
+      }
+      if (lower.includes('pendiente') || lower === 'pending / cash') {
+        return 'Pending / Cash';
+      }
+      if (lower.includes('chófer') || lower.includes('chofer') || lower.includes('chauffeur') || lower.includes('driver')) {
+        return 'Cash to Chauffeur';
+      }
+      if (lower.includes('tarjeta') || lower.includes('stripe') || lower.includes('card')) {
+        return 'Credit Card / Stripe';
+      }
+      if (lower.includes('prepago') || lower.includes('prepaid')) {
+        return 'Prepaid';
+      }
+      if (lower === 'efectivo' || lower === 'cash') {
+        return 'Cash';
+      }
+      if (lower === 'paypal') {
+        return 'PayPal';
+      }
+      return metodo;
+    }
+    // Si idioma es ES:
+    const lower = metodo.toString().trim().toLowerCase();
+    if (lower === 'wire transfer') return 'Transferencia';
+    if (lower === 'wire transfer / paypal') return 'Transferencia / PayPal';
+    if (lower === 'pending / cash') return 'Pendiente / Efectivo';
+    if (lower.includes('cash to')) return 'Efectivo Chófer';
+    if (lower.includes('credit card')) return 'Tarjeta / Stripe';
+    if (lower === 'prepaid') return 'Prepago';
+    return metodo;
+  };
+
   // Textos y etiquetas según el idioma seleccionado
   const t = {
     tituloPrincipal: idioma === 'EN' ? 'TRANSPORTATION QUOTE' : 'PRESUPUESTO DE TRANSPORTE',
@@ -1108,17 +1150,20 @@ export default function Presupuestos({
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold text-slate-600 uppercase mb-1 block">Método de Pago</label>
+                  <label className="text-xs font-bold text-slate-600 uppercase mb-1 block">
+                    {idioma === 'EN' ? 'Payment Method' : 'Método de Pago'}
+                  </label>
                   <select
                     value={cotizacion.metodoPago}
                     onChange={(e) => handleCotizacionChange('metodoPago', e.target.value)}
-                    className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none bg-white"
+                    className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none bg-white font-medium text-slate-800"
                   >
-                    <option value="Pendiente / Efectivo">Pendiente / Efectivo</option>
-                    <option value="Efectivo Chófer">Efectivo Chófer</option>
-                    <option value="Tarjeta / Stripe">Tarjeta / Stripe</option>
-                    <option value="Transferencia">Transferencia</option>
-                    <option value="Prepago">Prepago</option>
+                    <option value="Pendiente / Efectivo">{idioma === 'EN' ? 'Pending / Cash' : 'Pendiente / Efectivo'}</option>
+                    <option value="Efectivo Chófer">{idioma === 'EN' ? 'Cash to Chauffeur' : 'Efectivo Chófer'}</option>
+                    <option value="Tarjeta / Stripe">{idioma === 'EN' ? 'Credit Card / Stripe' : 'Tarjeta / Stripe'}</option>
+                    <option value="Transferencia">{idioma === 'EN' ? 'Wire Transfer' : 'Transferencia'}</option>
+                    <option value="Transferencia / PayPal">{idioma === 'EN' ? 'Wire Transfer / PayPal' : 'Transferencia / PayPal'}</option>
+                    <option value="Prepago">{idioma === 'EN' ? 'Prepaid' : 'Prepago'}</option>
                   </select>
                 </div>
 
@@ -1600,7 +1645,7 @@ export default function Presupuestos({
                             {t.metodoPagoLabel}
                           </div>
                           <div style={{ fontSize: '15px', color: '#161D2D', fontWeight: 'bold' }}>
-                            {cotizacion.metodoPago || (idioma === 'EN' ? '[Pending / Cash]' : '[Pendiente / Efectivo]')}
+                            {formatearMetodoPago(cotizacion.metodoPago, idioma)}
                           </div>
                         </td>
                         <td style={{ padding: '8px 12px', verticalAlign: 'top', border: 'none' }}>
