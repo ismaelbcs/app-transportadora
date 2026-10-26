@@ -587,8 +587,12 @@ export default function App() {
       // 1. Filtramos los servicios por la fecha seleccionada
       const filtered = services.filter(s => s.fecha === rollDate);
 
-      // 2. Ordenamos por hora (de más temprano a más tarde)
-      const sorted = filtered.sort((a, b) => (a.hora || '').localeCompare(b.hora || ''));
+      // 2. Ordenamos por hora (de más temprano a más tarde, considerando Pick Up en Salidas)
+      const sorted = filtered.sort((a, b) => {
+        const horaA = (a.tipoServicio?.toLowerCase() === 'salida' ? (a.pickUp || a.pick_up || a.hora) : a.hora) || '';
+        const horaB = (b.tipoServicio?.toLowerCase() === 'salida' ? (b.pickUp || b.pick_up || b.hora) : b.hora) || '';
+        return horaA.localeCompare(horaB);
+      });
 
       // 3. Guardamos los datos ordenados en la tabla
       setRollData(sorted);
@@ -2910,11 +2914,18 @@ export default function App() {
                     <tbody>
                       {rollData.map(row => (
                         <tr key={row.id} className="border-b">
-                          <td className="border p-2 font-bold">{row.hora}</td>
+                          <td className="border p-2 font-bold">
+                            {row.tipoServicio?.toLowerCase() === 'salida' ? (row.pickUp || row.pick_up || row.hora) : row.hora}
+                          </td>
                           <td className="border p-2">{row.chofer}</td>
                           <td className="border p-2 uppercase">{row.nombre}</td>
                           <td className="border p-2 uppercase">{row.apellido}</td>
-                          <td className="border p-2">{row.vuelo}</td>
+                          <td className="border p-2">
+                            {row.vuelo}
+                            {row.tipoServicio?.toLowerCase() === 'salida' && row.hora && row.hora !== (row.pickUp || row.pick_up) ? (
+                              <span className="text-gray-500 text-xs ml-1 font-normal">({row.hora})</span>
+                            ) : null}
+                          </td>
                           <td className="border p-2 text-xs">{row.hotel}</td>
                           <td className="border p-2 text-center">{row.pax}</td>
                           <td className="border p-2 text-xs">{row.telefono}</td>
@@ -2986,9 +2997,19 @@ export default function App() {
                         {/* Hora */}
                         <td className="p-2">
                           {userProfile?.rol === 'admin' ? (
-                            <input type="time" value={row.hora || ''} onChange={(e) => handleRollChange(row.id, 'hora', e.target.value)} className="w-full bg-transparent border-b border-dashed focus:outline-none focus:border-blue-500" />
+                            <input
+                              type="time"
+                              value={(row.tipoServicio?.toLowerCase() === 'salida' ? (row.pickUp || row.pick_up || row.hora) : row.hora) || ''}
+                              onChange={(e) => handleRollChange(row.id, row.tipoServicio?.toLowerCase() === 'salida' ? 'pickUp' : 'hora', e.target.value)}
+                              className="w-full bg-transparent border-b border-dashed focus:outline-none focus:border-blue-500 font-semibold"
+                            />
                           ) : (
-                            <span className="font-bold text-gray-800">{row.hora}</span>
+                            <span className="font-bold text-gray-800">
+                              {row.tipoServicio?.toLowerCase() === 'salida' ? (row.pickUp || row.pick_up || row.hora) : row.hora}
+                            </span>
+                          )}
+                          {row.tipoServicio?.toLowerCase() === 'salida' && (
+                            <div className="text-[10px] text-blue-600 font-medium">Pick Up</div>
                           )}
                         </td>
 
@@ -3008,9 +3029,19 @@ export default function App() {
                         {/* Vuelo */}
                         <td className="p-2">
                           {userProfile?.rol === 'admin' ? (
-                            <input type="text" value={row.vuelo || ''} onChange={(e) => handleRollChange(row.id, 'vuelo', e.target.value)} className="w-20 bg-transparent border-b border-dashed focus:outline-none" />
+                            <div>
+                              <input type="text" value={row.vuelo || ''} onChange={(e) => handleRollChange(row.id, 'vuelo', e.target.value)} className="w-20 bg-transparent border-b border-dashed focus:outline-none" />
+                              {row.tipoServicio?.toLowerCase() === 'salida' && row.hora && row.hora !== (row.pickUp || row.pick_up) && (
+                                <div className="text-[10px] text-gray-500">Vuelo: {row.hora}</div>
+                              )}
+                            </div>
                           ) : (
-                            <span className="text-gray-700">{row.vuelo}</span>
+                            <div>
+                              <span className="text-gray-700">{row.vuelo}</span>
+                              {row.tipoServicio?.toLowerCase() === 'salida' && row.hora && row.hora !== (row.pickUp || row.pick_up) && (
+                                <div className="text-[10px] text-gray-500">Vuelo: {row.hora}</div>
+                              )}
+                            </div>
                           )}
                         </td>
 
