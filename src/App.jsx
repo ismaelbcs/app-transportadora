@@ -3871,7 +3871,14 @@ export default function App() {
               <BallardLogo className="h-12" />
               <div className="text-right">
                 <div className="text-sm text-gray-500 uppercase tracking-widest">{renderData.data.fecha}</div>
-                <div className="text-2xl font-bold">{renderData.data.hora}</div>
+                <div className="text-2xl font-bold">
+                  {renderData.data.tipoServicio?.toLowerCase() === 'salida'
+                    ? (renderData.data.pickUp || renderData.data.pick_up || renderData.data.hora)
+                    : renderData.data.hora}
+                </div>
+                {renderData.data.tipoServicio?.toLowerCase() === 'salida' && (
+                  <div className="text-[11px] font-bold text-blue-700 tracking-wider uppercase">Pick Up</div>
+                )}
               </div>
             </div>
             <div className="space-y-4">
@@ -3885,8 +3892,15 @@ export default function App() {
                   <div className="font-semibold">{renderData.data.hotel}</div>
                 </div>
                 <div className="bg-gray-50 p-3 rounded">
-                  <div className="text-xs text-gray-500 uppercase">Vuelo</div>
-                  <div className="font-semibold">{renderData.data.vuelo || 'N/A'}</div>
+                  <div className="text-xs text-gray-500 uppercase">
+                    {renderData.data.tipoServicio?.toLowerCase() === 'salida' ? 'Vuelo / Salida' : 'Vuelo'}
+                  </div>
+                  <div className="font-semibold">
+                    {renderData.data.vuelo || 'N/A'}
+                    {renderData.data.tipoServicio?.toLowerCase() === 'salida' && renderData.data.hora && renderData.data.hora !== (renderData.data.pickUp || renderData.data.pick_up) && (
+                      <span className="text-xs text-gray-500 font-normal ml-1">({renderData.data.hora})</span>
+                    )}
+                  </div>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -4083,7 +4097,7 @@ export default function App() {
                       </p>
                       <p className="text-base font-bold text-slate-800 flex items-center gap-2">
                         <Clock size={18} className="text-amber-500" />
-                        {ticketDataToPrint.hora} {ticketDataToPrint.tipoServicio === 'Salida' ? '(Lobby)' : ''}
+                        {(ticketDataToPrint.tipoServicio?.toLowerCase() === 'salida' ? (ticketDataToPrint.pickUp || ticketDataToPrint.pick_up || ticketDataToPrint.hora) : ticketDataToPrint.hora)} {ticketDataToPrint.tipoServicio?.toLowerCase() === 'salida' ? '(Lobby)' : ''}
                       </p>
                     </div>
                   </div>
@@ -4103,6 +4117,9 @@ export default function App() {
                       <p className="text-lg font-bold text-slate-800 flex items-center gap-2 uppercase">
                         <Plane size={18} className="text-amber-500" />
                         {ticketDataToPrint.vuelo || 'N/A'}
+                        {ticketDataToPrint.tipoServicio?.toLowerCase() === 'salida' && ticketDataToPrint.hora && ticketDataToPrint.hora !== (ticketDataToPrint.pickUp || ticketDataToPrint.pick_up) ? (
+                          <span className="text-xs text-gray-500 font-normal ml-1">({ticketDataToPrint.hora})</span>
+                        ) : null}
                       </p>
                     </div>
                   </div>
