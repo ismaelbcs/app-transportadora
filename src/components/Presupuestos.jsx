@@ -4,7 +4,7 @@ import {
   AlertCircle, Search, Calendar, Clock, DollarSign, Users, Plane, 
   MapPin, Globe, Mail, Phone, ArrowRight, ShieldCheck, FileText, 
   Eye, Edit3, X, Languages, ArrowLeft, Car, Receipt, ShoppingBag, BadgeCheck,
-  Cloud, Database, RefreshCw
+  Cloud, Database, RefreshCw, Send
 } from 'lucide-react';
 
 export default function Presupuestos({ 
@@ -259,6 +259,7 @@ export default function Presupuestos({
   const ticketRef = useRef(null);
   const [copiado, setCopiado] = useState(false);
   const [generandoPDF, setGenerandoPDF] = useState(false);
+  const [readyShareModal, setReadyShareModal] = useState(null);
 
   // Estado de sincronización con Supabase (Base de Datos)
   const [cargandoHistorialBD, setCargandoHistorialBD] = useState(false);
@@ -807,8 +808,167 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
     if (showToast) showToast(`Presupuesto ${folio} eliminado`, 'success');
   };
 
+  // Detectar si es dispositivo móvil o tablet
+  const detectarEsMovil = () => {
+    return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent || '') ||
+      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  };
+
+  // Descargar archivo en PC o móvil
+  const guardarArchivoLocal = (blob, filename) => {
+    const blobUrl = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = blobUrl;
+    link.download = filename;
+    link.style.display = 'none';
+    document.body.appendChild(link);
+    link.click();
+    setTimeout(() => {
+      if (document.body.contains(link)) {
+        document.body.removeChild(link);
+      }
+      URL.revokeObjectURL(blobUrl);
+    }, 1000);
+  };
+
+  // Ejecutar compartir nativo desde un toque directo en el modal
+  const ejecutarCompartirDirecto = async (modalData) => {
+    const target = modalData || readyShareModal;
+    if (!target) return;
+
+    if (navigator.share) {
+      try {
+        if (!navigator.canShare || navigator.canShare({ files: [target.file] })) {
+          await navigator.share({
+            files: [target.file],
+            title: target.title,
+            text: target.text
+          });
+          setReadyShareModal(null);
+          if (showToast) showToast('¡Compartido con éxito!', 'success');
+          return;
+        }
+      } catch (error) {
+        if (error.name === 'AbortError') return;
+        console.error('Error al compartir presupuesto:', error);
+      }
+    }
+
+    guardarArchivoLocal(target.blob, target.filename);
+    setReadyShareModal(null);
+    if (showToast) showToast('Archivo descargado en tu dispositivo', 'success');
+  };
+
+  // Enviar o compartir presupuesto por WhatsApp (Imagen PNG o PDF)
+  const handleCompartirPresupuestoWhatsApp = async (formato = 'PNG', cotizParam = null) => {
+    const cotizActual = cotizParam || cotizacion;
+    const elemento = ticketRef.current;
+    if (!elemento || !window.html2canvas) {
+      if (showToast) showToast('Preparando presupuesto, intenta en un segundo...', 'error');
+      return;
+    }
+
+    if (showToast) showToast('Preparando cotización para WhatsApp...', 'info');
+
+    try {
+      const canvas = await window.html2canvas(elemento, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#ffffff'
+      });
+
+      const esVentaDoc = cotizActual.tipoDocumento === 'VENTA' || cotizActual.estado === 'VENTA';
+      const nombreLimpio = (cotizActual.nombreCliente || 'Cliente').trim().replace(/[^a-zA-Z0-9]/g, '_');
+      const prefijoDoc = esVentaDoc ? 'Ticket_Venta' : 'Presupuesto';
+      const numFolio = cotizActual.numeroTicket || cotizActual.folio;
+      const baseFilename = `${prefijoDoc}_${numFolio}_${nombreLimpio}`;
+      const previewUrl = canvas.toDataURL('image/png');
+      const textoCompartir = `${esVentaDoc ? 'Ticket de Venta' : 'Presupuesto de Transporte'} ${numFolio} - ${cotizActual.nombreCliente || 'Ballard Tour Services'}`;
+
+      if (formato === 'PDF' && window.jspdf) {
+        const imgData = canvas.toDataURL('image/jpeg', 0.95);
+        const pdf = new window.jspdf.jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const margin = 10;
+        const contentWidth = pdfWidth - margin * 2;
+        const contentHeight = (canvas.height * contentWidth) / canvas.width;
+
+        pdf.addImage(imgData, 'JPEG', margin, margin, contentWidth, contentHeight);
+        const filename = `${baseFilename}.pdf`;
+        const pdfBlob = pdf.output('blob');
+        const file = new File([pdfBlob], filename, { type: 'application/pdf' });
+
+        if (navigator.share && (!navigator.canShare || navigator.canShare({ files: [file] }))) {
+          try {
+            await navigator.share({
+              files: [file],
+              title: `${prefijoDoc} ${numFolio}`,
+              text: textoCompartir
+            });
+            if (showToast) showToast('¡Presupuesto compartido con éxito!', 'success');
+            return;
+          } catch (error) {
+            if (error.name === 'AbortError') return;
+          }
+        }
+
+        setReadyShareModal({
+          file,
+          blob: pdfBlob,
+          filename,
+          title: `${prefijoDoc} ${numFolio}`,
+          text: textoCompartir,
+          previewUrl,
+          tipo: `${esVentaDoc ? 'Ticket' : 'Presupuesto'} (PDF)`
+        });
+      } else {
+        canvas.toBlob(async (blob) => {
+          if (!blob) {
+            if (showToast) showToast('Error al generar imagen del presupuesto', 'error');
+            return;
+          }
+          const filename = `${baseFilename}.png`;
+          const file = new File([blob], filename, { type: 'image/png' });
+
+          if (navigator.share && (!navigator.canShare || navigator.canShare({ files: [file] }))) {
+            try {
+              await navigator.share({
+                files: [file],
+                title: `${prefijoDoc} ${numFolio}`,
+                text: textoCompartir
+              });
+              if (showToast) showToast('¡Presupuesto compartido con éxito!', 'success');
+              return;
+            } catch (error) {
+              if (error.name === 'AbortError') return;
+            }
+          }
+
+          setReadyShareModal({
+            file,
+            blob,
+            filename,
+            title: `${prefijoDoc} ${numFolio}`,
+            text: textoCompartir,
+            previewUrl,
+            tipo: `${esVentaDoc ? 'Ticket' : 'Presupuesto'} (Imagen)`
+          });
+        }, 'image/png');
+      }
+    } catch (err) {
+      console.error('Error al preparar presupuesto para WhatsApp:', err);
+      if (showToast) showToast('Error al preparar el presupuesto', 'error');
+    }
+  };
+
   // Exportar a PDF Nativo Vectorial (100% texto seleccionable, sin cortes y con toda la información completa)
   const handleExportarPDFNativo = () => {
+    // Si está desde el teléfono, generamos y compartimos el PDF directamente porque el iframe de impresión no permite enviar por WhatsApp en móvil
+    if (detectarEsMovil() && window.html2canvas && window.jspdf) {
+      handleCompartirPresupuestoWhatsApp('PDF');
+      return;
+    }
+
     const elemento = ticketRef.current;
     if (!elemento) {
       if (showToast) showToast('No se encontró el elemento del presupuesto', 'error');
@@ -1935,7 +2095,27 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
                 </span>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+
+                {/* BOTÓN ENVIAR POR WHATSAPP (IMAGEN) */}
+                <button
+                  onClick={() => handleCompartirPresupuestoWhatsApp('PNG')}
+                  className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-3 rounded-xl text-xs flex items-center gap-1.5 shadow-sm transition-colors"
+                  title="Enviar presupuesto como imagen por WhatsApp"
+                >
+                  <Send size={14} />
+                  Enviar WhatsApp
+                </button>
+
+                {/* BOTÓN ENVIAR POR WHATSAPP (PDF) */}
+                <button
+                  onClick={() => handleCompartirPresupuestoWhatsApp('PDF')}
+                  className="bg-emerald-700 hover:bg-emerald-800 text-white font-bold py-2 px-3 rounded-xl text-xs flex items-center gap-1.5 shadow-sm transition-colors"
+                  title="Enviar presupuesto como archivo PDF por WhatsApp"
+                >
+                  <FileText size={14} />
+                  Enviar PDF
+                </button>
 
                 {/* BOTÓN COPIAR AL PORTAPAPELES */}
                 <button
@@ -2491,14 +2671,26 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
                             <Eye size={16} />
                           </button>
 
+                          {/* BOTÓN ENVIAR POR WHATSAPP DESDE EL HISTORIAL */}
+                          <button
+                            onClick={() => {
+                              handleCargarCotizacion(c);
+                              setTimeout(() => handleCompartirPresupuestoWhatsApp('PNG', c), 350);
+                            }}
+                            className="p-1.5 text-green-600 hover:bg-green-100 rounded transition-colors"
+                            title="Enviar por WhatsApp"
+                          >
+                            <Send size={16} />
+                          </button>
+
                           {/* BOTÓN DESCARGAR PDF NATIVO DIRECTO */}
                           <button
                             onClick={() => {
                               handleCargarCotizacion(c);
-                              setTimeout(() => handleExportarPDFNativo(), 300);
+                              setTimeout(() => handleExportarPDFNativo(), 350);
                             }}
                             className="p-1.5 text-amber-600 hover:bg-amber-100 rounded transition-colors"
-                            title="Descargar PDF Nativo Completo"
+                            title="Descargar / Compartir PDF"
                           >
                             <Download size={16} />
                           </button>
@@ -2853,6 +3045,69 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
               >
                 <RefreshCw size={13} /> Verificar Conexión
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL DE CONFIRMACIÓN PARA ENVIAR PRESUPUESTO POR WHATSAPP */}
+      {readyShareModal && (
+        <div className="fixed inset-0 z-[10000] bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 font-sans print:hidden">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden border border-slate-200 flex flex-col">
+            <div className="bg-slate-900 text-white p-4 flex justify-between items-center">
+              <div className="flex items-center gap-2">
+                <Send size={18} className="text-green-400" />
+                <span className="font-bold text-sm uppercase tracking-wider">Listo para Enviar: {readyShareModal.tipo}</span>
+              </div>
+              <button
+                onClick={() => setReadyShareModal(null)}
+                className="text-slate-400 hover:text-white p-1 rounded"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="p-5 flex flex-col items-center gap-4">
+              {readyShareModal.previewUrl && (
+                <div className="w-full max-h-60 overflow-hidden rounded-xl border border-slate-200 bg-slate-50 flex items-center justify-center p-2">
+                  <img
+                    src={readyShareModal.previewUrl}
+                    alt="Vista previa del presupuesto"
+                    className="max-h-56 w-auto object-contain rounded shadow-sm"
+                  />
+                </div>
+              )}
+
+              <p className="text-xs text-slate-500 text-center">
+                Presiona el botón verde para abrir WhatsApp y elegir a quién enviarle la cotización.
+              </p>
+
+              <div className="w-full flex flex-col gap-2.5">
+                <button
+                  onClick={() => ejecutarCompartirDirecto(readyShareModal)}
+                  className="w-full bg-green-600 hover:bg-green-700 active:bg-green-800 text-white font-bold py-3.5 px-4 rounded-xl shadow-lg flex items-center justify-center gap-2 text-base transition-colors"
+                >
+                  <Send size={20} /> Enviar por WhatsApp / Compartir
+                </button>
+
+                <button
+                  onClick={() => {
+                    guardarArchivoLocal(readyShareModal.blob, readyShareModal.filename);
+                    setReadyShareModal(null);
+                    if (showToast) showToast('Archivo descargado correctamente', 'success');
+                  }}
+                  className="w-full bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold py-2.5 px-4 rounded-xl border border-slate-300 flex items-center justify-center gap-2 text-sm transition-colors"
+                >
+                  <Download size={16} /> Descargar Archivo ({readyShareModal.filename})
+                </button>
+
+                <button
+                  onClick={() => setReadyShareModal(null)}
+                  className="w-full text-slate-500 hover:text-slate-700 font-medium py-1.5 text-xs"
+                >
+                  Cancelar
+                </button>
+              </div>
             </div>
           </div>
         </div>

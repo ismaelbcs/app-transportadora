@@ -429,6 +429,7 @@ export default function App() {
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
   const [libsLoaded, setLibsLoaded] = useState(false);
   const [renderData, setRenderData] = useState(null);
+  const [readyShareModal, setReadyShareModal] = useState(null);
 
   // --- ESTADOS Y LÓGICA PARA LA ALERTA DE DEUDAS ---
   const [mostrarAlertaDeudas, setMostrarAlertaDeudas] = useState(false);
@@ -490,6 +491,7 @@ export default function App() {
   const shareRef = useRef(null);
   const signRef = useRef(null);
   const rollRef = useRef(null);
+  const ticketPrintRef = useRef(null);
 
   // Función para descargar todos los datos desde Supabase
   const fetchAllData = async () => {
@@ -1469,7 +1471,7 @@ export default function App() {
     localStorage.setItem('ballard_cc_services', JSON.stringify(updated));
   };
 
-  // Función auxiliar robusta para descargar archivos PNG en PC (compatible con Chrome, Edge, Firefox)
+  // Función auxiliar robusta para descargar archivos (PNG o PDF) en PC y móvil
   const guardarArchivoPNG = (blob, filename) => {
     const blobUrl = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -1486,14 +1488,50 @@ export default function App() {
     }, 1000);
   };
 
+  // Detectar si es dispositivo móvil o tablet (incluyendo iPadOS)
+  const detectarEsMovil = () => {
+    return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent || '') ||
+      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  };
+
+  // Ejecutar compartir nativo (WhatsApp / menú del teléfono) desde un clic directo del usuario
+  const ejecutarCompartirDirecto = async (modalData) => {
+    const target = modalData || readyShareModal;
+    if (!target) return;
+
+    if (navigator.share) {
+      try {
+        if (!navigator.canShare || navigator.canShare({ files: [target.file] })) {
+          await navigator.share({
+            files: [target.file],
+            title: target.title,
+            text: target.text
+          });
+          setReadyShareModal(null);
+          showToast('¡Compartido con éxito!');
+          return;
+        }
+      } catch (error) {
+        if (error.name === 'AbortError') return;
+        console.error('Error al compartir archivo:', error);
+      }
+    }
+
+    // Si el navegador no soporta compartir archivos, descargamos directamente
+    guardarArchivoPNG(target.blob, target.filename);
+    setReadyShareModal(null);
+    showToast('Archivo descargado en tu dispositivo');
+  };
+
   const generateSharePNG = async (item) => {
     if (!libsLoaded) return showToast('Librerías cargando...', 'error');
+    showToast('Preparando imagen del servicio...');
     setRenderData({ type: 'share', data: item });
 
     setTimeout(async () => {
       try {
         const canvas = await window.html2canvas(shareRef.current, { scale: 2, useCORS: true });
-        const filename = `Servicio_${item.nombre || 'Pasajero'}_${item.apellido || ''}.png`;
+        const filename = `Servicio_${(item.nombre || 'Pasajero').trim()}_${(item.apellido || '').trim()}.png`.replace(/\s+/g, '_');
 
         const tieneComentarios = item.comentario && item.comentario.trim();
         const textoCompartir = tieneComentarios
@@ -1507,29 +1545,42 @@ export default function App() {
             return;
           }
 
-          const esMovil = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent || '');
+          const previewUrl = canvas.toDataURL('image/png');
+          const file = new File([blob], filename, { type: 'image/png' });
+          const esMovil = detectarEsMovil();
 
-          // En celular: usar compartir nativo para enviar por WhatsApp directamente
-          if (esMovil && navigator.canShare) {
-            try {
-              const file = new File([blob], filename, { type: 'image/png' });
-              if (navigator.canShare({ files: [file] })) {
+          if (esMovil) {
+            // Intentar compartir directo; si el navegador móvil requiere un toque fresco tras generar el canvas, abrimos el modal de envío rápido
+            if (navigator.share && (!navigator.canShare || navigator.canShare({ files: [file] }))) {
+              try {
                 await navigator.share({
                   files: [file],
-                  title: `Servicio ${item.nombre}`,
+                  title: `Servicio ${item.nombre || ''}`,
                   text: textoCompartir
                 });
                 setRenderData(null);
                 showToast('Compartido con éxito');
                 return;
+              } catch (error) {
+                if (error.name === 'AbortError') {
+                  setRenderData(null);
+                  return;
+                }
+                // Si falla por NotAllowedError (pérdida de gesto tras html2canvas), mostramos el modal con botón directo
               }
-            } catch (error) {
-              if (error.name === 'AbortError') {
-                setRenderData(null);
-                return;
-              }
-              console.error('Error sharing:', error);
             }
+
+            setReadyShareModal({
+              file,
+              blob,
+              filename,
+              title: `Servicio ${item.nombre || ''} ${item.apellido || ''}`.trim(),
+              text: textoCompartir,
+              previewUrl,
+              tipo: 'Servicio (PNG)'
+            });
+            setRenderData(null);
+            return;
           }
 
           // En computadora (PC): descargar directamente el archivo PNG
@@ -1557,6 +1608,7 @@ export default function App() {
 
   const generateWelcomeSign = async (item) => {
     if (!libsLoaded || !window.jspdf) return showToast('Librerías cargando...', 'error');
+    showToast('Generando letrero...');
     setRenderData({ type: 'sign', data: item });
 
     setTimeout(async () => {
@@ -1568,7 +1620,44 @@ export default function App() {
         const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
 
         pdf.addImage(imgData, 'JPEG', 0, (pdf.internal.pageSize.getHeight() - pdfHeight) / 2, pdfWidth, pdfHeight);
-        pdf.save(`Letrero_${item.nombre}_${item.apellido}.pdf`);
+        const filename = `Letrero_${(item.nombre || 'Pasajero').trim()}_${(item.apellido || '').trim()}.pdf`.replace(/\s+/g, '_');
+        const pdfBlob = pdf.output('blob');
+        const file = new File([pdfBlob], filename, { type: 'application/pdf' });
+        const esMovil = detectarEsMovil();
+
+        if (esMovil) {
+          if (navigator.share && (!navigator.canShare || navigator.canShare({ files: [file] }))) {
+            try {
+              await navigator.share({
+                files: [file],
+                title: `Letrero ${item.nombre || ''} ${item.apellido || ''}`.trim(),
+                text: `Letrero de bienvenida: ${item.nombre || ''} ${item.apellido || ''}`.trim()
+              });
+              setRenderData(null);
+              showToast('Letrero compartido con éxito');
+              return;
+            } catch (error) {
+              if (error.name === 'AbortError') {
+                setRenderData(null);
+                return;
+              }
+            }
+          }
+
+          setReadyShareModal({
+            file,
+            blob: pdfBlob,
+            filename,
+            title: `Letrero ${item.nombre || ''} ${item.apellido || ''}`.trim(),
+            text: `Letrero de bienvenida: ${item.nombre || ''} ${item.apellido || ''}`.trim(),
+            previewUrl: imgData,
+            tipo: 'Letrero (PDF)'
+          });
+          setRenderData(null);
+          return;
+        }
+
+        pdf.save(filename);
         setRenderData(null);
         showToast('Letrero PDF generado');
       } catch (e) {
@@ -1577,6 +1666,93 @@ export default function App() {
         setRenderData(null);
       }
     }, 300);
+  };
+
+  const shareTicketMobile = async (formato = 'PDF') => {
+    if (!libsLoaded || !ticketPrintRef.current) return showToast('Preparando ticket...', 'error');
+    showToast('Preparando ticket para compartir...');
+
+    try {
+      const canvas = await window.html2canvas(ticketPrintRef.current, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#ffffff'
+      });
+      const numeroReserva = (ticketDataToPrint?.reserva || ticketDataToPrint?.folio || (ticketDataToPrint?.id ? ticketDataToPrint.id.slice(-5) : "00000")).toString().trim().replace(/[/\\?%*:|"<>]/g, '_');
+      const nombrePasajero = `${ticketDataToPrint?.nombre || ''} ${ticketDataToPrint?.apellido || ''}`.trim();
+      const previewUrl = canvas.toDataURL('image/png');
+
+      if (formato === 'PDF' && window.jspdf) {
+        const imgData = canvas.toDataURL('image/jpeg', 0.95);
+        const pdf = new window.jspdf.jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const margin = 10;
+        const contentWidth = pdfWidth - margin * 2;
+        const contentHeight = (canvas.height * contentWidth) / canvas.width;
+
+        pdf.addImage(imgData, 'JPEG', margin, margin, contentWidth, contentHeight);
+        const filename = `TICKET-${numeroReserva}.pdf`;
+        const pdfBlob = pdf.output('blob');
+        const file = new File([pdfBlob], filename, { type: 'application/pdf' });
+
+        if (navigator.share && (!navigator.canShare || navigator.canShare({ files: [file] }))) {
+          try {
+            await navigator.share({
+              files: [file],
+              title: `Ticket ${numeroReserva}`,
+              text: `Boleto de Transporte - ${nombrePasajero} (Folio: ${numeroReserva})`
+            });
+            showToast('Ticket compartido con éxito');
+            return;
+          } catch (error) {
+            if (error.name === 'AbortError') return;
+          }
+        }
+
+        setReadyShareModal({
+          file,
+          blob: pdfBlob,
+          filename,
+          title: `Ticket ${numeroReserva}`,
+          text: `Boleto de Transporte - ${nombrePasajero} (Folio: ${numeroReserva})`,
+          previewUrl,
+          tipo: 'Ticket (PDF)'
+        });
+      } else {
+        canvas.toBlob(async (blob) => {
+          if (!blob) return showToast('Error al generar imagen del ticket', 'error');
+          const filename = `TICKET-${numeroReserva}.png`;
+          const file = new File([blob], filename, { type: 'image/png' });
+
+          if (navigator.share && (!navigator.canShare || navigator.canShare({ files: [file] }))) {
+            try {
+              await navigator.share({
+                files: [file],
+                title: `Ticket ${numeroReserva}`,
+                text: `Boleto de Transporte - ${nombrePasajero} (Folio: ${numeroReserva})`
+              });
+              showToast('Ticket compartido con éxito');
+              return;
+            } catch (error) {
+              if (error.name === 'AbortError') return;
+            }
+          }
+
+          setReadyShareModal({
+            file,
+            blob,
+            filename,
+            title: `Ticket ${numeroReserva}`,
+            text: `Boleto de Transporte - ${nombrePasajero} (Folio: ${numeroReserva})`,
+            previewUrl,
+            tipo: 'Ticket (Imagen PNG)'
+          });
+        }, 'image/png');
+      }
+    } catch (error) {
+      console.error('Error al preparar el ticket:', error);
+      showToast('Error al generar el ticket para compartir', 'error');
+    }
   };
 
   const downloadRolPNG = async () => {
@@ -2904,9 +3080,6 @@ export default function App() {
                           </>
                         )}
 
-                        {/* NUEVO ENCABEZADO: Necesario para mantener la estructura HTML válida */}
-                        <th className="border p-2 ocultar-en-foto">GPS</th>
-
                         <th className="border p-2">Extras</th>
                         <th className="border p-2 w-48">Comentario</th>
                       </tr>
@@ -2939,26 +3112,6 @@ export default function App() {
                               </td>
                             </>
                           )}
-
-                          {/* NUEVO BLOQUE: Botones GPS insertados justo después del cobro/cantidad */}
-                          <td className="p-2 text-center ocultar-en-foto">
-                            <div className="flex gap-2 justify-center">
-                              <button
-                                onClick={() => registrarUbicacionGPS(row.id, 'inicio')}
-                                className="bg-green-100 text-green-700 p-1.5 rounded-full hover:bg-green-200 transition-colors shadow-sm"
-                                title="Iniciar Viaje (GPS)"
-                              >
-                                <Play size={16} className="fill-current" />
-                              </button>
-                              <button
-                                onClick={() => registrarUbicacionGPS(row.id, 'fin')}
-                                className="bg-red-100 text-red-700 p-1.5 rounded-full hover:bg-red-200 transition-colors shadow-sm"
-                                title="Finalizar Viaje (GPS)"
-                              >
-                                <Flag size={16} className="fill-current" />
-                              </button>
-                            </div>
-                          </td>
 
                           <td className="border p-2 text-xs">
                             {row.carSeat > 0 && `Car:${row.carSeat} `}
@@ -3112,40 +3265,13 @@ export default function App() {
                         <td className="p-2 text-center">
                           <div className="flex justify-center items-center gap-2">
 
-                            {/* --- BOTÓN GPS INICIO: Candado --- */}
-                            {(userProfile?.rol === 'admin' || userProfile?.permisos?.rol_diario?.inicio_viaje) && (
-                              <button
-                                onClick={() => registrarUbicacionGPS(row.id, 'inicio')}
-                                className="p-1 text-green-600 hover:bg-green-100 rounded transition-colors"
-                                title="Iniciar Viaje (GPS)"
-                              >
-                                <Play size={18} className="fill-current" />
-                              </button>
-                            )}
-
-                            {/* --- BOTÓN GPS FIN: Candado --- */}
-                            {(userProfile?.rol === 'admin' || userProfile?.permisos?.rol_diario?.viaje_finalizado) && (
-                              <button
-                                onClick={() => registrarUbicacionGPS(row.id, 'fin')}
-                                className="p-1 text-red-600 hover:bg-red-100 rounded transition-colors"
-                                title="Finalizar Viaje (GPS)"
-                              >
-                                <Flag size={18} className="fill-current" />
-                              </button>
-                            )}
-
-                            {/* BOTÓN VER MAPA */}
-                            <button onClick={() => abrirMapaGPS(row)} className="p-1 text-blue-500 hover:bg-blue-100 rounded transition-colors" title="Ver Ruta en Google Maps">
-                              <Map size={18} className="fill-current" />
-                            </button>
-
                             {/* BOTÓN COMPARTIR */}
                             <button onClick={() => generateSharePNG(row)} className="p-1 text-blue-600 hover:bg-blue-100 rounded" title="Compartir">
                               <Send size={18} />
                             </button>
 
                             {/* --- BOTÓN IMPRIMIR LETRERO: Candado --- */}
-                            {row.tipoServicio === 'Llegada' && (userProfile?.rol === 'admin' || userProfile?.permisos?.rol_diario?.imprimir_letrero) && (
+                            {(userProfile?.rol === 'admin' || userProfile?.permisos?.rol_diario?.imprimir_letrero) && (
                               <button onClick={() => generateWelcomeSign(row)} className="p-1 text-gray-600 hover:bg-gray-200 rounded" title="Imprimir Letrero">
                                 <Printer size={18} />
                               </button>
@@ -3296,7 +3422,6 @@ export default function App() {
                           <th className="p-2">Cantidad</th>
                         </>
                       )}<th className="p-2">Extras</th><th className="p-2">Comentarios</th>
-                      <th className="p-2 text-center ocultar-en-foto">GPS / Viaje</th>
                       <th className="p-2 text-center">Acciones</th>
                     </tr>
                   </thead>
@@ -3968,38 +4093,123 @@ export default function App() {
 
       {renderData?.type === 'sign' && (
         <div className="fixed top-0 left-0 -z-50 pointer-events-none opacity-0">
-          <div ref={signRef} className="bg-white w-[1122px] h-[793px] flex flex-col items-center justify-center p-12 relative overflow-hidden font-sans">
-            <div className="mb-12 flex justify-center w-full">
-              <BallardLogo className="h-48" />
+          <div ref={signRef} className="bg-white w-[1122px] h-[793px] flex flex-col items-center justify-between py-10 px-12 relative overflow-hidden font-sans">
+            <div className="w-full flex justify-center">
+              <img src="/logo-letrero.jpg" alt="Cabo Private Transportation" className="w-[950px] h-auto object-contain" />
             </div>
-            <div className="text-center w-full max-w-4xl mb-16">
-              <div className="text-[130px] leading-none font-bold uppercase text-black break-words px-4 text-center w-full">
+            <div className="text-center w-full max-w-5xl flex-1 flex flex-col items-center justify-center my-2">
+              <div className="text-[128px] leading-[1.05] font-bold uppercase text-black break-words px-4 text-center w-full tracking-tight">
                 {renderData.data.nombre}
               </div>
-              <div className="text-[130px] leading-tight font-bold uppercase text-black break-words px-4 text-center w-full mt-6">
+              <div className="text-[128px] leading-[1.05] font-bold uppercase text-black break-words px-4 text-center w-full mt-2 tracking-tight">
                 {renderData.data.apellido}
               </div>
             </div>
-            <div className="text-4xl font-medium tracking-[0.4em] text-gray-600 mt-4">
-              WELCOME!
+            <div className="text-[54px] leading-none font-serif font-normal text-[#B0BAC9] mb-2">
+              Welcome!
             </div>
           </div>
         </div>
       )}
+      {/* --- MODAL DE CONFIRMACIÓN PARA ENVIAR POR WHATSAPP DESDE MÓVIL --- */}
+      {readyShareModal && (
+        <div className="fixed inset-0 z-[10000] bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 font-sans print:hidden">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden border border-gray-200 flex flex-col">
+            <div className="bg-slate-900 text-white p-4 flex justify-between items-center">
+              <div className="flex items-center gap-2">
+                <Send size={18} className="text-green-400" />
+                <span className="font-bold text-sm uppercase tracking-wider">Listo para Enviar: {readyShareModal.tipo}</span>
+              </div>
+              <button
+                onClick={() => setReadyShareModal(null)}
+                className="text-slate-400 hover:text-white p-1 rounded"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="p-5 flex flex-col items-center gap-4">
+              {readyShareModal.previewUrl && (
+                <div className="w-full max-h-60 overflow-hidden rounded-xl border border-gray-200 bg-gray-50 flex items-center justify-center p-2">
+                  <img
+                    src={readyShareModal.previewUrl}
+                    alt="Vista previa"
+                    className="max-h-56 w-auto object-contain rounded shadow-sm"
+                  />
+                </div>
+              )}
+
+              <p className="text-xs text-gray-500 text-center">
+                Presiona el botón verde para abrir WhatsApp y elegir el contacto o grupo.
+              </p>
+
+              <div className="w-full flex flex-col gap-2.5">
+                <button
+                  onClick={() => ejecutarCompartirDirecto(readyShareModal)}
+                  className="w-full bg-green-600 hover:bg-green-700 active:bg-green-800 text-white font-bold py-3.5 px-4 rounded-xl shadow-lg flex items-center justify-center gap-2 text-base transition-colors"
+                >
+                  <Send size={20} /> Enviar por WhatsApp / Compartir
+                </button>
+
+                <button
+                  onClick={() => {
+                    guardarArchivoPNG(readyShareModal.blob, readyShareModal.filename);
+                    setReadyShareModal(null);
+                    showToast('Archivo descargado correctamente');
+                  }}
+                  className="w-full bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold py-2.5 px-4 rounded-xl border border-slate-300 flex items-center justify-center gap-2 text-sm transition-colors"
+                >
+                  <Download size={16} /> Descargar Archivo ({readyShareModal.filename})
+                </button>
+
+                <button
+                  onClick={() => setReadyShareModal(null)}
+                  className="w-full text-gray-500 hover:text-gray-700 font-medium py-1.5 text-xs"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* --- MODAL DEL TICKET DE IMPRESIÓN --- */}
       {ticketDataToPrint && (
         <div className="fixed inset-0 z-[9999] bg-gray-100 overflow-y-auto flex flex-col items-center py-8 px-4 font-sans print:p-0 print:bg-white">
 
           {/* Controles superiores (se ocultan al imprimir) */}
-          <div className="mb-8 flex flex-wrap justify-center gap-4 print:hidden">
+          <div className="mb-8 flex flex-wrap justify-center gap-3 print:hidden">
             <button
               onClick={() => setTicketLang(ticketLang === 'EN' ? 'ES' : 'EN')}
-              className="bg-white border-2 border-slate-900 text-slate-900 font-bold py-2 px-6 rounded-xl transition-colors hover:bg-slate-100 shadow-md"
+              className="bg-white border-2 border-slate-900 text-slate-900 font-bold py-2 px-5 rounded-xl transition-colors hover:bg-slate-100 shadow-md text-sm"
             >
               🔄 Cambiar a {ticketLang === 'EN' ? 'Español' : 'English'}
             </button>
+
+            {/* BOTÓN ENVIAR POR WHATSAPP / COMPARTIR (Especial para celular y también disponible en PC) */}
+            <button
+              onClick={() => shareTicketMobile('PNG')}
+              className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-xl shadow-md flex items-center gap-2 text-sm transition-colors"
+            >
+              <Send size={16} /> Enviar WhatsApp (Imagen)
+            </button>
+
+            <button
+              onClick={() => shareTicketMobile('PDF')}
+              className="bg-emerald-700 hover:bg-emerald-800 text-white font-bold py-2 px-4 rounded-xl shadow-md flex items-center gap-2 text-sm transition-colors"
+            >
+              📄 Enviar PDF
+            </button>
+
             <button
               onClick={() => {
+                // Si está en celular, generamos y compartimos el PDF directamente porque window.print() no permite enviar por WhatsApp en móvil
+                if (detectarEsMovil()) {
+                  shareTicketMobile('PDF');
+                  return;
+                }
+
                 // 1. Conseguimos el número de reserva del ticket actual (ej. OWNCINGN)
                 const numeroReserva = (ticketDataToPrint?.reserva || ticketDataToPrint?.folio || (ticketDataToPrint?.id ? ticketDataToPrint.id.slice(-5) : "00000")).toString().trim().replace(/[/\\?%*:|"<>]/g, '_');
 
@@ -4048,18 +4258,16 @@ export default function App() {
                   document.head.removeChild(estiloImpresion); // Quitamos el parche de impresión temporal
                 }, 1000);
               }}
-              className="bg-amber-500 hover:bg-amber-600 text-white font-bold py-2 px-4 rounded shadow flex items-center gap-2 text-sm transition-colors"
+              className="bg-amber-500 hover:bg-amber-600 text-white font-bold py-2 px-4 rounded-xl shadow-md flex items-center gap-2 text-sm transition-colors"
             >
               🖨️ Imprimir / PDF
             </button>
             {/* BOTÓN REGRESAR AL MENÚ */}
             <button
               onClick={() => {
-                // Aquí cerramos la vista del ticket
-                // Busca cómo se llama la variable que usas para abrirlo, seguramente es algo como:
                 setTicketDataToPrint(null);
               }}
-              className="bg-slate-800 hover:bg-slate-900 text-white font-bold py-2 px-4 rounded shadow flex items-center gap-2 text-sm transition-colors"
+              className="bg-slate-800 hover:bg-slate-900 text-white font-bold py-2 px-4 rounded-xl shadow-md flex items-center gap-2 text-sm transition-colors"
             >
               ⬅️ Regresar al Menú
             </button>
@@ -4067,7 +4275,7 @@ export default function App() {
 
           {/* ÁREA DEL TICKET */}
           <div className="w-full max-w-2xl flex justify-center print:w-full">
-            <div className="w-full bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col border border-gray-200 print:shadow-none print:border-gray-400 print:rounded-none">
+            <div ref={ticketPrintRef} className="w-full bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col border border-gray-200 print:shadow-none print:border-gray-400 print:rounded-none">
 
               <div className="bg-slate-900 text-white p-8 relative overflow-hidden">
                 <div className="absolute top-0 right-0 p-8 opacity-10">
