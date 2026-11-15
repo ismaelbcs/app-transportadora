@@ -165,18 +165,24 @@ const PresupuestoPDFDocument = ({ cotizacion, idioma, formatearMetodoPago }) => 
               {/* Filas de etapas */}
               {(cotizacion.etapas || []).map((etapa, idx) => {
                 const esSalida = etapa.tipo === 'salida';
+                const traducirLugar = (txt) => {
+                  if (!txt) return '';
+                  return isEN ? String(txt).replace(/Aeropuerto SJD/gi, 'SJD Airport') : String(txt);
+                };
                 let descripcionTrayecto = '';
                 if (etapa.origen && etapa.destino) {
-                  descripcionTrayecto = `${etapa.origen} -> ${etapa.destino}`;
+                  descripcionTrayecto = `${traducirLugar(etapa.origen)} -> ${traducirLugar(etapa.destino)}`;
                 } else if (etapa.tipo === 'llegada') {
-                  descripcionTrayecto = `Aeropuerto SJD -> ${etapa.destino || cotizacion.hotelPrincipal || '[Hotel Destino]'}`;
+                  descripcionTrayecto = `${isEN ? 'SJD Airport' : 'Aeropuerto SJD'} -> ${traducirLugar(etapa.destino || cotizacion.hotelPrincipal) || (isEN ? '[Destination Hotel]' : '[Hotel Destino]')}`;
                 } else if (etapa.tipo === 'salida') {
-                  descripcionTrayecto = `${etapa.origen || cotizacion.hotelPrincipal || '[Hotel Destino]'} -> Aeropuerto SJD`;
+                  descripcionTrayecto = `${traducirLugar(etapa.origen || cotizacion.hotelPrincipal) || (isEN ? '[Destination Hotel]' : '[Hotel Destino]')} -> ${isEN ? 'SJD Airport' : 'Aeropuerto SJD'}`;
                 } else {
-                  descripcionTrayecto = etapa.destino ? `Hacia ${etapa.destino}` : '[Lugar Origen -> Lugar Destino]';
+                  descripcionTrayecto = etapa.destino
+                    ? (isEN ? `To ${traducirLugar(etapa.destino)}` : `Hacia ${etapa.destino}`)
+                    : (isEN ? '[Origin -> Destination]' : '[Lugar Origen -> Lugar Destino]');
                 }
 
-                const fechaFormateada = etapa.fecha || '[DD-MMM-AAAA]';
+                const fechaFormateada = etapa.fecha || (isEN ? '[YYYY-MM-DD]' : '[DD-MMM-AAAA]');
                 const paxTramo = etapa.pax || cotizacion.pax || '1';
                 const horaPickUp = etapa.horaRecogida || etapa.hora;
                 const horaReturn = etapa.horaRegreso;
@@ -277,7 +283,7 @@ const PresupuestoPDFDocument = ({ cotizacion, idioma, formatearMetodoPago }) => 
           <View wrap={false} style={{ backgroundColor: '#161D2D', paddingVertical: 11, paddingHorizontal: 20, flexDirection: 'row', justifyContent: 'center', alignItems: 'center' }}>
             <Text style={{ fontSize: 9, color: '#FFB300', marginRight: 14 }}>Tel: +52 612 194 3286</Text>
             <Text style={{ fontSize: 9, color: '#ffffff', marginRight: 14 }}>reservationballard@gmail.com</Text>
-            <Text style={{ fontSize: 9, color: '#ffffff' }}>www.ballardtours.com</Text>
+            <Text style={{ fontSize: 9, color: '#ffffff' }}>www.caboprivateairporttransfers.com</Text>
           </View>
         </View>
       </Page>
@@ -2484,19 +2490,25 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
                         const colorEtapa = esSalida ? '#D97706' : '#333333';
 
                         // Descripción del trayecto
+                        const traducirLugar = (txt) => {
+                          if (!txt) return '';
+                          return idioma === 'EN' ? String(txt).replace(/Aeropuerto SJD/gi, 'SJD Airport') : String(txt);
+                        };
                         let descripcionTrayecto = '';
                         if (etapa.origen && etapa.destino) {
-                          descripcionTrayecto = `${etapa.origen} → ${etapa.destino}`;
+                          descripcionTrayecto = `${traducirLugar(etapa.origen)} → ${traducirLugar(etapa.destino)}`;
                         } else if (etapa.tipo === 'llegada') {
-                          descripcionTrayecto = `Aeropuerto SJD → ${etapa.destino || cotizacion.hotelPrincipal || '[Hotel Destino]'}`;
+                          descripcionTrayecto = `${idioma === 'EN' ? 'SJD Airport' : 'Aeropuerto SJD'} → ${traducirLugar(etapa.destino || cotizacion.hotelPrincipal) || (idioma === 'EN' ? '[Destination Hotel]' : '[Hotel Destino]')}`;
                         } else if (etapa.tipo === 'salida') {
-                          descripcionTrayecto = `${etapa.origen || cotizacion.hotelPrincipal || '[Hotel Destino]'} → Aeropuerto SJD`;
+                          descripcionTrayecto = `${traducirLugar(etapa.origen || cotizacion.hotelPrincipal) || (idioma === 'EN' ? '[Destination Hotel]' : '[Hotel Destino]')} → ${idioma === 'EN' ? 'SJD Airport' : 'Aeropuerto SJD'}`;
                         } else {
-                          descripcionTrayecto = etapa.destino ? `Hacia ${etapa.destino}` : '[Lugar Origen → Lugar Destino]';
+                          descripcionTrayecto = etapa.destino
+                            ? (idioma === 'EN' ? `To ${traducirLugar(etapa.destino)}` : `Hacia ${etapa.destino}`)
+                            : (idioma === 'EN' ? '[Origin → Destination]' : '[Lugar Origen → Lugar Destino]');
                         }
 
                         // Fecha y horas formateadas
-                        const fechaFormateada = etapa.fecha || '[DD-MMM-AAAA]';
+                        const fechaFormateada = etapa.fecha || (idioma === 'EN' ? '[YYYY-MM-DD]' : '[DD-MMM-AAAA]');
                         const paxTramo = etapa.pax || cotizacion.pax || '1';
                         const horaPickUp = etapa.horaRecogida || etapa.hora;
                         const horaReturn = etapa.horaRegreso;
@@ -2622,7 +2634,7 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
                       <td style={{ padding: '15px 25px', textAlign: 'center', fontSize: '12px', border: 'none' }}>
                         <span style={{ color: '#FFB300', marginRight: '15px' }}>&#9742; +52 612 194 3286</span>
                         <span style={{ marginRight: '15px', color: '#ffffff' }}>&#9993; reservationballard@gmail.com</span>
-                        <span style={{ color: '#ffffff' }}>&#127760; www.ballardtours.com</span>
+                        <span style={{ color: '#ffffff' }}>&#127760; www.caboprivateairporttransfers.com</span>
                       </td>
                     </tr>
                   </tbody>

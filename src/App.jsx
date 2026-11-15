@@ -395,6 +395,41 @@ const LetreroPDFDocument = ({ item, logoSrc }) => (
   </Document>
 );
 
+// Función auxiliar para traducir nombres y métodos de pago al idioma del ticket
+const traducirMetodoPagoTicket = (metodo, lang = 'EN') => {
+  if (!metodo) return '';
+  const str = String(metodo).trim();
+  const lower = str.toLowerCase();
+  if (lang === 'EN') {
+    if (lower.includes('efectivo') || lower === 'cash') return 'CASH';
+    if (lower.includes('tarjeta') || lower.includes('card')) return 'CARD';
+    if (lower.includes('transferencia') || lower.includes('wire')) return 'WIRE TRANSFER';
+    if (lower.includes('prepago') || lower.includes('prepaid')) return 'PREPAID';
+    if (lower.includes('pendiente') || lower.includes('pending')) return 'PENDING';
+    if (lower.includes('paypal')) return 'PAYPAL';
+    if (lower.includes('stripe')) return 'STRIPE';
+    return str.toUpperCase();
+  } else {
+    if (lower === 'cash') return 'EFECTIVO';
+    if (lower === 'card' || lower === 'credit card') return 'TARJETA';
+    if (lower === 'wire transfer') return 'TRANSFERENCIA';
+    if (lower === 'prepaid') return 'PREPAGADO';
+    if (lower === 'pending') return 'PENDIENTE';
+    return str.toUpperCase();
+  }
+};
+
+const traducirNombreTicket = (nombre, apellido, lang = 'EN') => {
+  const full = `${nombre || ''} ${apellido || ''}`.trim();
+  if (lang === 'EN') {
+    return full
+      .replace(/\bSRTA\.?\b/gi, 'MISS')
+      .replace(/\bSRA\.?\b/gi, 'MRS.')
+      .replace(/\bSR\.?\b/gi, 'MR.');
+  }
+  return full;
+};
+
 // 4. Documento PDF Nativo Vectorial para el Ticket / Boleto de Transporte (Completo en 1 sola página Carta)
 const TicketPDFDocument = ({ data, lang = 'EN' }) => {
   const isEN = lang === 'EN';
@@ -403,9 +438,11 @@ const TicketPDFDocument = ({ data, lang = 'EN' }) => {
   const folio = data.reserva || data.folio || (data.id ? String(data.id).slice(-5) : '00000');
   const horaMostrar = (isSalida ? (data.pickUp || data.pick_up || data.hora) : data.hora) || '';
   const tieneCobro = data.cobro && String(data.cobro) !== '0';
+  const metodoTraducido = traducirMetodoPagoTicket(data.metodoPago, lang);
   const textoPago = tieneCobro
-    ? `$${data.cobro} ${data.metodoPago ? `(${data.metodoPago})` : ''}`
+    ? `$${data.cobro} ${metodoTraducido ? `(${metodoTraducido})` : ''}`
     : (isEN ? 'PREPAID' : 'PREPAGADO');
+  const nombreMostrar = traducirNombreTicket(data.nombre, data.apellido, lang);
 
   return (
     <Document>
@@ -439,7 +476,7 @@ const TicketPDFDocument = ({ data, lang = 'EN' }) => {
                 {isEN ? 'PRIVATE TRANSPORTATION' : 'TRANSPORTE PRIVADO'}
               </Text>
               <Text style={{ fontSize: 10, color: '#94a3b8', marginTop: 3 }}>
-                ✓ Boleto Seguro / Safe Ticket
+                ✓ {isEN ? 'Safe Ticket' : 'Boleto Seguro'}
               </Text>
             </View>
           </View>
@@ -456,7 +493,7 @@ const TicketPDFDocument = ({ data, lang = 'EN' }) => {
                   {isEN ? 'PASSENGER NAME' : 'NOMBRE DEL PASAJERO'}
                 </Text>
                 <Text style={{ fontSize: 14, fontFamily: 'Helvetica-Bold', color: '#1e293b', textTransform: 'uppercase' }}>
-                  {data.nombre || ''} {data.apellido || ''}
+                  {nombreMostrar}
                 </Text>
               </View>
 
@@ -561,7 +598,7 @@ const TicketPDFDocument = ({ data, lang = 'EN' }) => {
             <Text style={{ fontSize: 9.5, color: '#92400e', lineHeight: 1.45, textAlign: 'justify' }}>
               {isLlegada
                 ? (isEN
-                  ? 'All transport companies are waiting outside the departure gate. You just have to walk to the parking lot to look for your name on a sign. We are usually located in Shadow 3 or Terminal 1 is "SALIDA DE GRUPOS". So when you get there, just walk into the parking lot and you will see some staff members standing under these curtains holding up their signs, one of them will have your name on it.'
+                  ? 'All transport companies are waiting outside the departure gate. You just have to walk to the parking lot to look for your name on a sign. We are usually located in Shadow 3 or Terminal 1 ("GROUP EXIT"). So when you get there, just walk into the parking lot and you will see some staff members standing under these curtains holding up their signs, one of them will have your name on it.'
                   : 'Todas las empresas de transporte esperan afuera de la puerta de salida. Camine al estacionamiento y busque su nombre en un letrero. Usualmente estamos en la Sombra 3 o Terminal 1 "SALIDA DE GRUPOS". Al llegar, camine al estacionamiento y verá a nuestro personal bajo los toldos con su letrero.')
                 : (isEN
                   ? 'Please be ready in the hotel lobby 15 minutes before your scheduled pick-up time. Look for the driver holding a Ballard Tour Services sign. If you have any issues, please contact us immediately.'
@@ -587,7 +624,7 @@ const TicketPDFDocument = ({ data, lang = 'EN' }) => {
               Tel: +52 612 194 3286   |   reservationballard@gmail.com
             </Text>
             <Text style={{ fontSize: 9, color: '#f59e0b', fontFamily: 'Helvetica-Bold' }}>
-              www.ballardtours.com
+              www.caboprivateairporttransfers.com
             </Text>
           </View>
         </View>
@@ -4480,7 +4517,7 @@ export default function App() {
                     <h2 className="text-xl font-bold tracking-wide uppercase">{ticketLang === 'EN' ? 'PRIVATE TRANSPORTATION' : 'TRANSPORTE PRIVADO'}</h2>
                     <p className="text-slate-400 text-sm mt-1 flex items-center gap-2">
                       <ShieldCheck size={16} className="text-amber-500" />
-                      Boleto Seguro / Safe Ticket
+                      {ticketLang === 'EN' ? 'Safe Ticket' : 'Boleto Seguro'}
                     </p>
                   </div>
                 </div>
@@ -4498,7 +4535,7 @@ export default function App() {
                     <p className="text-xs text-gray-500 font-bold uppercase tracking-wider mb-1">{ticketLang === 'EN' ? 'Passenger Name' : 'Nombre del Pasajero'}</p>
                     <p className="text-lg font-bold text-slate-800 flex items-center gap-2 uppercase">
                       <User size={18} className="text-amber-500" />
-                      {ticketDataToPrint.nombre} {ticketDataToPrint.apellido}
+                      {traducirNombreTicket(ticketDataToPrint.nombre, ticketDataToPrint.apellido, ticketLang)}
                     </p>
                   </div>
 
@@ -4558,9 +4595,9 @@ export default function App() {
                       <span className="bg-amber-500 text-slate-900 rounded-full w-5 h-5 flex items-center justify-center font-black text-xs">
                         $
                       </span>
-                      {/* Lógica: Si hay cobro lo muestra con su método, si está vacío o es 0 dice PREPAGADO */}
+                      {/* Lógica: Si hay cobro lo muestra con su método traducido, si está vacío o es 0 dice PREPAGADO */}
                       {ticketDataToPrint.cobro && ticketDataToPrint.cobro !== '0'
-                        ? `$${ticketDataToPrint.cobro} ${ticketDataToPrint.metodoPago ? `(${ticketDataToPrint.metodoPago})` : ''}`
+                        ? `$${ticketDataToPrint.cobro} ${ticketDataToPrint.metodoPago ? `(${traducirMetodoPagoTicket(ticketDataToPrint.metodoPago, ticketLang)})` : ''}`
                         : (ticketLang === 'EN' ? 'PREPAID' : 'PREPAGADO')}
                     </p>
                   </div>
@@ -4585,7 +4622,7 @@ export default function App() {
                 <p className="text-sm text-amber-800/80 leading-relaxed text-justify">
                   {ticketDataToPrint.tipoServicio === 'Llegada'
                     ? (ticketLang === 'EN'
-                      ? 'All transport companies are waiting outside the departure gate. You just have to walk to the parking lot to look for your name on a sign. We are usually located in Shadow 3 or Terminal 1 is "SALIDA DE GRUPOS". So when you get there, just walk into the parking lot and you will see some staff members standing under these curtains holding up their signs, one of them will have your name on it.'
+                      ? 'All transport companies are waiting outside the departure gate. You just have to walk to the parking lot to look for your name on a sign. We are usually located in Shadow 3 or Terminal 1 ("GROUP EXIT"). So when you get there, just walk into the parking lot and you will see some staff members standing under these curtains holding up their signs, one of them will have your name on it.'
                       : 'Todas las empresas de transporte esperan afuera de la puerta de salida. Camine al estacionamiento y busque su nombre en un letrero. Usualmente estamos en la Sombra 3 o Terminal 1 "SALIDA DE GRUPOS". Al llegar, camine al estacionamiento y verá a nuestro personal bajo los toldos con su letrero.')
                     : (ticketLang === 'EN'
                       ? 'Please be ready in the hotel lobby 15 minutes before your scheduled pick-up time. Look for the driver holding a Ballard Tour Services sign. If you have any issues, please contact us immediately.'
@@ -4610,7 +4647,7 @@ export default function App() {
                   <span className="flex items-center gap-1"><Phone size={14} className="text-amber-500" /> +52 612 194 3286</span>
                   <span className="flex items-center gap-1 hidden sm:flex"><Mail size={14} className="text-amber-500" /> reservationballard@gmail.com</span>
                 </div>
-                <span className="flex items-center gap-1"><Globe size={14} className="text-amber-500" /> www.ballardtours.com</span>
+                <span className="flex items-center gap-1"><Globe size={14} className="text-amber-500" /> www.caboprivateairporttransfers.com</span>
               </div>
 
             </div>
