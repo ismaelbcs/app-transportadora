@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, Save, Download, Send, Printer, Calendar, Clock, Wallet, DollarSign, CalendarCheck, MapPin, Users, Car, FileText, CheckCircle, AlertCircle, X, Database, Headset, Fuel, Plane, User, Info, Phone, Mail, Globe, Map, ShieldCheck, Ticket, Play, Flag } from 'lucide-react';
+import { Search, Save, Download, Send, Printer, Calendar, Clock, Wallet, DollarSign, CalendarCheck, MapPin, Users, Car, FileText, CheckCircle, AlertCircle, X, Database, Headset, Fuel, Plane, User, Info, Phone, Mail, Globe, Map, ShieldCheck, Ticket, Play, Flag, Eye, Plus, Trash2 } from 'lucide-react';
 import { supabase } from './supabaseClient';
 import Presupuestos from './components/Presupuestos';
 
@@ -23,7 +23,13 @@ const initialServiceState = {
   metodoPago: '', carSeat: 0, babySeat: 0, booster: 0, paradaCompras: false,
   comentario: '',
   fechaRegreso: '', horaPickUpRegreso: '', vueloRegreso: '', horaRegreso: '',
-  chofer: '', vehiculo: '', proveedor: '', costoProveedor: ''
+  chofer: '', vehiculo: '', proveedor: '', costoProveedor: '',
+  // Campos de Niños
+  hayNinos: false, cantidadNinos: 1, incluirEdadesNinos: false, edadesNinos: [''],
+  // Campos de Actividad
+  nombreActividad: '', participantesActividad: [{ nombre: '', edad: '' }],
+  // Campos de Traslado
+  destinoTraslado: '', horaRecogidaTraslado: '', horaRegresoTraslado: ''
 };
 
 const LISTA_HOTELES = [
@@ -646,6 +652,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('form');
   const [ticketDataToPrint, setTicketDataToPrint] = useState(null);
   const [ticketLang, setTicketLang] = useState('EN');
+  const [serviceDetailModal, setServiceDetailModal] = useState(null);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [dbSearchTerm, setDbSearchTerm] = useState('');
@@ -1044,13 +1051,180 @@ export default function App() {
   }, []);
   // ---------------------------------------------
 
+  // Función auxiliar para actualizar automáticamente la información estructurada (Niños / Actividad / Traslado) dentro de Comentarios
+  const actualizarBloquesEnComentario = (comentarioActual, tagRegex, nuevoBloque) => {
+    let texto = comentarioActual || '';
+    if (tagRegex.test(texto)) {
+      texto = nuevoBloque ? texto.replace(tagRegex, nuevoBloque) : texto.replace(tagRegex, '').trim();
+    } else if (nuevoBloque) {
+      texto = texto.trim() ? `${texto.trim()}\n${nuevoBloque}` : nuevoBloque;
+    }
+    return texto.replace(/\n{3,}/g, '\n\n').trim();
+  };
+
+  const construirBloqueNinos = (hayNinos, cantidadNinos, incluirEdadesNinos, edadesNinos) => {
+    if (!hayNinos) return '';
+    const cant = Math.max(1, parseInt(cantidadNinos, 10) || 1);
+    if (incluirEdadesNinos) {
+      const edadesLimpias = (edadesNinos || []).slice(0, cant).map(e => String(e || '').trim()).filter(Boolean);
+      if (edadesLimpias.length > 0) {
+        return `[NIÑOS: ${cant} | Edades: ${edadesLimpias.map(e => `${e} años`).join(', ')}]`;
+      }
+    }
+    return `[NIÑOS: ${cant}]`;
+  };
+
+  const construirBloqueActividad = (tipoServicio, nombreActividad, participantesActividad) => {
+    if (tipoServicio !== 'Actividad') return '';
+    const act = (nombreActividad || '').trim();
+    const parts = (participantesActividad || [])
+      .filter(p => (p.nombre && p.nombre.trim()) || (p.edad && String(p.edad).trim()))
+      .map((p, i) => {
+        const nom = (p.nombre || `Persona ${i + 1}`).trim();
+        const ed = String(p.edad || '').trim();
+        return ed ? `${nom} (${ed} años)` : nom;
+      });
+    if (!act && parts.length === 0) return '';
+    return `[ACTIVIDAD: ${act || 'Por definir'}${parts.length > 0 ? ` | Participantes: ${parts.join(', ')}` : ''}]`;
+  };
+
+  const construirBloqueTraslado = (tipoServicio, destinoTraslado, horaRecogidaTraslado, horaRegresoTraslado) => {
+    if (tipoServicio !== 'Traslado') return '';
+    const dest = (destinoTraslado || '').trim();
+    const rec = (horaRecogidaTraslado || '').trim();
+    const reg = (horaRegresoTraslado || '').trim();
+    if (!dest && !rec && !reg) return '';
+    const partes = [];
+    if (dest) partes.push(`Irán a: ${dest}`);
+    if (rec) partes.push(`Recogida: ${rec}`);
+    if (reg) partes.push(`Regreso: ${reg}`);
+    return `[TRASLADO: ${partes.join(' | ')}]`;
+  };
+
+  // Extraer datos estructurados desde el comentario al editar o ver detalle de un servicio
+  const parsearDetallesDeComentario = (srv) => {
+    const com = srv?.comentario || '';
+    let hayNinos = false;
+    let cantidadNinos = 1;
+    let incluirEdadesNinos = false;
+    let edadesNinos = [''];
+
+    const matchNinos = com.match(/\[NIÑOS:\s*(\d+)(?:\s*\|\s*Edades:\s*([^\]]+))?\]/i);
+    if (matchNinos) {
+      hayNinos = true;
+      cantidadNinos = parseInt(matchNinos[1], 10) || 1;
+      if (matchNinos[2]) {
+        incluirEdadesNinos = true;
+        edadesNinos = matchNinos[2].split(',').map(s => s.replace(/años?/gi, '').trim());
+      } else {
+        edadesNinos = Array(cantidadNinos).fill('');
+      }
+    }
+
+    let nombreActividad = '';
+    let participantesActividad = [{ nombre: '', edad: '' }];
+    const matchAct = com.match(/\[ACTIVIDAD:\s*([^\]|]+)(?:\|\s*Participantes:\s*([^\]]+))?\]/i);
+    if (matchAct) {
+      nombreActividad = (matchAct[1] || '').trim();
+      if (nombreActividad === 'Por definir') nombreActividad = '';
+      if (matchAct[2]) {
+        const lista = matchAct[2].split(',').map(item => {
+          const m = item.trim().match(/^(.+?)\s*\((\d+)\s*años?\)$/i);
+          if (m) return { nombre: m[1].trim(), edad: m[2].trim() };
+          return { nombre: item.trim(), edad: '' };
+        });
+        if (lista.length > 0) participantesActividad = lista;
+      }
+    }
+
+    let destinoTraslado = srv?.tipoServicio === 'Traslado' ? (srv?.hotel || '') : '';
+    let horaRecogidaTraslado = srv?.tipoServicio === 'Traslado' ? (srv?.pickUp || srv?.pick_up || srv?.hora || '') : '';
+    let horaRegresoTraslado = '';
+    const matchTras = com.match(/\[TRASLADO:\s*([^\]]+)\]/i);
+    if (matchTras) {
+      const partes = matchTras[1].split('|').map(p => p.trim());
+      partes.forEach(p => {
+        if (/^Irán a:/i.test(p)) destinoTraslado = p.replace(/^Irán a:/i, '').trim();
+        if (/^Recogida:/i.test(p)) horaRecogidaTraslado = p.replace(/^Recogida:/i, '').trim();
+        if (/^Regreso:/i.test(p)) horaRegresoTraslado = p.replace(/^Regreso:/i, '').trim();
+      });
+    }
+
+    return {
+      hayNinos,
+      cantidadNinos,
+      incluirEdadesNinos,
+      edadesNinos,
+      nombreActividad,
+      participantesActividad,
+      destinoTraslado,
+      horaRecogidaTraslado,
+      horaRegresoTraslado
+    };
+  };
+
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setCurrentService(prev => ({
-      ...prev,
-      // Si el campo modificado es la reserva, lo forzamos a mayúsculas de inmediato
-      [name]: type === 'checkbox' ? checked : (name === 'reserva' ? value.toUpperCase() : value)
-    }));
+    setCurrentService(prev => {
+      const val = type === 'checkbox' ? checked : (name === 'reserva' ? value.toUpperCase() : value);
+      const next = { ...prev, [name]: val };
+
+      // Si cambia el tipo de servicio, actualizamos los bloques de Actividad / Traslado en comentarios
+      if (name === 'tipoServicio') {
+        const bloqueAct = construirBloqueActividad(val, next.nombreActividad, next.participantesActividad);
+        const bloqueTras = construirBloqueTraslado(val, next.destinoTraslado, next.horaRecogidaTraslado, next.horaRegresoTraslado);
+        let nuevoCom = actualizarBloquesEnComentario(next.comentario, /\[ACTIVIDAD:[^\]]*\]/gi, bloqueAct);
+        nuevoCom = actualizarBloquesEnComentario(nuevoCom, /\[TRASLADO:[^\]]*\]/gi, bloqueTras);
+        next.comentario = nuevoCom;
+      }
+      return next;
+    });
+  };
+
+  // Manejadores para la sección de Niños (actualizan automáticamente Comentarios)
+  const actualizarEstadoNinos = (cambios) => {
+    setCurrentService(prev => {
+      const next = { ...prev, ...cambios };
+      const cant = Math.max(1, parseInt(next.cantidadNinos, 10) || 1);
+      let edades = Array.isArray(next.edadesNinos) ? [...next.edadesNinos] : [];
+      while (edades.length < cant) edades.push('');
+      if (edades.length > cant) edades = edades.slice(0, cant);
+      next.edadesNinos = edades;
+
+      const bloque = construirBloqueNinos(next.hayNinos, cant, next.incluirEdadesNinos, edades);
+      next.comentario = actualizarBloquesEnComentario(next.comentario, /\[NIÑOS:[^\]]*\]/gi, bloque);
+      return next;
+    });
+  };
+
+  // Manejadores para la sección de Actividad (actualizan automáticamente Comentarios y Hotel/Destino)
+  const actualizarEstadoActividad = (cambios) => {
+    setCurrentService(prev => {
+      const next = { ...prev, ...cambios };
+      const bloque = construirBloqueActividad(next.tipoServicio, next.nombreActividad, next.participantesActividad);
+      next.comentario = actualizarBloquesEnComentario(next.comentario, /\[ACTIVIDAD:[^\]]*\]/gi, bloque);
+      if (cambios.nombreActividad !== undefined && !prev.hotel) {
+        next.hotel = cambios.nombreActividad;
+      }
+      return next;
+    });
+  };
+
+  // Manejadores para la sección de Traslado (actualizan automáticamente Comentarios, Hotel/Destino y Hora/PickUp)
+  const actualizarEstadoTraslado = (cambios) => {
+    setCurrentService(prev => {
+      const next = { ...prev, ...cambios };
+      if (cambios.destinoTraslado !== undefined) {
+        next.hotel = cambios.destinoTraslado;
+      }
+      if (cambios.horaRecogidaTraslado !== undefined) {
+        next.pickUp = cambios.horaRecogidaTraslado;
+        next.hora = cambios.horaRecogidaTraslado;
+      }
+      const bloque = construirBloqueTraslado(next.tipoServicio, next.destinoTraslado, next.horaRecogidaTraslado, next.horaRegresoTraslado);
+      next.comentario = actualizarBloquesEnComentario(next.comentario, /\[TRASLADO:[^\]]*\]/gi, bloque);
+      return next;
+    });
   };
 
   const handleSearch = (e) => {
@@ -1072,7 +1246,8 @@ export default function App() {
   };
 
   const selectServiceToEdit = (srv) => {
-    setCurrentService({ ...initialServiceState, ...srv, tipoViaje: 'One way' });
+    const extrasParsed = parsearDetallesDeComentario(srv);
+    setCurrentService({ ...initialServiceState, ...srv, ...extrasParsed, tipoViaje: 'One way' });
     setIsEditing(true);
     setSearchTerm('');
     setSearchResults([]);
@@ -2557,12 +2732,14 @@ export default function App() {
                 <div className="space-y-4">
                   <h3 className="font-semibold text-gray-700 border-b pb-2">Datos Generales</h3>
                   <div>
+                    <label className="block text-xs font-medium text-gray-700">Número de Servicio / Reserva</label>
                     <div className="mt-1 flex gap-2">
                       <input
                         type="text"
                         name="reserva"
                         value={currentService.reserva}
                         onChange={handleInputChange}
+                        placeholder="Ej. BTS00001"
                         className="block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm focus:ring-blue-500 focus:border-blue-500 uppercase"
                       />
                       <button
@@ -2574,7 +2751,6 @@ export default function App() {
                         ✨ Generar N°
                       </button>
                     </div>
-                    <input type="text" name="reserva" value={currentService.reserva} onChange={handleInputChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm focus:ring-blue-500 focus:border-blue-500" />
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     <div>
@@ -2666,6 +2842,127 @@ export default function App() {
                       ))}
                     </datalist>
                   </div>
+
+                  {/* CAMPOS DINÁMICOS SI EL TIPO DE SERVICIO ES ACTIVIDAD */}
+                  {currentService.tipoServicio === 'Actividad' && (
+                    <div className="bg-purple-50 border border-purple-200 rounded-lg p-3 space-y-3">
+                      <h4 className="text-xs font-bold text-purple-800 uppercase tracking-wide flex items-center justify-between">
+                        <span>🎯 Detalles de la Actividad</span>
+                      </h4>
+                      <div>
+                        <label className="block text-xs font-semibold text-purple-900">¿Qué actividad es?</label>
+                        <input
+                          type="text"
+                          value={currentService.nombreActividad || ''}
+                          onChange={(e) => actualizarEstadoActividad({ nombreActividad: e.target.value })}
+                          placeholder="Ej. Paseo en Camello, ATV, Snorkel, Arco..."
+                          className="mt-1 block w-full border border-purple-300 rounded-md shadow-sm p-2 text-sm bg-white focus:ring-purple-500 focus:border-purple-500"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <label className="block text-xs font-semibold text-purple-900">
+                            Información de cada persona y edad
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const actual = Array.isArray(currentService.participantesActividad)
+                                ? [...currentService.participantesActividad]
+                                : [];
+                              actual.push({ nombre: '', edad: '' });
+                              actualizarEstadoActividad({ participantesActividad: actual });
+                            }}
+                            className="text-xs bg-purple-600 hover:bg-purple-700 text-white font-bold px-2.5 py-1 rounded flex items-center gap-1 transition-colors"
+                          >
+                            <Plus size={12} /> Agregar Persona
+                          </button>
+                        </div>
+
+                        {(currentService.participantesActividad || [{ nombre: '', edad: '' }]).map((part, idx) => (
+                          <div key={idx} className="flex items-center gap-2">
+                            <input
+                              type="text"
+                              value={part.nombre || ''}
+                              onChange={(e) => {
+                                const copia = [...(currentService.participantesActividad || [])];
+                                copia[idx] = { ...copia[idx], nombre: e.target.value };
+                                actualizarEstadoActividad({ participantesActividad: copia });
+                              }}
+                              placeholder={`Nombre / Info Persona ${idx + 1}`}
+                              className="flex-1 border border-purple-300 rounded-md p-1.5 text-xs bg-white"
+                            />
+                            <input
+                              type="number"
+                              min="0"
+                              value={part.edad || ''}
+                              onChange={(e) => {
+                                const copia = [...(currentService.participantesActividad || [])];
+                                copia[idx] = { ...copia[idx], edad: e.target.value };
+                                actualizarEstadoActividad({ participantesActividad: copia });
+                              }}
+                              placeholder="Edad"
+                              className="w-20 border border-purple-300 rounded-md p-1.5 text-xs bg-white text-center"
+                            />
+                            {(currentService.participantesActividad || []).length > 1 && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const copia = (currentService.participantesActividad || []).filter((_, i) => i !== idx);
+                                  actualizarEstadoActividad({ participantesActividad: copia });
+                                }}
+                                className="p-1 text-red-500 hover:bg-red-100 rounded"
+                                title="Quitar persona"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* CAMPOS DINÁMICOS SI EL TIPO DE SERVICIO ES TRASLADO */}
+                  {currentService.tipoServicio === 'Traslado' && (
+                    <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 space-y-3">
+                      <h4 className="text-xs font-bold text-amber-900 uppercase tracking-wide">
+                        🚐 Detalles del Traslado
+                      </h4>
+                      <div>
+                        <label className="block text-xs font-semibold text-amber-900">¿A dónde irán?</label>
+                        <input
+                          type="text"
+                          list="hoteles-list"
+                          value={currentService.destinoTraslado || ''}
+                          onChange={(e) => actualizarEstadoTraslado({ destinoTraslado: e.target.value })}
+                          placeholder="Ej. Restaurante Flora Farms, San José, Sunset Monalisa..."
+                          className="mt-1 block w-full border border-amber-300 rounded-md shadow-sm p-2 text-sm bg-white"
+                        />
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <div>
+                          <label className="block text-xs font-semibold text-amber-900">Hora de Recogida</label>
+                          <input
+                            type="time"
+                            value={currentService.horaRecogidaTraslado || ''}
+                            onChange={(e) => actualizarEstadoTraslado({ horaRecogidaTraslado: e.target.value })}
+                            className="mt-1 block w-full border border-amber-300 rounded-md shadow-sm p-2 text-sm bg-white"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-semibold text-amber-900">Hora de Regreso</label>
+                          <input
+                            type="time"
+                            value={currentService.horaRegresoTraslado || ''}
+                            onChange={(e) => actualizarEstadoTraslado({ horaRegresoTraslado: e.target.value })}
+                            className="mt-1 block w-full border border-amber-300 rounded-md shadow-sm p-2 text-sm bg-white"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div className="space-y-4">
@@ -2683,6 +2980,74 @@ export default function App() {
                       <label className="block text-xs font-medium text-gray-700">Booster</label>
                       <input type="number" min="0" name="booster" value={currentService.booster} onChange={handleInputChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm" />
                     </div>
+                  </div>
+
+                  {/* SECCIÓN DE NIÑOS Y EDADES (SE AGREGA AUTOMÁTICAMENTE EN COMENTARIOS) */}
+                  <div className="bg-blue-50/70 border border-blue-200 rounded-lg p-3 space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <label className="flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={!!currentService.hayNinos}
+                          onChange={(e) => actualizarEstadoNinos({ hayNinos: e.target.checked })}
+                          className="h-4 w-4 text-blue-600 border-gray-300 rounded"
+                        />
+                        <span className="ml-2 text-sm font-semibold text-blue-950">¿Hay niños en el servicio?</span>
+                      </label>
+                    </div>
+
+                    {currentService.hayNinos && (
+                      <div className="space-y-2.5 pt-1 border-t border-blue-200/80">
+                        <div className="flex items-center justify-between gap-3">
+                          <label className="text-xs font-medium text-blue-900">¿Cuántos niños?</label>
+                          <input
+                            type="number"
+                            min="1"
+                            max="20"
+                            value={currentService.cantidadNinos || 1}
+                            onChange={(e) => actualizarEstadoNinos({ cantidadNinos: Math.max(1, parseInt(e.target.value, 10) || 1) })}
+                            className="w-20 border border-blue-300 rounded-md shadow-sm p-1.5 text-sm text-center bg-white font-bold"
+                          />
+                        </div>
+
+                        <div className="flex items-center">
+                          <label className="flex items-center cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={!!currentService.incluirEdadesNinos}
+                              onChange={(e) => actualizarEstadoNinos({ incluirEdadesNinos: e.target.checked })}
+                              className="h-4 w-4 text-blue-600 border-gray-300 rounded"
+                            />
+                            <span className="ml-2 text-xs font-medium text-blue-900">
+                              ¿Deseas poner las edades de cada niño?
+                            </span>
+                          </label>
+                        </div>
+
+                        {currentService.incluirEdadesNinos && (
+                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-1">
+                            {Array.from({ length: Math.max(1, parseInt(currentService.cantidadNinos, 10) || 1) }).map((_, i) => (
+                              <div key={i}>
+                                <label className="block text-[11px] font-semibold text-blue-800">
+                                  Edad Niño {i + 1}
+                                </label>
+                                <input
+                                  type="text"
+                                  value={(currentService.edadesNinos && currentService.edadesNinos[i]) || ''}
+                                  onChange={(e) => {
+                                    const nuevasEdades = [...(currentService.edadesNinos || [])];
+                                    nuevasEdades[i] = e.target.value;
+                                    actualizarEstadoNinos({ edadesNinos: nuevasEdades });
+                                  }}
+                                  placeholder="Ej. 4"
+                                  className="mt-0.5 block w-full border border-blue-300 rounded-md p-1.5 text-xs bg-white text-center"
+                                />
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   <div className="flex items-center mt-2">
@@ -2708,7 +3073,7 @@ export default function App() {
 
                   <div>
                     <label className="block text-xs font-medium text-gray-700">Comentarios</label>
-                    <textarea name="comentario" rows="2" value={currentService.comentario} onChange={handleInputChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm"></textarea>
+                    <textarea name="comentario" rows="3" value={currentService.comentario} onChange={handleInputChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm"></textarea>
                   </div>
                 </div>
               </div>
@@ -3515,6 +3880,15 @@ export default function App() {
                         <td className="p-2 text-center">
                           <div className="flex justify-center items-center gap-2">
 
+                            {/* BOTÓN VER INFORMACIÓN DEL SERVICIO */}
+                            <button
+                              onClick={() => setServiceDetailModal(row)}
+                              className="p-1 text-indigo-600 hover:bg-indigo-100 rounded"
+                              title="Ver toda la información del servicio"
+                            >
+                              <Eye size={18} />
+                            </button>
+
                             {/* BOTÓN COMPARTIR */}
                             <button onClick={() => generateSharePNG(row)} className="p-1 text-blue-600 hover:bg-blue-100 rounded" title="Compartir">
                               <Send size={18} />
@@ -3772,36 +4146,45 @@ export default function App() {
                           </td>
                           <td className="p-2"><input type="text" value={row.comentario || ''} onChange={e => handleDatabaseChange(row.id, 'comentario', e.target.value)} className="w-32 bg-transparent border-b border-dashed focus:outline-none text-xs text-gray-500" /></td>
                           <td className="p-2 text-center">
-                            <button
-                              onClick={() => {
-                                setTicketDataToPrint(row);
-                                setTicketLang('EN');
-                              }}
-                              className="p-1 text-slate-500 hover:bg-slate-200 rounded mr-1"
-                              title="Generar Ticket"
-                            >
-                              <Ticket size={18} />
-                            </button>
-                            <button
-                              onClick={async () => {
-                                if (window.confirm('¿Estás seguro de que deseas eliminar este servicio de la Base de Datos permanentemente?')) {
-                                  try {
-                                    showToast('Eliminando...', 'success');
-                                    const { error } = await supabase.from('servicios').delete().eq('id', row.id);
-                                    if (error) throw error;
-                                    setServices(services.filter(s => s.id !== row.id));
-                                    showToast('¡Servicio eliminado!');
-                                  } catch (error) {
-                                    console.error("Error al eliminar:", error);
-                                    showToast('Error al eliminar', 'error');
+                            <div className="flex justify-center items-center gap-1">
+                              <button
+                                onClick={() => setServiceDetailModal(row)}
+                                className="p-1 text-indigo-600 hover:bg-indigo-100 rounded"
+                                title="Ver toda la información del servicio"
+                              >
+                                <Eye size={18} />
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setTicketDataToPrint(row);
+                                  setTicketLang('EN');
+                                }}
+                                className="p-1 text-slate-500 hover:bg-slate-200 rounded"
+                                title="Generar Ticket"
+                              >
+                                <Ticket size={18} />
+                              </button>
+                              <button
+                                onClick={async () => {
+                                  if (window.confirm('¿Estás seguro de que deseas eliminar este servicio de la Base de Datos permanentemente?')) {
+                                    try {
+                                      showToast('Eliminando...', 'success');
+                                      const { error } = await supabase.from('servicios').delete().eq('id', row.id);
+                                      if (error) throw error;
+                                      setServices(services.filter(s => s.id !== row.id));
+                                      showToast('¡Servicio eliminado!');
+                                    } catch (error) {
+                                      console.error("Error al eliminar:", error);
+                                      showToast('Error al eliminar', 'error');
+                                    }
                                   }
-                                }
-                              }}
-                              className="p-1 text-red-500 hover:bg-red-100 rounded"
-                              title="Eliminar Servicio"
-                            >
-                              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>
-                            </button>
+                                }}
+                                className="p-1 text-red-500 hover:bg-red-100 rounded"
+                                title="Eliminar Servicio"
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       ));
@@ -4478,6 +4861,63 @@ export default function App() {
                 </div>
               )}
 
+              {/* DETALLES DE NIÑOS / ACTIVIDAD / TRASLADO EXTRAÍDOS AUTOMÁTICAMENTE */}
+              {(() => {
+                const det = parsearDetallesDeComentario(renderData.data);
+                return (
+                  <>
+                    {det.hayNinos && (
+                      <div style={{ backgroundColor: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: '10px', padding: '12px 16px' }}>
+                        <div style={{ fontSize: '11px', fontWeight: 800, color: '#0369a1', textTransform: 'uppercase', marginBottom: '4px' }}>
+                          👶 Información de Niños
+                        </div>
+                        <div style={{ fontSize: '14px', fontWeight: 800, color: '#0c4a6e' }}>
+                          Cantidad de niños: {det.cantidadNinos}
+                          {det.incluirEdadesNinos && det.edadesNinos.filter(Boolean).length > 0 && (
+                            <span> — Edades: {det.edadesNinos.filter(Boolean).map(e => `${e} años`).join(', ')}</span>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {renderData.data.tipoServicio === 'Actividad' && (det.nombreActividad || det.participantesActividad.some(p => p.nombre || p.edad)) && (
+                      <div style={{ backgroundColor: '#faf5ff', border: '1px solid #e9d5ff', borderRadius: '10px', padding: '12px 16px' }}>
+                        <div style={{ fontSize: '11px', fontWeight: 800, color: '#6b21a8', textTransform: 'uppercase', marginBottom: '4px' }}>
+                          🎯 Detalles de la Actividad
+                        </div>
+                        {det.nombreActividad && (
+                          <div style={{ fontSize: '15px', fontWeight: 900, color: '#581c87', marginBottom: '6px' }}>
+                            Actividad: {det.nombreActividad}
+                          </div>
+                        )}
+                        {det.participantesActividad.filter(p => p.nombre || p.edad).length > 0 && (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '13px', fontWeight: 700, color: '#4c1d95' }}>
+                            {det.participantesActividad.filter(p => p.nombre || p.edad).map((p, idx) => (
+                              <div key={idx}>
+                                • {p.nombre || `Persona ${idx + 1}`}{p.edad ? ` (${p.edad} años)` : ''}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {renderData.data.tipoServicio === 'Traslado' && (det.destinoTraslado || det.horaRecogidaTraslado || det.horaRegresoTraslado) && (
+                      <div style={{ backgroundColor: '#fffbeb', border: '1px solid #fde68a', borderRadius: '10px', padding: '12px 16px' }}>
+                        <div style={{ fontSize: '11px', fontWeight: 800, color: '#b45309', textTransform: 'uppercase', marginBottom: '4px' }}>
+                          🚐 Detalles del Traslado
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '14px', fontWeight: 800, color: '#78350f' }}>
+                          {det.destinoTraslado && <div>📍 A dónde irán: {det.destinoTraslado}</div>}
+                          {det.horaRecogidaTraslado && <div>🕒 Hora de recogida: {det.horaRecogidaTraslado}</div>}
+                          {det.horaRegresoTraslado && <div>🔙 Hora de regreso: {det.horaRegresoTraslado}</div>}
+                        </div>
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
+
               {/* COMENTARIOS */}
               {renderData.data.comentario && renderData.data.comentario.trim() && (
                 <div style={{ backgroundColor: '#fffbeb', border: '1px solid #fde68a', borderRadius: '10px', padding: '12px 16px' }}>
@@ -4493,6 +4933,232 @@ export default function App() {
           </div>
         </div>
       )}
+
+      {/* --- MODAL PARA VER TODA LA INFORMACIÓN DEL SERVICIO --- */}
+      {serviceDetailModal && (() => {
+        const det = parsearDetallesDeComentario(serviceDetailModal);
+        return (
+          <div className="fixed inset-0 z-[10000] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 font-sans print:hidden">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto border border-gray-200 flex flex-col">
+              {/* Encabezado */}
+              <div className="bg-slate-900 text-white p-5 flex justify-between items-center sticky top-0 z-10">
+                <div>
+                  <span className="text-xs font-bold uppercase tracking-widest text-amber-400 block">
+                    Información Completa del Servicio
+                  </span>
+                  <h3 className="text-xl font-black uppercase tracking-tight mt-0.5">
+                    {serviceDetailModal.nombre} {serviceDetailModal.apellido}
+                  </h3>
+                </div>
+                <div className="flex items-center gap-3">
+                  {serviceDetailModal.reserva && (
+                    <span className="bg-blue-600 text-white text-xs font-black px-3 py-1.5 rounded-lg uppercase">
+                      Reserva: {serviceDetailModal.reserva}
+                    </span>
+                  )}
+                  <button
+                    onClick={() => setServiceDetailModal(null)}
+                    className="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-800"
+                  >
+                    <X size={22} />
+                  </button>
+                </div>
+              </div>
+
+              {/* Contenido */}
+              <div className="p-6 space-y-5">
+                {/* Datos Principales */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                  <div>
+                    <span className="text-[11px] font-bold text-slate-500 uppercase block">Tipo de Servicio</span>
+                    <span className="text-sm font-black text-blue-700 uppercase">{serviceDetailModal.tipoServicio || 'Llegada'}</span>
+                  </div>
+                  <div>
+                    <span className="text-[11px] font-bold text-slate-500 uppercase block">Fecha</span>
+                    <span className="text-sm font-bold text-slate-900">{serviceDetailModal.fecha || 'Sin fecha'}</span>
+                  </div>
+                  <div>
+                    <span className="text-[11px] font-bold text-slate-500 uppercase block">Hora / Pick Up</span>
+                    <span className="text-sm font-bold text-slate-900">
+                      {serviceDetailModal.hora || '--:--'} {serviceDetailModal.pickUp ? `(PickUp: ${serviceDetailModal.pickUp})` : ''}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-[11px] font-bold text-slate-500 uppercase block">PAX (Pasajeros)</span>
+                    <span className="text-sm font-black text-slate-900">{serviceDetailModal.pax || '1'}</span>
+                  </div>
+                  <div>
+                    <span className="text-[11px] font-bold text-slate-500 uppercase block">Agencia</span>
+                    <span className="text-sm font-bold text-slate-900">{serviceDetailModal.agencia || 'Directo'}</span>
+                  </div>
+                  <div>
+                    <span className="text-[11px] font-bold text-slate-500 uppercase block">Teléfono</span>
+                    <span className="text-sm font-bold text-slate-900">{serviceDetailModal.telefono || 'N/A'}</span>
+                  </div>
+                  <div>
+                    <span className="text-[11px] font-bold text-slate-500 uppercase block">Vuelo</span>
+                    <span className="text-sm font-bold text-slate-900">{serviceDetailModal.vuelo || 'N/A'}</span>
+                  </div>
+                  <div className="col-span-2">
+                    <span className="text-[11px] font-bold text-slate-500 uppercase block">Hotel / Destino</span>
+                    <span className="text-sm font-black text-slate-900">{serviceDetailModal.hotel || 'No especificado'}</span>
+                  </div>
+                </div>
+
+                {/* Sección de Niños (si aplica) */}
+                {det.hayNinos && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                    <h4 className="text-xs font-black text-blue-900 uppercase tracking-wider mb-2">
+                      👶 Información de Niños
+                    </h4>
+                    <div className="text-sm font-bold text-blue-950 space-y-1">
+                      <p>• ¿Hay niños?: <span className="font-black">Sí ({det.cantidadNinos} {det.cantidadNinos === 1 ? 'niño' : 'niños'})</span></p>
+                      {det.incluirEdadesNinos && det.edadesNinos.filter(Boolean).length > 0 && (
+                        <div className="mt-1">
+                          <span className="text-xs font-bold text-blue-800 block mb-1">Edades de cada niño:</span>
+                          <div className="flex flex-wrap gap-2">
+                            {det.edadesNinos.filter(Boolean).map((edad, idx) => (
+                              <span key={idx} className="bg-white border border-blue-300 text-blue-900 text-xs font-bold px-2.5 py-1 rounded-md">
+                                Niño {idx + 1}: {edad} años
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Sección de Actividad (si es Actividad) */}
+                {(serviceDetailModal.tipoServicio === 'Actividad' || det.nombreActividad) && (
+                  <div className="bg-purple-50 border border-purple-200 rounded-xl p-4">
+                    <h4 className="text-xs font-black text-purple-900 uppercase tracking-wider mb-2">
+                      🎯 Información de la Actividad
+                    </h4>
+                    <p className="text-sm font-black text-purple-950 mb-2">
+                      Actividad: <span className="underline">{det.nombreActividad || serviceDetailModal.hotel || 'Por definir'}</span>
+                    </p>
+                    {det.participantesActividad && det.participantesActividad.filter(p => p.nombre || p.edad).length > 0 && (
+                      <div>
+                        <span className="text-xs font-bold text-purple-800 block mb-1.5">
+                          Personas que realizarán la actividad:
+                        </span>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          {det.participantesActividad.filter(p => p.nombre || p.edad).map((p, idx) => (
+                            <div key={idx} className="bg-white border border-purple-200 rounded-lg px-3 py-2 flex justify-between items-center text-xs">
+                              <span className="font-bold text-purple-950">{p.nombre || `Persona ${idx + 1}`}</span>
+                              {p.edad && (
+                                <span className="bg-purple-100 text-purple-800 font-black px-2 py-0.5 rounded">
+                                  {p.edad} años
+                                </span>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Sección de Traslado (si es Traslado) */}
+                {(serviceDetailModal.tipoServicio === 'Traslado' || det.horaRegresoTraslado) && (
+                  <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+                    <h4 className="text-xs font-black text-amber-900 uppercase tracking-wider mb-2">
+                      🚐 Información del Traslado
+                    </h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
+                      <div className="bg-white border border-amber-200 rounded-lg p-2.5">
+                        <span className="text-[11px] font-bold text-amber-700 uppercase block">¿A dónde irán?</span>
+                        <span className="font-black text-amber-950">{det.destinoTraslado || serviceDetailModal.hotel || 'No especificado'}</span>
+                      </div>
+                      <div className="bg-white border border-amber-200 rounded-lg p-2.5">
+                        <span className="text-[11px] font-bold text-amber-700 uppercase block">Hora de Recogida</span>
+                        <span className="font-black text-amber-950">{det.horaRecogidaTraslado || serviceDetailModal.pickUp || serviceDetailModal.hora || '--:--'}</span>
+                      </div>
+                      <div className="bg-white border border-amber-200 rounded-lg p-2.5">
+                        <span className="text-[11px] font-bold text-amber-700 uppercase block">Hora de Regreso</span>
+                        <span className="font-black text-amber-950">{det.horaRegresoTraslado || 'No especificada'}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Extras, Operación y Pago */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5">
+                    <span className="text-[11px] font-bold text-slate-500 uppercase block mb-1">Extras y Sillas</span>
+                    <div className="flex flex-wrap gap-1.5 text-xs font-bold text-slate-800">
+                      {serviceDetailModal.carSeat > 0 && <span className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded">Car Seat: {serviceDetailModal.carSeat}</span>}
+                      {serviceDetailModal.babySeat > 0 && <span className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded">Baby Seat: {serviceDetailModal.babySeat}</span>}
+                      {serviceDetailModal.booster > 0 && <span className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded">Booster: {serviceDetailModal.booster}</span>}
+                      {serviceDetailModal.paradaCompras && <span className="bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded">🛒 Parada de Compras</span>}
+                      {!serviceDetailModal.carSeat && !serviceDetailModal.babySeat && !serviceDetailModal.booster && !serviceDetailModal.paradaCompras && (
+                        <span className="text-slate-400">Sin extras</span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5">
+                    <span className="text-[11px] font-bold text-slate-500 uppercase block mb-1">Cobro y Unidad</span>
+                    <div className="text-xs font-bold text-slate-800 space-y-0.5">
+                      <div>
+                        Cobro: <span className="text-green-700 font-black">{serviceDetailModal.cobro ? `$${serviceDetailModal.cobro} (${serviceDetailModal.metodoPago || 'Efectivo'})` : 'Prepagado / $0'}</span>
+                      </div>
+                      <div>
+                        Chofer / Vehículo: <span className="font-black">{serviceDetailModal.chofer || 'Sin asignar'} {serviceDetailModal.vehiculo ? `- ${serviceDetailModal.vehiculo}` : ''}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Comentarios Completos */}
+                <div className="bg-amber-50/70 border border-amber-200 rounded-xl p-4">
+                  <span className="text-[11px] font-black text-amber-900 uppercase block mb-1">
+                    📝 Comentarios Registrados
+                  </span>
+                  <p className="text-sm font-medium text-amber-950 whitespace-pre-wrap">
+                    {serviceDetailModal.comentario || 'Sin comentarios adicionales.'}
+                  </p>
+                </div>
+
+                {/* Botones de Acción */}
+                <div className="flex flex-wrap justify-end gap-2.5 pt-2 border-t border-gray-200">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const srv = serviceDetailModal;
+                      setServiceDetailModal(null);
+                      selectServiceToEdit(srv);
+                      setActiveTab('form');
+                    }}
+                    className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2 rounded-xl text-sm flex items-center gap-1.5 shadow-sm transition-colors"
+                  >
+                    ✏️ Editar Servicio
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const srv = serviceDetailModal;
+                      setServiceDetailModal(null);
+                      generateSharePNG(srv);
+                    }}
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2 rounded-xl text-sm flex items-center gap-1.5 shadow-sm transition-colors"
+                  >
+                    <Send size={15} /> Enviar Servicio
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setServiceDetailModal(null)}
+                    className="bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold px-4 py-2 rounded-xl text-sm transition-colors"
+                  >
+                    Cerrar
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {renderData?.type === 'sign' && (
         <div className="fixed top-0 left-0 -z-50 pointer-events-none opacity-0">
