@@ -1792,7 +1792,12 @@ export default function App() {
 
     setTimeout(async () => {
       try {
-        const canvas = await window.html2canvas(shareRef.current, { scale: 2, useCORS: true });
+        const canvas = await window.html2canvas(shareRef.current, {
+          scale: 2.5,
+          useCORS: true,
+          backgroundColor: '#ffffff',
+          logging: false
+        });
         const filename = `Servicio_${(item.nombre || 'Pasajero').trim()}_${(item.apellido || '').trim()}.png`.replace(/\s+/g, '_');
 
         const tieneComentarios = item.comentario && item.comentario.trim();
@@ -4266,69 +4271,222 @@ export default function App() {
 
       { }
       {renderData?.type === 'share' && (
-        <div className="fixed top-0 left-0 -z-50 pointer-events-none opacity-0">
-          <div ref={shareRef} className="bg-white p-6 w-[500px] border-4 border-gray-800 rounded-xl font-sans">
-            <div className="flex justify-between items-center border-b-2 border-gray-200 pb-4 mb-4">
-              <BallardLogo className="h-12" />
-              <div className="text-right">
-                <div className="text-sm text-gray-500 uppercase tracking-widest">{renderData.data.fecha}</div>
-                <div className="text-2xl font-bold">
+        <div style={{ position: 'fixed', top: 0, left: '-10000px', zIndex: -50, pointerEvents: 'none' }}>
+          <div
+            ref={shareRef}
+            style={{
+              width: '560px',
+              backgroundColor: '#ffffff',
+              border: '3px solid #1e293b',
+              borderRadius: '16px',
+              padding: '26px',
+              fontFamily: "'Segoe UI', Arial, sans-serif",
+              color: '#0f172a',
+              boxSizing: 'border-box'
+            }}
+          >
+            {/* ENCABEZADO: LOGO + FECHA Y HORA */}
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                borderBottom: '2px solid #e2e8f0',
+                paddingBottom: '18px',
+                marginBottom: '18px'
+              }}
+            >
+              <img
+                src="/logo-oficial.png"
+                alt="Ballard Tour Services"
+                style={{ height: '58px', width: 'auto', objectFit: 'contain', display: 'block' }}
+              />
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ fontSize: '13px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '2px' }}>
+                  {renderData.data.fecha || ''}
+                </div>
+                <div style={{ fontSize: '28px', fontWeight: 900, color: '#0f172a', lineHeight: 1.1 }}>
                   {renderData.data.tipoServicio?.toLowerCase() === 'salida'
                     ? (renderData.data.pickUp || renderData.data.pick_up || renderData.data.hora)
                     : renderData.data.hora}
                 </div>
                 {renderData.data.tipoServicio?.toLowerCase() === 'salida' && (
-                  <div className="text-[11px] font-bold text-blue-700 tracking-wider uppercase">Pick Up</div>
+                  <div style={{ fontSize: '11px', fontWeight: 800, color: '#1d4ed8', textTransform: 'uppercase', letterSpacing: '0.8px', marginTop: '2px' }}>
+                    PICK UP (LOBBY)
+                  </div>
                 )}
               </div>
             </div>
-            <div className="space-y-4">
-              <div>
-                <div className="text-xs text-gray-500 uppercase">Pasajero</div>
-                <div className="text-xl font-bold uppercase">{renderData.data.nombre} {renderData.data.apellido}</div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-gray-50 p-3 rounded">
-                  <div className="text-xs text-gray-500 uppercase flex items-center gap-1"><MapPin size={12} /> Hotel / Destino</div>
-                  <div className="font-semibold">{renderData.data.hotel}</div>
+
+            {/* CUERPO DE LA TARJETA */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              {/* PASAJERO */}
+              <div style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 16px' }}>
+                <div style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px' }}>
+                  Pasajero
                 </div>
-                <div className="bg-gray-50 p-3 rounded">
-                  <div className="text-xs text-gray-500 uppercase">
-                    {renderData.data.tipoServicio?.toLowerCase() === 'salida' ? 'Vuelo / Salida' : 'Vuelo'}
+                <div style={{ fontSize: '22px', fontWeight: 900, color: '#0f172a', textTransform: 'uppercase', lineHeight: 1.2 }}>
+                  {renderData.data.nombre || ''} {renderData.data.apellido || ''}
+                </div>
+              </div>
+
+              {/* HOTEL Y VUELO (2 COLUMNAS) */}
+              <div style={{ display: 'flex', gap: '12px' }}>
+                <div style={{ flex: 1, backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 14px' }}>
+                  <div style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: '4px' }}>
+                    📍 Hotel / Destino
                   </div>
-                  <div className="font-semibold">
+                  <div style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a', lineHeight: 1.3 }}>
+                    {renderData.data.hotel || 'N/A'}
+                  </div>
+                </div>
+
+                <div style={{ flex: 1, backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 14px' }}>
+                  <div style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: '4px' }}>
+                    ✈️ {renderData.data.tipoServicio?.toLowerCase() === 'salida' ? 'Vuelo / Salida' : 'Vuelo'}
+                  </div>
+                  <div style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a', lineHeight: 1.3 }}>
                     {renderData.data.vuelo || 'N/A'}
                     {renderData.data.tipoServicio?.toLowerCase() === 'salida' && renderData.data.hora && renderData.data.hora !== (renderData.data.pickUp || renderData.data.pick_up) && (
-                      <span className="text-xs text-gray-500 font-normal ml-1">({renderData.data.hora})</span>
+                      <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 600, marginLeft: '6px' }}>
+                        ({renderData.data.hora})
+                      </span>
                     )}
                   </div>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="border border-gray-200 p-3 rounded flex items-center justify-between">
-                  <span className="text-xs text-gray-500 uppercase flex items-center gap-1"><Users size={12} /> Pasajeros</span>
-                  <span className="font-bold text-lg">{renderData.data.pax}</span>
+
+              {/* PASAJEROS Y TIPO DE SERVICIO (2 COLUMNAS) */}
+              <div style={{ display: 'flex', gap: '12px' }}>
+                <div
+                  style={{
+                    flex: 1,
+                    border: '1px solid #cbd5e1',
+                    borderRadius: '10px',
+                    padding: '12px 16px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    backgroundColor: '#ffffff'
+                  }}
+                >
+                  <span style={{ fontSize: '12px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>
+                    👥 Pasajeros
+                  </span>
+                  <span style={{ fontSize: '20px', fontWeight: 900, color: '#0f172a' }}>
+                    {renderData.data.pax || '1'}
+                  </span>
                 </div>
-                <div className="border border-gray-200 p-3 rounded flex items-center justify-between">
-                  <span className="text-xs text-gray-500 uppercase">Servicio</span>
-                  <span className="font-bold text-blue-800">{renderData.data.tipoServicio}</span>
+
+                <div
+                  style={{
+                    flex: 1,
+                    border: '1px solid #cbd5e1',
+                    borderRadius: '10px',
+                    padding: '12px 16px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    backgroundColor: '#ffffff'
+                  }}
+                >
+                  <span style={{ fontSize: '12px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>
+                    🚐 Servicio
+                  </span>
+                  <span style={{ fontSize: '16px', fontWeight: 900, color: '#1e40af', textTransform: 'uppercase' }}>
+                    {renderData.data.tipoServicio || 'Traslado'}
+                  </span>
                 </div>
               </div>
+
+              {/* VEHÍCULO / CHOFER / AGENCIA SI EXISTEN */}
+              {(renderData.data.vehiculo || renderData.data.chofer) && (
+                <div style={{ display: 'flex', gap: '12px' }}>
+                  {renderData.data.vehiculo && (
+                    <div
+                      style={{
+                        flex: 1,
+                        border: '1px solid #e2e8f0',
+                        backgroundColor: '#f8fafc',
+                        borderRadius: '10px',
+                        padding: '10px 14px',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center'
+                      }}
+                    >
+                      <span style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>
+                        Vehículo
+                      </span>
+                      <span style={{ fontSize: '14px', fontWeight: 800, color: '#0f172a' }}>
+                        {renderData.data.vehiculo}
+                      </span>
+                    </div>
+                  )}
+                  {renderData.data.chofer && (
+                    <div
+                      style={{
+                        flex: 1,
+                        border: '1px solid #e2e8f0',
+                        backgroundColor: '#f8fafc',
+                        borderRadius: '10px',
+                        padding: '10px 14px',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center'
+                      }}
+                    >
+                      <span style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>
+                        Chofer
+                      </span>
+                      <span style={{ fontSize: '14px', fontWeight: 800, color: '#0f172a', textTransform: 'uppercase' }}>
+                        {renderData.data.chofer}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* EXTRAS (SILLAS DE BEBÉ / PARADA DE COMPRAS) */}
               {(renderData.data.carSeat > 0 || renderData.data.babySeat > 0 || renderData.data.booster > 0 || renderData.data.paradaCompras) && (
-                <div className="bg-blue-50 text-blue-900 p-3 rounded border border-blue-100">
-                  <div className="text-xs uppercase mb-1 font-semibold flex items-center gap-1"><Car size={12} /> Extras</div>
-                  <div className="flex flex-wrap gap-3 font-medium text-sm">
-                    {renderData.data.carSeat > 0 && <span>Car Seat: {renderData.data.carSeat}</span>}
-                    {renderData.data.babySeat > 0 && <span>Baby Seat: {renderData.data.babySeat}</span>}
-                    {renderData.data.booster > 0 && <span>Booster: {renderData.data.booster}</span>}
-                    {renderData.data.paradaCompras && <span className="bg-blue-200 px-2 py-0.5 rounded">Parada de Compras</span>}
+                <div style={{ backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '10px', padding: '12px 16px' }}>
+                  <div style={{ fontSize: '11px', fontWeight: 800, color: '#1e3a8a', textTransform: 'uppercase', marginBottom: '6px' }}>
+                    🚗 Extras Solicitados
+                  </div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', fontSize: '14px', fontWeight: 700, color: '#1e40af' }}>
+                    {renderData.data.carSeat > 0 && (
+                      <span style={{ backgroundColor: '#dbeafe', padding: '3px 10px', borderRadius: '6px' }}>
+                        Car Seat: {renderData.data.carSeat}
+                      </span>
+                    )}
+                    {renderData.data.babySeat > 0 && (
+                      <span style={{ backgroundColor: '#dbeafe', padding: '3px 10px', borderRadius: '6px' }}>
+                        Baby Seat: {renderData.data.babySeat}
+                      </span>
+                    )}
+                    {renderData.data.booster > 0 && (
+                      <span style={{ backgroundColor: '#dbeafe', padding: '3px 10px', borderRadius: '6px' }}>
+                        Booster: {renderData.data.booster}
+                      </span>
+                    )}
+                    {renderData.data.paradaCompras && (
+                      <span style={{ backgroundColor: '#bfdbfe', padding: '3px 10px', borderRadius: '6px' }}>
+                        🛒 Parada de Compras
+                      </span>
+                    )}
                   </div>
                 </div>
               )}
+
+              {/* COMENTARIOS */}
               {renderData.data.comentario && renderData.data.comentario.trim() && (
-                <div className="bg-amber-50 text-amber-950 p-3 rounded border border-amber-200">
-                  <div className="text-xs uppercase mb-1 font-bold tracking-wider text-amber-800">Comentarios</div>
-                  <div className="font-semibold text-sm whitespace-pre-wrap">{renderData.data.comentario}</div>
+                <div style={{ backgroundColor: '#fffbeb', border: '1px solid #fde68a', borderRadius: '10px', padding: '12px 16px' }}>
+                  <div style={{ fontSize: '11px', fontWeight: 800, color: '#92400e', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px' }}>
+                    📝 Comentarios
+                  </div>
+                  <div style={{ fontSize: '14px', fontWeight: 700, color: '#78350f', whiteSpace: 'pre-wrap', lineHeight: 1.4 }}>
+                    {renderData.data.comentario.trim()}
+                  </div>
                 </div>
               )}
             </div>
