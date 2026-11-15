@@ -144,7 +144,7 @@ const LISTA_HOTELES = [
   { nombre: "Lyla's Casita", zona: 5, descripcion: "Departamento para 5 huéspedes con jardín, área de barbacoa y piscina" }
 ];
 
-import { Document, Page, Text, View, StyleSheet, pdf } from '@react-pdf/renderer';
+import { Document, Page, Text, View, StyleSheet, pdf, Image as PdfImage, Svg, Rect } from '@react-pdf/renderer';
 
 // 1. Definimos los estilos vectoriales puros (No CSS web clásico, sino subset de Flexbox)
 const pdfStyles = StyleSheet.create({
@@ -365,6 +365,231 @@ const CierrePDFDocument = ({ data, tipo }) => {
           <Text style={[pdfStyles.totalValue, { color: isGeneral ? '#166534' : isCC ? '#6b21a8' : '#b91c1c' }]}>
             ${totalAcumulado.toFixed(2)}
           </Text>
+        </View>
+      </Page>
+    </Document>
+  );
+};
+
+// 3. Documento PDF Nativo Vectorial para el Letrero de Bienvenida (A4 Horizontal)
+const LetreroPDFDocument = ({ item, logoSrc }) => (
+  <Document>
+    <Page size="A4" orientation="landscape" style={{ backgroundColor: '#ffffff', paddingVertical: 28, paddingHorizontal: 40, flexDirection: 'column', justifyContent: 'space-between', alignItems: 'center' }}>
+      <View style={{ width: '100%', alignItems: 'center', marginTop: 4 }}>
+        <PdfImage src={logoSrc} style={{ width: 650, height: 165, objectFit: 'contain' }} />
+      </View>
+      <View style={{ width: '100%', alignItems: 'center', justifyContent: 'center', flexGrow: 1, paddingHorizontal: 10 }}>
+        <Text style={{ fontSize: 88, fontFamily: 'Helvetica-Bold', color: '#000000', textTransform: 'uppercase', textAlign: 'center', lineHeight: 1.05 }}>
+          {item.nombre || ''}
+        </Text>
+        <Text style={{ fontSize: 88, fontFamily: 'Helvetica-Bold', color: '#000000', textTransform: 'uppercase', textAlign: 'center', marginTop: 8, lineHeight: 1.05 }}>
+          {item.apellido || ''}
+        </Text>
+      </View>
+      <View style={{ alignItems: 'center', marginBottom: 6 }}>
+        <Text style={{ fontSize: 38, fontFamily: 'Times-Roman', color: '#B0BAC9' }}>
+          Welcome!
+        </Text>
+      </View>
+    </Page>
+  </Document>
+);
+
+// 4. Documento PDF Nativo Vectorial para el Ticket / Boleto de Transporte (Completo en 1 sola página Carta)
+const TicketPDFDocument = ({ data, lang = 'EN' }) => {
+  const isEN = lang === 'EN';
+  const isSalida = data.tipoServicio?.toLowerCase() === 'salida';
+  const isLlegada = data.tipoServicio === 'Llegada';
+  const folio = data.reserva || data.folio || (data.id ? String(data.id).slice(-5) : '00000');
+  const horaMostrar = (isSalida ? (data.pickUp || data.pick_up || data.hora) : data.hora) || '';
+  const tieneCobro = data.cobro && String(data.cobro) !== '0';
+  const textoPago = tieneCobro
+    ? `$${data.cobro} ${data.metodoPago ? `(${data.metodoPago})` : ''}`
+    : (isEN ? 'PREPAID' : 'PREPAGADO');
+
+  return (
+    <Document>
+      <Page size="LETTER" style={{ backgroundColor: '#ffffff', padding: 28, fontFamily: 'Helvetica', color: '#1e293b' }}>
+        <View style={{ borderWidth: 1, borderColor: '#cbd5e1', borderRadius: 12, overflow: 'hidden' }}>
+          {/* ENCABEZADO OSCURO */}
+          <View style={{ backgroundColor: '#0f172a', padding: 24, color: '#ffffff' }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <View>
+                <Text style={{ fontSize: 24, fontFamily: 'Helvetica-Bold', color: '#f59e0b', textTransform: 'uppercase', letterSpacing: 1 }}>
+                  BALLARD
+                </Text>
+                <Text style={{ fontSize: 10, color: '#cbd5e1', textTransform: 'uppercase', letterSpacing: 1.5, marginTop: 2 }}>
+                  TOUR SERVICES
+                </Text>
+              </View>
+              <View style={{ alignItems: 'flex-end' }}>
+                <View style={{ backgroundColor: '#f59e0b', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 4, marginBottom: 6 }}>
+                  <Text style={{ fontSize: 9, fontFamily: 'Helvetica-Bold', color: '#0f172a', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                    {isEN ? 'CONFIRMED' : 'CONFIRMADO'}
+                  </Text>
+                </View>
+                <Text style={{ fontSize: 10, fontFamily: 'Helvetica-Bold', color: '#cbd5e1', textTransform: 'uppercase' }}>
+                  FOLIO: {folio}
+                </Text>
+              </View>
+            </View>
+
+            <View style={{ marginTop: 18 }}>
+              <Text style={{ fontSize: 15, fontFamily: 'Helvetica-Bold', color: '#ffffff', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                {isEN ? 'PRIVATE TRANSPORTATION' : 'TRANSPORTE PRIVADO'}
+              </Text>
+              <Text style={{ fontSize: 10, color: '#94a3b8', marginTop: 3 }}>
+                ✓ Boleto Seguro / Safe Ticket
+              </Text>
+            </View>
+          </View>
+
+          {/* LÍNEA DIVISORIA PUNTEADA */}
+          <View style={{ borderBottomWidth: 1.5, borderBottomColor: '#cbd5e1', borderBottomStyle: 'dashed', marginVertical: 2 }} />
+
+          {/* DATOS DEL BOLETO EN 2 COLUMNAS */}
+          <View style={{ padding: 24, flexDirection: 'row', justifyContent: 'space-between' }}>
+            {/* Columna Izquierda */}
+            <View style={{ width: '48%' }}>
+              <View style={{ marginBottom: 16 }}>
+                <Text style={{ fontSize: 9, fontFamily: 'Helvetica-Bold', color: '#64748b', textTransform: 'uppercase', marginBottom: 4 }}>
+                  {isEN ? 'PASSENGER NAME' : 'NOMBRE DEL PASAJERO'}
+                </Text>
+                <Text style={{ fontSize: 14, fontFamily: 'Helvetica-Bold', color: '#1e293b', textTransform: 'uppercase' }}>
+                  {data.nombre || ''} {data.apellido || ''}
+                </Text>
+              </View>
+
+              <View>
+                <Text style={{ fontSize: 9, fontFamily: 'Helvetica-Bold', color: '#64748b', textTransform: 'uppercase', marginBottom: 4 }}>
+                  {isEN
+                    ? (isLlegada ? 'ARRIVAL DATE & TIME' : 'PICK UP DATE & TIME')
+                    : (isLlegada ? 'FECHA Y HORA DE LLEGADA' : 'FECHA Y HORA DE PICK UP')}
+                </Text>
+                <Text style={{ fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#1e293b', marginBottom: 3 }}>
+                  {data.fecha || ''}
+                </Text>
+                <Text style={{ fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#1e293b' }}>
+                  {horaMostrar} {isSalida ? '(Lobby)' : ''}
+                </Text>
+              </View>
+            </View>
+
+            {/* Columna Derecha */}
+            <View style={{ width: '48%' }}>
+              <View style={{ flexDirection: 'row', marginBottom: 16 }}>
+                <View style={{ width: '40%' }}>
+                  <Text style={{ fontSize: 9, fontFamily: 'Helvetica-Bold', color: '#64748b', textTransform: 'uppercase', marginBottom: 4 }}>
+                    PAX
+                  </Text>
+                  <Text style={{ fontSize: 14, fontFamily: 'Helvetica-Bold', color: '#1e293b' }}>
+                    {data.pax || '1'}
+                  </Text>
+                </View>
+                <View style={{ width: '60%' }}>
+                  <Text style={{ fontSize: 9, fontFamily: 'Helvetica-Bold', color: '#64748b', textTransform: 'uppercase', marginBottom: 4 }}>
+                    {isEN ? 'FLIGHT' : 'VUELO'}
+                  </Text>
+                  <Text style={{ fontSize: 14, fontFamily: 'Helvetica-Bold', color: '#1e293b', textTransform: 'uppercase' }}>
+                    {data.vuelo || 'N/A'}
+                    {isSalida && data.hora && data.hora !== (data.pickUp || data.pick_up) ? ` (${data.hora})` : ''}
+                  </Text>
+                </View>
+              </View>
+
+              <View style={{ marginBottom: 16 }}>
+                <Text style={{ fontSize: 9, fontFamily: 'Helvetica-Bold', color: '#64748b', textTransform: 'uppercase', marginBottom: 4 }}>
+                  {isEN ? 'HOTEL / DESTINATION' : 'HOTEL / DESTINO'}
+                </Text>
+                <Text style={{ fontSize: 12, fontFamily: 'Helvetica-Bold', color: '#1e293b', textTransform: 'uppercase', lineHeight: 1.3 }}>
+                  {data.hotel || ''}
+                </Text>
+              </View>
+
+              <View>
+                <Text style={{ fontSize: 9, fontFamily: 'Helvetica-Bold', color: '#64748b', textTransform: 'uppercase', marginBottom: 4 }}>
+                  {isEN ? 'PAYMENT / METHOD' : 'COBRO / MÉTODO'}
+                </Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <View style={{ backgroundColor: '#f59e0b', borderRadius: 10, width: 16, height: 16, alignItems: 'center', justifyContent: 'center', marginRight: 6 }}>
+                    <Text style={{ fontSize: 9, fontFamily: 'Helvetica-Bold', color: '#0f172a' }}>$</Text>
+                  </View>
+                  <Text style={{ fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#1e293b', textTransform: 'uppercase' }}>
+                    {textoPago}
+                  </Text>
+                </View>
+              </View>
+            </View>
+          </View>
+
+          {/* CÓDIGO DE BARRAS VECTORIAL */}
+          <View style={{ alignItems: 'center', marginBottom: 18, paddingHorizontal: 24 }}>
+            <Svg width="260" height="40" viewBox="0 0 200 50">
+              <Rect x="0" y="0" width="4" height="50" fill="#1e293b" />
+              <Rect x="6" y="0" width="2" height="50" fill="#1e293b" />
+              <Rect x="12" y="0" width="6" height="50" fill="#1e293b" />
+              <Rect x="22" y="0" width="2" height="50" fill="#1e293b" />
+              <Rect x="26" y="0" width="8" height="50" fill="#1e293b" />
+              <Rect x="38" y="0" width="4" height="50" fill="#1e293b" />
+              <Rect x="46" y="0" width="2" height="50" fill="#1e293b" />
+              <Rect x="52" y="0" width="6" height="50" fill="#1e293b" />
+              <Rect x="62" y="0" width="10" height="50" fill="#1e293b" />
+              <Rect x="76" y="0" width="4" height="50" fill="#1e293b" />
+              <Rect x="84" y="0" width="2" height="50" fill="#1e293b" />
+              <Rect x="90" y="0" width="8" height="50" fill="#1e293b" />
+              <Rect x="102" y="0" width="4" height="50" fill="#1e293b" />
+              <Rect x="110" y="0" width="6" height="50" fill="#1e293b" />
+              <Rect x="120" y="0" width="2" height="50" fill="#1e293b" />
+              <Rect x="126" y="0" width="8" height="50" fill="#1e293b" />
+              <Rect x="138" y="0" width="4" height="50" fill="#1e293b" />
+              <Rect x="146" y="0" width="2" height="50" fill="#1e293b" />
+              <Rect x="152" y="0" width="12" height="50" fill="#1e293b" />
+              <Rect x="168" y="0" width="4" height="50" fill="#1e293b" />
+              <Rect x="176" y="0" width="6" height="50" fill="#1e293b" />
+              <Rect x="186" y="0" width="2" height="50" fill="#1e293b" />
+              <Rect x="192" y="0" width="8" height="50" fill="#1e293b" />
+            </Svg>
+          </View>
+
+          {/* CUADRO DE INSTRUCCIONES */}
+          <View style={{ backgroundColor: '#fffbeb', borderWidth: 1, borderColor: '#fde68a', borderRadius: 8, padding: 16, marginHorizontal: 18, marginBottom: 16 }}>
+            <Text style={{ fontSize: 11, fontFamily: 'Helvetica-Bold', color: '#78350f', marginBottom: 6 }}>
+              {isLlegada
+                ? (isEN ? '• How to spot your driver upon arrival?' : '• ¿Cómo ubicar a su chofer al llegar?')
+                : (isEN ? '• Pick-up Instructions' : '• Instrucciones de Pick-up')}
+            </Text>
+            <Text style={{ fontSize: 9.5, color: '#92400e', lineHeight: 1.45, textAlign: 'justify' }}>
+              {isLlegada
+                ? (isEN
+                  ? 'All transport companies are waiting outside the departure gate. You just have to walk to the parking lot to look for your name on a sign. We are usually located in Shadow 3 or Terminal 1 is "SALIDA DE GRUPOS". So when you get there, just walk into the parking lot and you will see some staff members standing under these curtains holding up their signs, one of them will have your name on it.'
+                  : 'Todas las empresas de transporte esperan afuera de la puerta de salida. Camine al estacionamiento y busque su nombre en un letrero. Usualmente estamos en la Sombra 3 o Terminal 1 "SALIDA DE GRUPOS". Al llegar, camine al estacionamiento y verá a nuestro personal bajo los toldos con su letrero.')
+                : (isEN
+                  ? 'Please be ready in the hotel lobby 15 minutes before your scheduled pick-up time. Look for the driver holding a Ballard Tour Services sign. If you have any issues, please contact us immediately.'
+                  : 'Por favor, esté listo en el lobby del hotel 15 minutos antes de su hora programada de pick-up. Busque al chofer con el letrero de Ballard Tour Services. Si tiene algún problema, contáctenos de inmediato.')}
+            </Text>
+          </View>
+
+          {/* SECCIÓN DE OTRAS ACTIVIDADES */}
+          <View style={{ paddingHorizontal: 24, paddingBottom: 16, alignItems: 'center' }}>
+            <Text style={{ fontSize: 10.5, fontFamily: 'Helvetica-Bold', color: '#1e293b', marginBottom: 4, textAlign: 'center' }}>
+              {isEN ? 'You need other activities?' : '¿Buscas otras actividades?'}
+            </Text>
+            <Text style={{ fontSize: 8.5, color: '#64748b', textAlign: 'center', lineHeight: 1.4 }}>
+              {isEN
+                ? 'We can take you to see the Arch of Los Cabos, ride a motorcycle, get to know the Historic Center of San Jose del Cabo, the Hotel California in Todos Santos, and much more...'
+                : 'Podemos llevarte a conocer el Arco de Los Cabos, pasear en cuatrimoto, conocer el Centro Histórico de San José del Cabo, el Hotel California en Todos Santos y mucho más...'}
+            </Text>
+          </View>
+
+          {/* PIE DE PÁGINA OSCURO */}
+          <View style={{ backgroundColor: '#0f172a', paddingVertical: 12, paddingHorizontal: 20, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Text style={{ fontSize: 9, color: '#cbd5e1' }}>
+              Tel: +52 612 194 3286   |   reservationballard@gmail.com
+            </Text>
+            <Text style={{ fontSize: 9, color: '#f59e0b', fontFamily: 'Helvetica-Bold' }}>
+              www.ballardtours.com
+            </Text>
+          </View>
         </View>
       </Page>
     </Document>
@@ -1607,102 +1832,23 @@ export default function App() {
   };
 
   const generateWelcomeSign = async (item) => {
-    if (!libsLoaded || !window.jspdf) return showToast('Librerías cargando...', 'error');
-    showToast('Generando letrero...');
-    setRenderData({ type: 'sign', data: item });
-
-    setTimeout(async () => {
-      try {
-        const canvas = await window.html2canvas(signRef.current, { scale: 2, useCORS: true });
-        const imgData = canvas.toDataURL('image/jpeg', 1.0);
-        const pdf = new window.jspdf.jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-        const pdfWidth = pdf.internal.pageSize.getWidth();
-        const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-
-        pdf.addImage(imgData, 'JPEG', 0, (pdf.internal.pageSize.getHeight() - pdfHeight) / 2, pdfWidth, pdfHeight);
-        const filename = `Letrero_${(item.nombre || 'Pasajero').trim()}_${(item.apellido || '').trim()}.pdf`.replace(/\s+/g, '_');
-        const pdfBlob = pdf.output('blob');
-        const file = new File([pdfBlob], filename, { type: 'application/pdf' });
-        const esMovil = detectarEsMovil();
-
-        if (esMovil) {
-          if (navigator.share && (!navigator.canShare || navigator.canShare({ files: [file] }))) {
-            try {
-              await navigator.share({
-                files: [file],
-                title: `Letrero ${item.nombre || ''} ${item.apellido || ''}`.trim(),
-                text: `Letrero de bienvenida: ${item.nombre || ''} ${item.apellido || ''}`.trim()
-              });
-              setRenderData(null);
-              showToast('Letrero compartido con éxito');
-              return;
-            } catch (error) {
-              if (error.name === 'AbortError') {
-                setRenderData(null);
-                return;
-              }
-            }
-          }
-
-          setReadyShareModal({
-            file,
-            blob: pdfBlob,
-            filename,
-            title: `Letrero ${item.nombre || ''} ${item.apellido || ''}`.trim(),
-            text: `Letrero de bienvenida: ${item.nombre || ''} ${item.apellido || ''}`.trim(),
-            previewUrl: imgData,
-            tipo: 'Letrero (PDF)'
-          });
-          setRenderData(null);
-          return;
-        }
-
-        pdf.save(filename);
-        setRenderData(null);
-        showToast('Letrero PDF generado');
-      } catch (e) {
-        console.error(e);
-        showToast('Error generando Letrero', 'error');
-        setRenderData(null);
-      }
-    }, 300);
-  };
-
-  const shareTicketMobile = async (formato = 'PDF') => {
-    if (!libsLoaded || !ticketPrintRef.current) return showToast('Preparando ticket...', 'error');
-    showToast('Preparando ticket para compartir...');
-
+    showToast('Generando letrero en PDF Natural...');
     try {
-      const canvas = await window.html2canvas(ticketPrintRef.current, {
-        scale: 2,
-        useCORS: true,
-        backgroundColor: '#ffffff'
-      });
-      const numeroReserva = (ticketDataToPrint?.reserva || ticketDataToPrint?.folio || (ticketDataToPrint?.id ? ticketDataToPrint.id.slice(-5) : "00000")).toString().trim().replace(/[/\\?%*:|"<>]/g, '_');
-      const nombrePasajero = `${ticketDataToPrint?.nombre || ''} ${ticketDataToPrint?.apellido || ''}`.trim();
-      const previewUrl = canvas.toDataURL('image/png');
+      const logoSrc = `${window.location.origin}/logo-letrero.jpg`;
+      const pdfBlob = await pdf(<LetreroPDFDocument item={item} logoSrc={logoSrc} />).toBlob();
+      const filename = `Letrero_${(item.nombre || 'Pasajero').trim()}_${(item.apellido || '').trim()}.pdf`.replace(/\s+/g, '_');
+      const file = new File([pdfBlob], filename, { type: 'application/pdf' });
+      const esMovil = detectarEsMovil();
 
-      if (formato === 'PDF' && window.jspdf) {
-        const imgData = canvas.toDataURL('image/jpeg', 0.95);
-        const pdf = new window.jspdf.jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-        const pdfWidth = pdf.internal.pageSize.getWidth();
-        const margin = 10;
-        const contentWidth = pdfWidth - margin * 2;
-        const contentHeight = (canvas.height * contentWidth) / canvas.width;
-
-        pdf.addImage(imgData, 'JPEG', margin, margin, contentWidth, contentHeight);
-        const filename = `TICKET-${numeroReserva}.pdf`;
-        const pdfBlob = pdf.output('blob');
-        const file = new File([pdfBlob], filename, { type: 'application/pdf' });
-
+      if (esMovil) {
         if (navigator.share && (!navigator.canShare || navigator.canShare({ files: [file] }))) {
           try {
             await navigator.share({
               files: [file],
-              title: `Ticket ${numeroReserva}`,
-              text: `Boleto de Transporte - ${nombrePasajero} (Folio: ${numeroReserva})`
+              title: `Letrero ${item.nombre || ''} ${item.apellido || ''}`.trim(),
+              text: `Letrero de bienvenida: ${item.nombre || ''} ${item.apellido || ''}`.trim()
             });
-            showToast('Ticket compartido con éxito');
+            showToast('Letrero PDF compartido con éxito');
             return;
           } catch (error) {
             if (error.name === 'AbortError') return;
@@ -1713,12 +1859,74 @@ export default function App() {
           file,
           blob: pdfBlob,
           filename,
-          title: `Ticket ${numeroReserva}`,
-          text: `Boleto de Transporte - ${nombrePasajero} (Folio: ${numeroReserva})`,
-          previewUrl,
-          tipo: 'Ticket (PDF)'
+          title: `Letrero ${item.nombre || ''} ${item.apellido || ''}`.trim(),
+          text: `Letrero de bienvenida: ${item.nombre || ''} ${item.apellido || ''}`.trim(),
+          previewUrl: '/logo-letrero.jpg',
+          tipo: 'Letrero (PDF Natural)'
         });
+        return;
+      }
+
+      guardarArchivoPNG(pdfBlob, filename);
+      showToast('Letrero PDF Natural descargado');
+    } catch (e) {
+      console.error('Error generando Letrero PDF Natural:', e);
+      showToast('Error generando Letrero PDF', 'error');
+    }
+  };
+
+  const shareTicketMobile = async (formato = 'PDF') => {
+    if (!ticketDataToPrint) return showToast('Preparando ticket...', 'error');
+    showToast('Generando Ticket en PDF Natural completo...');
+
+    try {
+      const numeroReserva = (ticketDataToPrint?.reserva || ticketDataToPrint?.folio || (ticketDataToPrint?.id ? String(ticketDataToPrint.id).slice(-5) : "00000")).toString().trim().replace(/[/\\?%*:|"<>]/g, '_');
+      const nombrePasajero = `${ticketDataToPrint?.nombre || ''} ${ticketDataToPrint?.apellido || ''}`.trim();
+
+      if (formato === 'PDF') {
+        // Generamos PDF 100% Nativo Vectorial completo (sin recortes ni capturas de pantalla)
+        const pdfBlob = await pdf(<TicketPDFDocument data={ticketDataToPrint} lang={ticketLang} />).toBlob();
+        const filename = `TICKET-${numeroReserva}.pdf`;
+        const file = new File([pdfBlob], filename, { type: 'application/pdf' });
+
+        if (navigator.share && (!navigator.canShare || navigator.canShare({ files: [file] }))) {
+          try {
+            await navigator.share({
+              files: [file],
+              title: `Ticket ${numeroReserva}`,
+              text: `Boleto de Transporte - ${nombrePasajero} (Folio: ${numeroReserva})`
+            });
+            showToast('Ticket PDF compartido con éxito');
+            return;
+          } catch (error) {
+            if (error.name === 'AbortError') return;
+          }
+        }
+
+        if (detectarEsMovil()) {
+          setReadyShareModal({
+            file,
+            blob: pdfBlob,
+            filename,
+            title: `Ticket ${numeroReserva}`,
+            text: `Boleto de Transporte - ${nombrePasajero} (Folio: ${numeroReserva})`,
+            previewUrl: null,
+            tipo: 'Ticket Completo (PDF Natural)'
+          });
+        } else {
+          guardarArchivoPNG(pdfBlob, filename);
+          showToast('Ticket PDF Natural descargado con éxito');
+        }
       } else {
+        if (!libsLoaded || !ticketPrintRef.current) return showToast('Preparando imagen...', 'error');
+        const canvas = await window.html2canvas(ticketPrintRef.current, {
+          scale: 2,
+          useCORS: true,
+          backgroundColor: '#ffffff',
+          windowWidth: 900,
+          scrollY: 0
+        });
+        const previewUrl = canvas.toDataURL('image/png');
         canvas.toBlob(async (blob) => {
           if (!blob) return showToast('Error al generar imagen del ticket', 'error');
           const filename = `TICKET-${numeroReserva}.png`;
@@ -4129,13 +4337,21 @@ export default function App() {
             </div>
 
             <div className="p-5 flex flex-col items-center gap-4">
-              {readyShareModal.previewUrl && (
+              {readyShareModal.previewUrl ? (
                 <div className="w-full max-h-60 overflow-hidden rounded-xl border border-gray-200 bg-gray-50 flex items-center justify-center p-2">
                   <img
                     src={readyShareModal.previewUrl}
                     alt="Vista previa"
                     className="max-h-56 w-auto object-contain rounded shadow-sm"
                   />
+                </div>
+              ) : (
+                <div className="w-full py-6 px-4 rounded-xl border border-emerald-200 bg-emerald-50 flex flex-col items-center justify-center gap-2 text-center">
+                  <FileText size={38} className="text-emerald-600" />
+                  <span className="font-bold text-sm text-emerald-950">{readyShareModal.filename}</span>
+                  <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-100 px-2.5 py-0.5 rounded-full">
+                    PDF Natural 100% Completo (Sin recortes)
+                  </span>
                 </div>
               )}
 
@@ -4187,80 +4403,43 @@ export default function App() {
               🔄 Cambiar a {ticketLang === 'EN' ? 'Español' : 'English'}
             </button>
 
-            {/* BOTÓN ENVIAR POR WHATSAPP / COMPARTIR (Especial para celular y también disponible en PC) */}
-            <button
-              onClick={() => shareTicketMobile('PNG')}
-              className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-xl shadow-md flex items-center gap-2 text-sm transition-colors"
-            >
-              <Send size={16} /> Enviar WhatsApp (Imagen)
-            </button>
-
+            {/* BOTÓN ENVIAR POR WHATSAPP / COMPARTIR (Envía el PDF Natural 100% Completo) */}
             <button
               onClick={() => shareTicketMobile('PDF')}
-              className="bg-emerald-700 hover:bg-emerald-800 text-white font-bold py-2 px-4 rounded-xl shadow-md flex items-center gap-2 text-sm transition-colors"
+              className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-xl shadow-md flex items-center gap-2 text-sm transition-colors"
             >
-              📄 Enviar PDF
+              <Send size={16} /> Enviar PDF por WhatsApp
             </button>
 
             <button
-              onClick={() => {
-                // Si está en celular, generamos y compartimos el PDF directamente porque window.print() no permite enviar por WhatsApp en móvil
+              onClick={() => shareTicketMobile('PNG')}
+              className="bg-emerald-700 hover:bg-emerald-800 text-white font-bold py-2 px-4 rounded-xl shadow-md flex items-center gap-2 text-sm transition-colors"
+            >
+              🖼️ Enviar Imagen
+            </button>
+
+            <button
+              onClick={async () => {
+                // Si está en celular, generamos y compartimos el PDF Natural directamente
                 if (detectarEsMovil()) {
                   shareTicketMobile('PDF');
                   return;
                 }
 
-                // 1. Conseguimos el número de reserva del ticket actual (ej. OWNCINGN)
-                const numeroReserva = (ticketDataToPrint?.reserva || ticketDataToPrint?.folio || (ticketDataToPrint?.id ? ticketDataToPrint.id.slice(-5) : "00000")).toString().trim().replace(/[/\\?%*:|"<>]/g, '_');
-
-                // 2. Guardamos el título original de la pestaña de tu app
-                const tituloOriginal = document.title;
-
-                // 3. LE CAMBIAMOS EL NOMBRE AL ARCHIVO AUTOMÁTICAMENTE
-                // Al hacer esto, el navegador usará este texto exacto como nombre por defecto del PDF
-                document.title = `TICKET-${numeroReserva}`;
-
-                // 4. EL TRUCO CONTRA LA SEGUNDA HOJA: Creamos un estilo temporal ultra-estricto para la impresión
-                const estiloImpresion = document.createElement('style');
-                estiloImpresion.innerHTML = `
-      @media print {
-        @page {
-          size: letter !important; /* Forzamos tamaño carta */
-          margin: 0mm !important;  /* Cero márgenes del navegador */
-        }
-        body, html, #root {
-          height: 100% !important;
-          max-height: 297mm !important; /* Límite físico de la hoja */
-          overflow: hidden !important;
-          background: white !important;
-          -webkit-print-color-adjust: exact !important;
-          print-color-adjust: exact !important;
-        }
-        /* Buscamos el contenedor del boleto y lo obligamos a ajustarse perfectamente */
-        /* Reemplaza '.max-w-md' por la clase contenedora principal de tu boleto si es diferente */
-        .max-w-md, .bg-white, main { 
-          max-height: 280mm !important;
-          margin: 0 auto !important;
-          box-shadow: none !important;
-          page-break-inside: avoid !important;
-          page-break-after: avoid !important;
-        }
-      }
-    `;
-                document.head.appendChild(estiloImpresion);
-
-                // 5. Mandamos a imprimir / Guardar PDF
-                window.print();
-
-                // 6. LIMPIEZA: Cuando se cierre el asistente de PDF, regresamos todo a la normalidad
-                setTimeout(() => {
-                  document.title = tituloOriginal; // Regresa el nombre normal de tu app a la pestaña
-                  document.head.removeChild(estiloImpresion); // Quitamos el parche de impresión temporal
-                }, 1000);
+                try {
+                  showToast('Descargando Ticket en PDF Natural...');
+                  const numeroReserva = (ticketDataToPrint?.reserva || ticketDataToPrint?.folio || (ticketDataToPrint?.id ? String(ticketDataToPrint.id).slice(-5) : "00000")).toString().trim().replace(/[/\\?%*:|"<>]/g, '_');
+                  const pdfBlob = await pdf(<TicketPDFDocument data={ticketDataToPrint} lang={ticketLang} />).toBlob();
+                  guardarArchivoPNG(pdfBlob, `TICKET-${numeroReserva}.pdf`);
+                  showToast('Ticket PDF Natural descargado');
+                } catch (e) {
+                  console.error(e);
+                  window.print();
+                }
               }}
               className="bg-amber-500 hover:bg-amber-600 text-white font-bold py-2 px-4 rounded-xl shadow-md flex items-center gap-2 text-sm transition-colors"
             >
-              🖨️ Imprimir / PDF
+              🖨️ Descargar / Imprimir PDF
             </button>
             {/* BOTÓN REGRESAR AL MENÚ */}
             <button

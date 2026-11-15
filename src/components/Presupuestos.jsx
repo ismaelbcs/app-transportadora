@@ -6,6 +6,284 @@ import {
   Eye, Edit3, X, Languages, ArrowLeft, Car, Receipt, ShoppingBag, BadgeCheck,
   Cloud, Database, RefreshCw, Send
 } from 'lucide-react';
+import { Document, Page, Text, View, pdf } from '@react-pdf/renderer';
+
+// Documento PDF Nativo Vectorial para Presupuesto / Ticket de Venta (100% texto seleccionable, completo y sin cortes)
+const PresupuestoPDFDocument = ({ cotizacion, idioma, formatearMetodoPago }) => {
+  const isEN = idioma === 'EN';
+  const esVenta = cotizacion.tipoDocumento === 'VENTA' || cotizacion.estado === 'VENTA';
+  const numFolio = cotizacion.numeroTicket || cotizacion.folio || 'COT-0000';
+  const fechaEmision = cotizacion.fechaEmision || new Date().toISOString().split('T')[0];
+
+  const tituloPrincipal = esVenta
+    ? (isEN ? 'OFFICIAL SALES TICKET' : 'TICKET DE VENTA - TRANSPORTE')
+    : (isEN ? 'TRANSPORTATION QUOTE' : 'PRESUPUESTO DE TRANSPORTE');
+  const subtituloSeguro = esVenta
+    ? (isEN
+      ? `✓ Confirmed Private Transportation (${cotizacion.tipoVehiculo || 'SUV'}) / Official Ticket`
+      : `✓ Transporte Privado Confirmado (${cotizacion.tipoVehiculo || 'SUV'}) / Boleto Oficial`)
+    : (isEN
+      ? `✓ Private Transportation (${cotizacion.tipoVehiculo || 'SUV'}) / Safe Ticket`
+      : `✓ Transporte Privado (${cotizacion.tipoVehiculo || 'SUV'}) / Boleto Seguro`);
+  const badgeEstado = esVenta
+    ? (isEN ? 'SALE CONFIRMED' : 'VENTA CONFIRMADA')
+    : (isEN
+      ? (cotizacion.estado === 'CONVERTIDO' ? 'RESERVED' : (cotizacion.estado === 'APROBADO' ? 'CONFIRMED' : 'IN REVIEW'))
+      : (cotizacion.estado || 'EN REVISIÓN'));
+  const folioLabel = esVenta
+    ? (isEN ? 'SALES TICKET #:' : 'N° TICKET:')
+    : 'FOLIO:';
+  const fechaLabel = isEN ? 'DATE:' : 'FECHA:';
+
+  const isUSD = (cotizacion.moneda || 'USD') === 'USD';
+  const totalNum = parseFloat(cotizacion.precioTotal) || 0;
+  const tcNum = parseFloat(cotizacion.tipoCambio) || 0;
+  const mostrarConversion = cotizacion.mostrarEquivalenteMXN !== false && tcNum > 0;
+  const convertedNum = tcNum > 0 ? (isUSD ? totalNum * tcNum : totalNum / tcNum) : 0;
+  const primaryCurrency = isUSD ? 'USD' : 'MXN';
+  const secondaryCurrency = isUSD ? 'MXN' : 'USD';
+
+  return (
+    <Document>
+      <Page size="LETTER" style={{ backgroundColor: '#ffffff', padding: 24, fontFamily: 'Helvetica', color: '#161D2D' }}>
+        <View style={{ borderWidth: 1, borderColor: '#d1d5db', borderRadius: 10, overflow: 'hidden' }}>
+          {/* ENCABEZADO OSCURO */}
+          <View style={{ backgroundColor: '#161D2D', padding: 20, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <View style={{ width: '62%' }}>
+              <Text style={{ color: '#FFB300', fontSize: 24, fontFamily: 'Helvetica-Bold', letterSpacing: 1 }}>BALLARD</Text>
+              <Text style={{ color: '#ffffff', fontSize: 10, letterSpacing: 1, marginTop: 2 }}>TOUR SERVICES</Text>
+              <Text style={{ color: '#ffffff', fontSize: 15, fontFamily: 'Helvetica-Bold', marginTop: 12 }}>{tituloPrincipal}</Text>
+              <Text style={{ color: esVenta ? '#34d399' : '#FFB300', fontSize: 9.5, marginTop: 3 }}>{subtituloSeguro}</Text>
+            </View>
+            <View style={{ width: '38%', alignItems: 'flex-end' }}>
+              <View style={{ backgroundColor: esVenta ? '#059669' : '#FFB300', paddingHorizontal: 12, paddingVertical: 5, borderRadius: 5, marginBottom: 8 }}>
+                <Text style={{ color: esVenta ? '#ffffff' : '#161D2D', fontSize: 9.5, fontFamily: 'Helvetica-Bold' }}>{badgeEstado}</Text>
+              </View>
+              <Text style={{ color: esVenta ? '#6ee7b7' : '#a0aabf', fontSize: 10, fontFamily: 'Helvetica-Bold' }}>
+                {folioLabel} {numFolio}
+              </Text>
+              <Text style={{ color: '#a0aabf', fontSize: 9, marginTop: 3 }}>
+                {fechaLabel} {fechaEmision}
+              </Text>
+            </View>
+          </View>
+
+          {/* CUERPO DEL DOCUMENTO */}
+          <View style={{ padding: 20 }}>
+            {/* FILA 1: CLIENTE, PAX, VEHÍCULO, VUELO */}
+            <View style={{ flexDirection: 'row', marginBottom: 14 }}>
+              <View style={{ width: '34%', paddingRight: 8 }}>
+                <Text style={{ fontSize: 8, color: '#7A7A7A', fontFamily: 'Helvetica-Bold', textTransform: 'uppercase', marginBottom: 3 }}>
+                  {isEN ? 'PASSENGER / CLIENT NAME' : 'NOMBRE DEL PASAJERO / CLIENTE'}
+                </Text>
+                <Text style={{ fontSize: 12.5, color: '#161D2D', fontFamily: 'Helvetica-Bold' }}>
+                  {cotizacion.nombreCliente || (isEN ? '[Client Name]' : '[Nombre del Cliente]')}
+                </Text>
+              </View>
+              <View style={{ width: '16%', paddingRight: 8 }}>
+                <Text style={{ fontSize: 8, color: '#7A7A7A', fontFamily: 'Helvetica-Bold', textTransform: 'uppercase', marginBottom: 3 }}>
+                  {isEN ? 'PASSENGERS (PAX)' : 'PASAJEROS (PAX)'}
+                </Text>
+                <Text style={{ fontSize: 12, color: '#161D2D', fontFamily: 'Helvetica-Bold' }}>
+                  {cotizacion.pax || '1'}
+                </Text>
+              </View>
+              <View style={{ width: '20%', paddingRight: 8 }}>
+                <Text style={{ fontSize: 8, color: '#7A7A7A', fontFamily: 'Helvetica-Bold', textTransform: 'uppercase', marginBottom: 3 }}>
+                  {isEN ? 'VEHICLE TYPE' : 'TIPO DE VEHÍCULO'}
+                </Text>
+                <Text style={{ fontSize: 12, color: '#161D2D', fontFamily: 'Helvetica-Bold' }}>
+                  {cotizacion.tipoVehiculo === 'VAN' ? 'VAN' : 'SUV'}
+                </Text>
+              </View>
+              <View style={{ width: '30%' }}>
+                <Text style={{ fontSize: 8, color: '#7A7A7A', fontFamily: 'Helvetica-Bold', textTransform: 'uppercase', marginBottom: 3 }}>
+                  {isEN ? 'AIRLINE & FLIGHT' : 'AEROLÍNEA Y VUELO'}
+                </Text>
+                <Text style={{ fontSize: 11.5, color: '#161D2D', fontFamily: 'Helvetica-Bold', textTransform: 'uppercase' }}>
+                  {cotizacion.aerolineaVuelo || (isEN ? '[Airline & Flight]' : '[Aerolínea y Vuelo]')}
+                </Text>
+              </View>
+            </View>
+
+            {/* FILA 2: HOTEL, MÉTODO DE PAGO, CHECKOUT */}
+            <View style={{ flexDirection: 'row', marginBottom: 14 }}>
+              <View style={{ width: '34%', paddingRight: 8 }}>
+                <Text style={{ fontSize: 8, color: '#7A7A7A', fontFamily: 'Helvetica-Bold', textTransform: 'uppercase', marginBottom: 3 }}>
+                  {isEN ? 'HOTEL / MAIN LODGING' : 'HOTEL / ALOJAMIENTO PRINCIPAL'}
+                </Text>
+                <Text style={{ fontSize: 11.5, color: '#161D2D', fontFamily: 'Helvetica-Bold' }}>
+                  {cotizacion.hotelPrincipal || (isEN ? '[Hotel or Villa Name]' : '[Nombre del Hotel o Villa]')}
+                </Text>
+              </View>
+              <View style={{ width: '36%', paddingRight: 8 }}>
+                <Text style={{ fontSize: 8, color: '#7A7A7A', fontFamily: 'Helvetica-Bold', textTransform: 'uppercase', marginBottom: 3 }}>
+                  {isEN ? 'PAYMENT METHOD' : 'MÉTODO DE PAGO'}
+                </Text>
+                <Text style={{ fontSize: 11.5, color: '#161D2D', fontFamily: 'Helvetica-Bold' }}>
+                  {formatearMetodoPago ? formatearMetodoPago(cotizacion.metodoPago, idioma) : (cotizacion.metodoPago || '')}
+                </Text>
+              </View>
+              <View style={{ width: '30%' }}>
+                <Text style={{ fontSize: 8, color: '#7A7A7A', fontFamily: 'Helvetica-Bold', textTransform: 'uppercase', marginBottom: 3 }}>
+                  {isEN ? 'RETURN TIME (CHECK-OUT)' : 'HORA DE REGRESO (CHECK-OUT)'}
+                </Text>
+                <Text style={{ fontSize: 11.5, color: '#D97706', fontFamily: 'Helvetica-Bold' }}>
+                  {cotizacion.horaCheckout ? `${cotizacion.horaCheckout} HRS` : '[HH:MM HRS]'}
+                </Text>
+              </View>
+            </View>
+
+            {/* DIVISOR PUNTEADO */}
+            <View style={{ borderBottomWidth: 1.5, borderBottomColor: '#e0e0e0', borderBottomStyle: 'dashed', marginVertical: 12 }} />
+
+            {/* TÍTULO DE ITINERARIO */}
+            <View style={{ alignSelf: 'flex-start', borderBottomWidth: 2, borderBottomColor: '#161D2D', paddingBottom: 3, marginBottom: 10 }}>
+              <Text style={{ fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#161D2D' }}>
+                {isEN ? 'Requested Itinerary and Destinations' : 'Itinerario y Destinos Solicitados'}
+              </Text>
+            </View>
+
+            {/* TABLA DE ITINERARIO */}
+            <View style={{ marginBottom: 16 }}>
+              {/* Encabezado de tabla */}
+              <View style={{ flexDirection: 'row', backgroundColor: '#f9f9f9', borderBottomWidth: 1, borderBottomColor: '#dddddd', paddingVertical: 7, paddingHorizontal: 8 }}>
+                <Text style={{ width: '20%', fontSize: 8, fontFamily: 'Helvetica-Bold', color: '#7A7A7A', textTransform: 'uppercase' }}>
+                  {isEN ? 'STAGE' : 'ETAPA'}
+                </Text>
+                <Text style={{ width: '40%', fontSize: 8, fontFamily: 'Helvetica-Bold', color: '#7A7A7A', textTransform: 'uppercase' }}>
+                  {isEN ? 'ROUTE / DESTINATION DESCRIPTION' : 'DESCRIPCIÓN DEL TRAYECTO / DESTINO'}
+                </Text>
+                <Text style={{ width: '12%', fontSize: 8, fontFamily: 'Helvetica-Bold', color: '#7A7A7A', textTransform: 'uppercase', textAlign: 'center' }}>
+                  PAX
+                </Text>
+                <Text style={{ width: '28%', fontSize: 8, fontFamily: 'Helvetica-Bold', color: '#7A7A7A', textTransform: 'uppercase' }}>
+                  {isEN ? 'DATE AND TIME' : 'FECHA Y HORA'}
+                </Text>
+              </View>
+
+              {/* Filas de etapas */}
+              {(cotizacion.etapas || []).map((etapa, idx) => {
+                const esSalida = etapa.tipo === 'salida';
+                let descripcionTrayecto = '';
+                if (etapa.origen && etapa.destino) {
+                  descripcionTrayecto = `${etapa.origen} -> ${etapa.destino}`;
+                } else if (etapa.tipo === 'llegada') {
+                  descripcionTrayecto = `Aeropuerto SJD -> ${etapa.destino || cotizacion.hotelPrincipal || '[Hotel Destino]'}`;
+                } else if (etapa.tipo === 'salida') {
+                  descripcionTrayecto = `${etapa.origen || cotizacion.hotelPrincipal || '[Hotel Destino]'} -> Aeropuerto SJD`;
+                } else {
+                  descripcionTrayecto = etapa.destino ? `Hacia ${etapa.destino}` : '[Lugar Origen -> Lugar Destino]';
+                }
+
+                const fechaFormateada = etapa.fecha || '[DD-MMM-AAAA]';
+                const paxTramo = etapa.pax || cotizacion.pax || '1';
+                const horaPickUp = etapa.horaRecogida || etapa.hora;
+                const horaReturn = etapa.horaRegreso;
+
+                return (
+                  <View
+                    key={etapa.id || idx}
+                    wrap={false}
+                    style={{
+                      flexDirection: 'row',
+                      backgroundColor: esSalida ? '#fff9f0' : '#ffffff',
+                      borderBottomWidth: 1,
+                      borderBottomColor: '#eeeeee',
+                      paddingVertical: 9,
+                      paddingHorizontal: 8
+                    }}
+                  >
+                    <View style={{ width: '20%', paddingRight: 6 }}>
+                      <Text style={{ fontSize: 10, fontFamily: 'Helvetica-Bold', color: esSalida ? '#D97706' : '#333333' }}>
+                        {isEN ? (etapa.etiquetaEN || etapa.etiquetaES) : (etapa.etiquetaES || etapa.etiquetaEN)}
+                      </Text>
+                    </View>
+                    <View style={{ width: '40%', paddingRight: 6 }}>
+                      <Text style={{ fontSize: 10, color: '#222222' }}>
+                        {descripcionTrayecto}
+                      </Text>
+                    </View>
+                    <View style={{ width: '12%', alignItems: 'center' }}>
+                      <Text style={{ fontSize: 10, fontFamily: 'Helvetica-Bold', color: '#161D2D' }}>
+                        {paxTramo}
+                      </Text>
+                    </View>
+                    <View style={{ width: '28%' }}>
+                      <Text style={{ fontSize: 9.5, fontFamily: 'Helvetica-Bold', color: '#161D2D', marginBottom: 2 }}>
+                        {fechaFormateada}
+                      </Text>
+                      {horaPickUp ? (
+                        <Text style={{ fontSize: 8.5, color: '#334155' }}>
+                          <Text style={{ fontFamily: 'Helvetica-Bold', color: '#0284c7' }}>
+                            {isEN ? 'Pick-up: ' : 'Recogida: '}
+                          </Text>
+                          {horaPickUp}
+                        </Text>
+                      ) : null}
+                      {horaReturn ? (
+                        <Text style={{ fontSize: 8.5, color: '#334155', marginTop: 1 }}>
+                          <Text style={{ fontFamily: 'Helvetica-Bold', color: '#d97706' }}>
+                            {isEN ? 'Return: ' : 'Regreso: '}
+                          </Text>
+                          {horaReturn}
+                        </Text>
+                      ) : null}
+                      {!horaPickUp && !horaReturn ? (
+                        <Text style={{ fontSize: 8.5, color: '#64748b' }}>[HH:MM]</Text>
+                      ) : null}
+                    </View>
+                  </View>
+                );
+              })}
+            </View>
+
+            {/* CUADRO DE PRECIO TOTAL */}
+            <View wrap={false} style={{ backgroundColor: '#f4f4f9', borderRadius: 6, padding: 14, alignItems: 'flex-end', marginBottom: 14 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Text style={{ fontSize: 8.5, color: '#7A7A7A', fontFamily: 'Helvetica-Bold', textTransform: 'uppercase', marginRight: 8 }}>
+                  {isEN ? 'TOTAL QUOTE:' : 'TOTAL DEL PRESUPUESTO:'}
+                </Text>
+                <Text style={{ fontSize: 18, color: '#161D2D', fontFamily: 'Helvetica-Bold' }}>
+                  $ {totalNum.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {primaryCurrency}
+                </Text>
+              </View>
+              {mostrarConversion ? (
+                <View style={{ backgroundColor: '#dcfce7', borderWidth: 1, borderColor: '#bbf7d0', borderRadius: 4, paddingVertical: 4, paddingHorizontal: 8, marginTop: 5 }}>
+                  <Text style={{ fontSize: 8.5, color: '#166534', fontFamily: 'Helvetica-Bold' }}>
+                    {isEN ? 'Approx. ' : 'Equivalente: '}
+                    $ {convertedNum.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {secondaryCurrency}
+                    {'  '}
+                    ({isEN ? 'Exchange Rate:' : 'Tipo de Cambio:'} ${tcNum.toFixed(2)} MXN/USD)
+                  </Text>
+                </View>
+              ) : null}
+            </View>
+
+            {/* INSTRUCCIONES DE LLEGADA */}
+            <View wrap={false} style={{ backgroundColor: '#FFFBF0', borderWidth: 1, borderColor: '#FFE099', borderRadius: 6, padding: 12 }}>
+              <Text style={{ fontSize: 10.5, fontFamily: 'Helvetica-Bold', color: '#D97706', marginBottom: 5 }}>
+                {isEN ? '• How to find your driver upon arrival?' : '• ¿Cómo encontrar a su chofer a la llegada?'}
+              </Text>
+              <Text style={{ fontSize: 9, color: '#555555', lineHeight: 1.4, textAlign: 'justify' }}>
+                {isEN
+                  ? 'All transport companies are waiting outside the departure gate. You just have to walk to the parking lot and look for your name on a sign. We are usually located in the "GROUP EXIT" (Shadow 3 / Terminal 1). When you get there, walk into the parking lot and you will see our staff holding up your name signs.'
+                  : 'Todas las compañías de transporte esperan afuera de la puerta de salidas. Solo tiene que caminar hacia el estacionamiento y buscar su nombre en un letrero. Usualmente nos encontramos en la "SALIDA DE GRUPOS" (Shadow 3 / Terminal 1). Cuando llegue ahí, camine al estacionamiento y verá a nuestro personal sosteniendo sus letreros.'}
+              </Text>
+            </View>
+          </View>
+
+          {/* PIE DE PÁGINA */}
+          <View wrap={false} style={{ backgroundColor: '#161D2D', paddingVertical: 11, paddingHorizontal: 20, flexDirection: 'row', justifyContent: 'center', alignItems: 'center' }}>
+            <Text style={{ fontSize: 9, color: '#FFB300', marginRight: 14 }}>Tel: +52 612 194 3286</Text>
+            <Text style={{ fontSize: 9, color: '#ffffff', marginRight: 14 }}>reservationballard@gmail.com</Text>
+            <Text style={{ fontSize: 9, color: '#ffffff' }}>www.ballardtours.com</Text>
+          </View>
+        </View>
+      </Page>
+    </Document>
+  );
+};
 
 export default function Presupuestos({ 
   services = [], 
@@ -859,43 +1137,31 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
     if (showToast) showToast('Archivo descargado en tu dispositivo', 'success');
   };
 
-  // Enviar o compartir presupuesto por WhatsApp (Imagen PNG o PDF)
-  const handleCompartirPresupuestoWhatsApp = async (formato = 'PNG', cotizParam = null) => {
+  // Enviar o compartir presupuesto por WhatsApp (PDF Natural Vectorial o Imagen PNG)
+  const handleCompartirPresupuestoWhatsApp = async (formato = 'PDF', cotizParam = null) => {
     const cotizActual = cotizParam || cotizacion;
-    const elemento = ticketRef.current;
-    if (!elemento || !window.html2canvas) {
-      if (showToast) showToast('Preparando presupuesto, intenta en un segundo...', 'error');
-      return;
-    }
+    const idiomaActual = cotizActual.idiomaGuardado || idioma;
 
-    if (showToast) showToast('Preparando cotización para WhatsApp...', 'info');
+    if (showToast) showToast('Generando PDF Natural completo para WhatsApp...', 'info');
 
     try {
-      const canvas = await window.html2canvas(elemento, {
-        scale: 2,
-        useCORS: true,
-        backgroundColor: '#ffffff'
-      });
-
       const esVentaDoc = cotizActual.tipoDocumento === 'VENTA' || cotizActual.estado === 'VENTA';
       const nombreLimpio = (cotizActual.nombreCliente || 'Cliente').trim().replace(/[^a-zA-Z0-9]/g, '_');
       const prefijoDoc = esVentaDoc ? 'Ticket_Venta' : 'Presupuesto';
       const numFolio = cotizActual.numeroTicket || cotizActual.folio;
       const baseFilename = `${prefijoDoc}_${numFolio}_${nombreLimpio}`;
-      const previewUrl = canvas.toDataURL('image/png');
       const textoCompartir = `${esVentaDoc ? 'Ticket de Venta' : 'Presupuesto de Transporte'} ${numFolio} - ${cotizActual.nombreCliente || 'Ballard Tour Services'}`;
 
-      if (formato === 'PDF' && window.jspdf) {
-        const imgData = canvas.toDataURL('image/jpeg', 0.95);
-        const pdf = new window.jspdf.jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-        const pdfWidth = pdf.internal.pageSize.getWidth();
-        const margin = 10;
-        const contentWidth = pdfWidth - margin * 2;
-        const contentHeight = (canvas.height * contentWidth) / canvas.width;
-
-        pdf.addImage(imgData, 'JPEG', margin, margin, contentWidth, contentHeight);
+      if (formato === 'PDF') {
+        // PDF 100% Nativo Vectorial completo sin recortes
+        const pdfBlob = await pdf(
+          <PresupuestoPDFDocument
+            cotizacion={cotizActual}
+            idioma={idiomaActual}
+            formatearMetodoPago={formatearMetodoPago}
+          />
+        ).toBlob();
         const filename = `${baseFilename}.pdf`;
-        const pdfBlob = pdf.output('blob');
         const file = new File([pdfBlob], filename, { type: 'application/pdf' });
 
         if (navigator.share && (!navigator.canShare || navigator.canShare({ files: [file] }))) {
@@ -905,23 +1171,42 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
               title: `${prefijoDoc} ${numFolio}`,
               text: textoCompartir
             });
-            if (showToast) showToast('¡Presupuesto compartido con éxito!', 'success');
+            if (showToast) showToast('¡PDF compartido con éxito!', 'success');
             return;
           } catch (error) {
             if (error.name === 'AbortError') return;
           }
         }
 
-        setReadyShareModal({
-          file,
-          blob: pdfBlob,
-          filename,
-          title: `${prefijoDoc} ${numFolio}`,
-          text: textoCompartir,
-          previewUrl,
-          tipo: `${esVentaDoc ? 'Ticket' : 'Presupuesto'} (PDF)`
-        });
+        if (detectarEsMovil()) {
+          setReadyShareModal({
+            file,
+            blob: pdfBlob,
+            filename,
+            title: `${prefijoDoc} ${numFolio}`,
+            text: textoCompartir,
+            previewUrl: null,
+            tipo: `${esVentaDoc ? 'Ticket' : 'Presupuesto'} Completo (PDF Natural)`
+          });
+        } else {
+          guardarArchivoLocal(pdfBlob, filename);
+          if (showToast) showToast('¡PDF Natural descargado con éxito!', 'success');
+        }
       } else {
+        const elemento = ticketRef.current;
+        if (!elemento || !window.html2canvas) {
+          if (showToast) showToast('Preparando imagen, intenta en un segundo...', 'error');
+          return;
+        }
+        const canvas = await window.html2canvas(elemento, {
+          scale: 2,
+          useCORS: true,
+          backgroundColor: '#ffffff',
+          windowWidth: 900,
+          scrollY: 0
+        });
+        const previewUrl = canvas.toDataURL('image/png');
+
         canvas.toBlob(async (blob) => {
           if (!blob) {
             if (showToast) showToast('Error al generar imagen del presupuesto', 'error');
@@ -962,130 +1247,37 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
   };
 
   // Exportar a PDF Nativo Vectorial (100% texto seleccionable, sin cortes y con toda la información completa)
-  const handleExportarPDFNativo = () => {
-    // Si está desde el teléfono, generamos y compartimos el PDF directamente porque el iframe de impresión no permite enviar por WhatsApp en móvil
-    if (detectarEsMovil() && window.html2canvas && window.jspdf) {
-      handleCompartirPresupuestoWhatsApp('PDF');
-      return;
-    }
+  const handleExportarPDFNativo = async (cotizParam = null) => {
+    const cotizActual = cotizParam || cotizacion;
+    const idiomaActual = cotizActual.idiomaGuardado || idioma;
 
-    const elemento = ticketRef.current;
-    if (!elemento) {
-      if (showToast) showToast('No se encontró el elemento del presupuesto', 'error');
+    // Si está desde el teléfono, compartimos el PDF Natural directamente por WhatsApp
+    if (detectarEsMovil()) {
+      handleCompartirPresupuestoWhatsApp('PDF', cotizActual);
       return;
     }
 
     try {
-      const esVentaDoc = cotizacion.tipoDocumento === 'VENTA' || cotizacion.estado === 'VENTA';
-      const nombreLimpio = (cotizacion.nombreCliente || 'Cliente').replace(/[^a-zA-Z0-9]/g, '_');
+      if (showToast) showToast('Generando PDF Natural completo...', 'info');
+      const esVentaDoc = cotizActual.tipoDocumento === 'VENTA' || cotizActual.estado === 'VENTA';
+      const nombreLimpio = (cotizActual.nombreCliente || 'Cliente').trim().replace(/[^a-zA-Z0-9]/g, '_');
       const prefijoDoc = esVentaDoc ? 'Ticket_Venta' : 'Presupuesto';
-      const numFolio = cotizacion.numeroTicket || cotizacion.folio;
-      const nombreDocumento = `${prefijoDoc}_${numFolio}_${nombreLimpio}`;
-      const tituloAnterior = document.title;
-      document.title = nombreDocumento;
+      const numFolio = cotizActual.numeroTicket || cotizActual.folio;
+      const filename = `${prefijoDoc}_${numFolio}_${nombreLimpio}.pdf`;
 
-      // Remover cualquier iframe anterior si existiera
-      let printIframe = document.getElementById('iframe-impresion-presupuesto');
-      if (printIframe && document.body.contains(printIframe)) {
-        document.body.removeChild(printIframe);
-      }
+      const pdfBlob = await pdf(
+        <PresupuestoPDFDocument
+          cotizacion={cotizActual}
+          idioma={idiomaActual}
+          formatearMetodoPago={formatearMetodoPago}
+        />
+      ).toBlob();
 
-      // Crear iframe oculto e independiente para no colisionar con estilos ni scroll de la app
-      printIframe = document.createElement('iframe');
-      printIframe.id = 'iframe-impresion-presupuesto';
-      printIframe.style.position = 'fixed';
-      printIframe.style.right = '0';
-      printIframe.style.bottom = '0';
-      printIframe.style.width = '0';
-      printIframe.style.height = '0';
-      printIframe.style.border = '0';
-      printIframe.style.visibility = 'hidden';
-      document.body.appendChild(printIframe);
-
-      const htmlContent = elemento.outerHTML;
-
-      const iframeDoc = printIframe.contentWindow.document;
-      iframeDoc.open();
-      iframeDoc.write(`
-        <!DOCTYPE html>
-        <html lang="${idioma === 'EN' ? 'en' : 'es'}">
-        <head>
-          <meta charset="UTF-8">
-          <title>${nombreDocumento}</title>
-          <style>
-            @page {
-              size: letter portrait;
-              margin: 10mm 12mm 12mm 12mm;
-            }
-            *, *::before, *::after {
-              box-sizing: border-box;
-              -webkit-print-color-adjust: exact !important;
-              print-color-adjust: exact !important;
-              color-adjust: exact !important;
-            }
-            body {
-              margin: 0;
-              padding: 0;
-              background-color: #ffffff;
-              font-family: 'Segoe UI', Arial, sans-serif;
-              color: #161D2D;
-              -webkit-font-smoothing: antialiased;
-            }
-            #area-impresion-presupuesto {
-              width: 100% !important;
-              max-width: 100% !important;
-              box-shadow: none !important;
-              border: 1px solid #d1d5db !important;
-              border-radius: 12px !important;
-              overflow: visible !important;
-              background-color: #ffffff !important;
-            }
-            table {
-              width: 100% !important;
-              border-collapse: collapse !important;
-              page-break-inside: auto;
-            }
-            tr {
-              page-break-inside: avoid !important;
-              page-break-after: auto;
-            }
-            td, th {
-              vertical-align: top;
-            }
-            .no-break {
-              page-break-inside: avoid !important;
-            }
-          </style>
-        </head>
-        <body>
-          ${htmlContent}
-        </body>
-        </html>
-      `);
-      iframeDoc.close();
-
-      if (showToast) showToast('Abriendo cuadro de guardado en PDF nativo...', 'success');
-
-      // Esperar brevemente a que el DOM del iframe se renderice completamente
-      setTimeout(() => {
-        try {
-          printIframe.contentWindow.focus();
-          printIframe.contentWindow.print();
-        } catch (e) {
-          console.error('Error al imprimir iframe:', e);
-          window.print();
-        } finally {
-          setTimeout(() => {
-            document.title = tituloAnterior;
-            if (document.body.contains(printIframe)) {
-              document.body.removeChild(printIframe);
-            }
-          }, 3000);
-        }
-      }, 400);
+      guardarArchivoLocal(pdfBlob, filename);
+      if (showToast) showToast('¡PDF Natural descargado con éxito!', 'success');
     } catch (err) {
-      console.error('Error al preparar PDF:', err);
-      if (showToast) showToast('Error al preparar PDF', 'error');
+      console.error('Error al generar PDF Nativo:', err);
+      if (showToast) showToast('Error al generar el PDF', 'error');
     }
   };
 
@@ -2097,24 +2289,24 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
 
               <div className="flex flex-wrap items-center gap-2">
 
-                {/* BOTÓN ENVIAR POR WHATSAPP (IMAGEN) */}
-                <button
-                  onClick={() => handleCompartirPresupuestoWhatsApp('PNG')}
-                  className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-3 rounded-xl text-xs flex items-center gap-1.5 shadow-sm transition-colors"
-                  title="Enviar presupuesto como imagen por WhatsApp"
-                >
-                  <Send size={14} />
-                  Enviar WhatsApp
-                </button>
-
-                {/* BOTÓN ENVIAR POR WHATSAPP (PDF) */}
+                {/* BOTÓN ENVIAR POR WHATSAPP (PDF NATURAL COMPLETO) */}
                 <button
                   onClick={() => handleCompartirPresupuestoWhatsApp('PDF')}
+                  className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-3 rounded-xl text-xs flex items-center gap-1.5 shadow-sm transition-colors"
+                  title="Enviar presupuesto como PDF Natural completo por WhatsApp"
+                >
+                  <Send size={14} />
+                  Enviar PDF por WhatsApp
+                </button>
+
+                {/* BOTÓN ENVIAR IMAGEN */}
+                <button
+                  onClick={() => handleCompartirPresupuestoWhatsApp('PNG')}
                   className="bg-emerald-700 hover:bg-emerald-800 text-white font-bold py-2 px-3 rounded-xl text-xs flex items-center gap-1.5 shadow-sm transition-colors"
-                  title="Enviar presupuesto como archivo PDF por WhatsApp"
+                  title="Enviar presupuesto como imagen por WhatsApp"
                 >
                   <FileText size={14} />
-                  Enviar PDF
+                  Enviar Imagen
                 </button>
 
                 {/* BOTÓN COPIAR AL PORTAPAPELES */}
@@ -2129,9 +2321,9 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
 
                 {/* BOTÓN GUARDAR PDF NATIVO */}
                 <button
-                  onClick={handleExportarPDFNativo}
+                  onClick={() => handleExportarPDFNativo()}
                   className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold py-2 px-4 rounded-xl text-xs flex items-center gap-2 shadow-sm transition-colors"
-                  title="Guardar como PDF Nativo vectorial, texto seleccionable y multi-página sin cortes"
+                  title="Guardar como PDF Nativo vectorial, texto seleccionable y completo sin cortes"
                 >
                   <Download size={15} />
                   Guardar en PDF Nativo
@@ -2673,24 +2865,18 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
 
                           {/* BOTÓN ENVIAR POR WHATSAPP DESDE EL HISTORIAL */}
                           <button
-                            onClick={() => {
-                              handleCargarCotizacion(c);
-                              setTimeout(() => handleCompartirPresupuestoWhatsApp('PNG', c), 350);
-                            }}
+                            onClick={() => handleCompartirPresupuestoWhatsApp('PDF', c)}
                             className="p-1.5 text-green-600 hover:bg-green-100 rounded transition-colors"
-                            title="Enviar por WhatsApp"
+                            title="Enviar PDF Natural por WhatsApp"
                           >
                             <Send size={16} />
                           </button>
 
                           {/* BOTÓN DESCARGAR PDF NATIVO DIRECTO */}
                           <button
-                            onClick={() => {
-                              handleCargarCotizacion(c);
-                              setTimeout(() => handleExportarPDFNativo(), 350);
-                            }}
+                            onClick={() => handleExportarPDFNativo(c)}
                             className="p-1.5 text-amber-600 hover:bg-amber-100 rounded transition-colors"
-                            title="Descargar / Compartir PDF"
+                            title="Descargar / Compartir PDF Natural"
                           >
                             <Download size={16} />
                           </button>
@@ -3068,13 +3254,21 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
             </div>
 
             <div className="p-5 flex flex-col items-center gap-4">
-              {readyShareModal.previewUrl && (
+              {readyShareModal.previewUrl ? (
                 <div className="w-full max-h-60 overflow-hidden rounded-xl border border-slate-200 bg-slate-50 flex items-center justify-center p-2">
                   <img
                     src={readyShareModal.previewUrl}
                     alt="Vista previa del presupuesto"
                     className="max-h-56 w-auto object-contain rounded shadow-sm"
                   />
+                </div>
+              ) : (
+                <div className="w-full py-6 px-4 rounded-xl border border-emerald-200 bg-emerald-50 flex flex-col items-center justify-center gap-2 text-center">
+                  <FileText size={38} className="text-emerald-600" />
+                  <span className="font-bold text-sm text-emerald-950">{readyShareModal.filename}</span>
+                  <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-100 px-2.5 py-0.5 rounded-full">
+                    PDF Natural 100% Completo (Sin recortes)
+                  </span>
                 </div>
               )}
 
