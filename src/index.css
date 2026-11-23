@@ -1,3 +1,9 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+input:not([type="email"]):not([type="password"]):not([type="date"]):not([type="time"]):not([type="number"]),
+textarea,
+select {
+  text-transform: uppercase;
+}

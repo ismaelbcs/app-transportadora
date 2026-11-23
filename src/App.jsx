@@ -1,7 +1,18 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, Save, Download, Send, Printer, Calendar, Clock, Wallet, DollarSign, CalendarCheck, MapPin, Users, Car, FileText, CheckCircle, AlertCircle, X, Database, Headset, Fuel, Plane, User, Info, Phone, Mail, Globe, Map, ShieldCheck, Ticket, Play, Flag, Eye, Plus, Trash2 } from 'lucide-react';
+import { Search, Save, Download, Send, Printer, Calendar, Clock, Wallet, DollarSign, CalendarCheck, MapPin, Users, Car, FileText, CheckCircle, AlertCircle, X, Database, Headset, Fuel, Plane, User, Info, Phone, Mail, Globe, Map, ShieldCheck, Ticket, Play, Flag, Eye, Plus, Trash2, Receipt } from 'lucide-react';
 import { supabase } from './supabaseClient';
 import Presupuestos from './components/Presupuestos';
+import PagosProveedores from './components/PagosProveedores';
+
+const normalizarVehiculo = (v) => {
+  if (!v) return '';
+  const up = String(v).trim().toUpperCase();
+  if (up === 'EXPEDITION' || up === 'SUV') return 'SUV';
+  if (up === 'HIACE' || up === 'VAN') return 'VAN';
+  return up;
+};
+
+const ID_CONFIG_PAGOS_PROVEEDORES = 'CFG_PAGOS_PROVEEDORES_V1';
 
 const SuvIcon = ({ size = 24, className = "" }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={className}>
@@ -704,6 +715,16 @@ export default function App() {
   const [mostrarAlertaDeudas, setMostrarAlertaDeudas] = useState(false);
   const [deudasParaHoy, setDeudasParaHoy] = useState([]);
 
+  // --- ESTADO DE PAGOS A PROVEEDORES (SINCRONIZADO CON NUBE Y LOCALSTORAGE) ---
+  const [pagosProveedoresMap, setPagosProveedoresMap] = useState(() => {
+    try {
+      const saved = localStorage.getItem('ballard_pagos_proveedores_v1');
+      return saved ? JSON.parse(saved) : {};
+    } catch (e) {
+      return {};
+    }
+  });
+
   // NUEVO: Estado para abrir/cerrar el menú lateral y hacerlo adaptable a móvil
   const [isSidebarOpen, setIsSidebarOpen] = useState(window.innerWidth > 768);
 
@@ -736,8 +757,8 @@ export default function App() {
   }, [deudasChoferes]); // Se ejecuta cada vez que las deudas se actualizan
 
   const calcularPrecioCierre = (hotelName, precioOriginal, vehiculoFiltro) => {
-    // Si no están filtrando por Expedition, devolvemos el precio original
-    if (vehiculoFiltro !== 'Expedition') return precioOriginal;
+    // Si no están filtrando por SUV / Expedition, devolvemos el precio original
+    if (normalizarVehiculo(vehiculoFiltro) !== 'SUV') return precioOriginal;
 
     // Buscamos a qué zona pertenece el hotel
     const hotelEncontrado = LISTA_HOTELES.find(h =>
@@ -777,10 +798,31 @@ export default function App() {
         tipoServicio: s.tipo_servicio, pax: s.pax, telefono: s.telefono, fecha: s.fecha,
         vuelo: s.vuelo, pickUp: s.pick_up, tipoViaje: s.tipo_viaje, hora: s.hora, hotel: s.hotel, cobro: s.cobro,
         metodoPago: s.metodo_pago, carSeat: s.car_seat, babySeat: s.baby_seat, booster: s.booster, paradaCompras: s.parada_compras,
-        comentario: s.comentario, chofer: s.chofer, vehiculo: s.vehiculo, proveedor: s.proveedor, costoProveedor: s.costo_proveedor,
+        comentario: s.comentario, chofer: s.chofer, vehiculo: normalizarVehiculo(s.vehiculo), proveedor: s.proveedor, costoProveedor: s.costo_proveedor,
         latInicio: s.lat_inicio, lonInicio: s.lon_inicio, latFin: s.lat_fin, lonFin: s.lon_fin
       }));
       setServices(formattedServices);
+
+      // 1.5 Traer control de pagos a proveedores desde la nube (almacenado en presupuestos con ID especial)
+      try {
+        const { data: cfgPagos } = await supabase
+          .from('presupuestos')
+          .select('data_completa')
+          .eq('id', ID_CONFIG_PAGOS_PROVEEDORES)
+          .maybeSingle();
+
+        if (cfgPagos && cfgPagos.data_completa && typeof cfgPagos.data_completa === 'object') {
+          setPagosProveedoresMap(prev => {
+            const combinado = { ...prev, ...cfgPagos.data_completa };
+            try {
+              localStorage.setItem('ballard_pagos_proveedores_v1', JSON.stringify(combinado));
+            } catch (e) {}
+            return combinado;
+          });
+        }
+      } catch (e) {
+        console.warn('Control de pagos en modo local:', e);
+      }
 
       // 2. Traer Call Center
       // --- ASEGÚRATE DE QUE TU BLOQUE ORIGINAL QUEDE ASÍ ---
@@ -801,7 +843,7 @@ export default function App() {
       if (fleetError) throw fleetError;
 
       const formattedFleet = (fleetData || []).map(g => ({
-        id: g.id, fecha: g.fecha, chofer: g.chofer, vehiculo: g.vehiculo, gasolina: g.gasolina, casetas: g.casetas, gastoTotal: g.gasto_total
+        id: g.id, fecha: g.fecha, chofer: g.chofer, vehiculo: normalizarVehiculo(g.vehiculo), gasolina: g.gasolina, casetas: g.casetas, gastoTotal: g.gasto_total
       }));
       setFleetExpenses(formattedFleet);
 
@@ -821,7 +863,7 @@ export default function App() {
         .from('gastos_flota')
         .select('*');
       if (gastosError) console.error("Error flota:", gastosError);
-      else setGastosFlota(gastosData || []);
+      else setGastosFlota((gastosData || []).map(g => ({ ...g, vehiculo: normalizarVehiculo(g.vehiculo) })));
 
     } catch (error) {
       console.error("Error descargando datos de Supabase:", error);
@@ -1165,8 +1207,11 @@ export default function App() {
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
+    const camposNoMayusculas = ['fecha', 'hora', 'pickUp', 'fechaRegreso', 'horaPickUpRegreso', 'horaRegreso', 'tipoServicio', 'tipoViaje'];
     setCurrentService(prev => {
-      const val = type === 'checkbox' ? checked : (name === 'reserva' ? value.toUpperCase() : value);
+      const val = type === 'checkbox'
+        ? checked
+        : (typeof value === 'string' && !camposNoMayusculas.includes(name) ? value.toUpperCase() : value);
       const next = { ...prev, [name]: val };
 
       // Si cambia el tipo de servicio, actualizamos los bloques de Actividad / Traslado en comentarios
@@ -1199,12 +1244,20 @@ export default function App() {
 
   // Manejadores para la sección de Actividad (actualizan automáticamente Comentarios y Hotel/Destino)
   const actualizarEstadoActividad = (cambios) => {
+    const cambiosUpper = { ...cambios };
+    if (typeof cambiosUpper.nombreActividad === 'string') cambiosUpper.nombreActividad = cambiosUpper.nombreActividad.toUpperCase();
+    if (Array.isArray(cambiosUpper.participantesActividad)) {
+      cambiosUpper.participantesActividad = cambiosUpper.participantesActividad.map(p => ({
+        ...p,
+        nombre: typeof p.nombre === 'string' ? p.nombre.toUpperCase() : p.nombre
+      }));
+    }
     setCurrentService(prev => {
-      const next = { ...prev, ...cambios };
+      const next = { ...prev, ...cambiosUpper };
       const bloque = construirBloqueActividad(next.tipoServicio, next.nombreActividad, next.participantesActividad);
       next.comentario = actualizarBloquesEnComentario(next.comentario, /\[ACTIVIDAD:[^\]]*\]/gi, bloque);
-      if (cambios.nombreActividad !== undefined && !prev.hotel) {
-        next.hotel = cambios.nombreActividad;
+      if (cambiosUpper.nombreActividad !== undefined && !prev.hotel) {
+        next.hotel = cambiosUpper.nombreActividad;
       }
       return next;
     });
@@ -1212,14 +1265,16 @@ export default function App() {
 
   // Manejadores para la sección de Traslado (actualizan automáticamente Comentarios, Hotel/Destino y Hora/PickUp)
   const actualizarEstadoTraslado = (cambios) => {
+    const cambiosUpper = { ...cambios };
+    if (typeof cambiosUpper.destinoTraslado === 'string') cambiosUpper.destinoTraslado = cambiosUpper.destinoTraslado.toUpperCase();
     setCurrentService(prev => {
-      const next = { ...prev, ...cambios };
-      if (cambios.destinoTraslado !== undefined) {
-        next.hotel = cambios.destinoTraslado;
+      const next = { ...prev, ...cambiosUpper };
+      if (cambiosUpper.destinoTraslado !== undefined) {
+        next.hotel = cambiosUpper.destinoTraslado;
       }
-      if (cambios.horaRecogidaTraslado !== undefined) {
-        next.pickUp = cambios.horaRecogidaTraslado;
-        next.hora = cambios.horaRecogidaTraslado;
+      if (cambiosUpper.horaRecogidaTraslado !== undefined) {
+        next.pickUp = cambiosUpper.horaRecogidaTraslado;
+        next.hora = cambiosUpper.horaRecogidaTraslado;
       }
       const bloque = construirBloqueTraslado(next.tipoServicio, next.destinoTraslado, next.horaRecogidaTraslado, next.horaRegresoTraslado);
       next.comentario = actualizarBloquesEnComentario(next.comentario, /\[TRASLADO:[^\]]*\]/gi, bloque);
@@ -1228,7 +1283,7 @@ export default function App() {
   };
 
   const handleSearch = (e) => {
-    const term = e.target.value;
+    const term = e.target.value.toUpperCase();
     setSearchTerm(term);
     if (term.length > 2) {
       const lower = term.toLowerCase();
@@ -1398,7 +1453,75 @@ export default function App() {
     setSearchTerm('');
   };
 
-  const handleRollChange = (id, field, value) => {
+  // --- FUNCIONES DE PERSISTENCIA DE PAGOS A PROVEEDORES (NUBE + LOCAL) ---
+  const persistirPagosProveedoresEnNube = async (mapaActualizado) => {
+    try {
+      localStorage.setItem('ballard_pagos_proveedores_v1', JSON.stringify(mapaActualizado));
+    } catch (e) {}
+
+    try {
+      await supabase.from('presupuestos').upsert({
+        id: ID_CONFIG_PAGOS_PROVEEDORES,
+        folio: 'CONTROL-PAGOS',
+        tipo_documento: 'CONFIG_PAGOS',
+        estado: 'ACTIVO',
+        nombre_cliente: 'CONTROL DE PAGOS A PROVEEDORES',
+        data_completa: mapaActualizado,
+        updated_at: new Date().toISOString()
+      });
+    } catch (e) {
+      console.warn('Error sincronizando pagos en la nube:', e);
+    }
+  };
+
+  const handleSavePagoServicio = async (idServicio, datosPago) => {
+    const nuevoMapa = {
+      ...pagosProveedoresMap,
+      [idServicio]: {
+        ...(pagosProveedoresMap[idServicio] || {}),
+        ...datosPago,
+        updatedAt: new Date().toISOString()
+      }
+    };
+    setPagosProveedoresMap(nuevoMapa);
+    await persistirPagosProveedoresEnNube(nuevoMapa);
+
+    // Si también cambió el proveedor o costoTotal, sincronizarlo con la tabla servicios
+    const srvOriginal = services.find(s => s.id === idServicio);
+    if (srvOriginal) {
+      const nuevoProv = (datosPago.proveedor !== undefined ? datosPago.proveedor : srvOriginal.proveedor || '').toUpperCase();
+      const nuevoCosto = datosPago.costoTotal !== undefined ? String(datosPago.costoTotal) : (srvOriginal.costoProveedor || '');
+      if (nuevoProv !== (srvOriginal.proveedor || '') || nuevoCosto !== String(srvOriginal.costoProveedor || '')) {
+        try {
+          await supabase
+            .from('servicios')
+            .update({ proveedor: nuevoProv, costo_proveedor: nuevoCosto })
+            .eq('id', idServicio);
+        } catch (e) {}
+      }
+      setServices(prev => prev.map(s => s.id === idServicio ? { ...s, proveedor: nuevoProv, costoProveedor: nuevoCosto } : s));
+      setRollData(prev => prev.map(r => r.id === idServicio ? { ...r, proveedor: nuevoProv, costoProveedor: nuevoCosto } : r));
+    }
+
+    showToast('¡CONTROL DE PAGO ACTUALIZADO!');
+  };
+
+  const handleBatchSavePagos = async (updatesPorId) => {
+    const nuevoMapa = { ...pagosProveedoresMap };
+    Object.keys(updatesPorId).forEach(id => {
+      nuevoMapa[id] = {
+        ...(nuevoMapa[id] || {}),
+        ...updatesPorId[id],
+        updatedAt: new Date().toISOString()
+      };
+    });
+    setPagosProveedoresMap(nuevoMapa);
+    await persistirPagosProveedoresEnNube(nuevoMapa);
+  };
+
+  const handleRollChange = (id, field, rawValue) => {
+    const camposNoMayusculas = ['hora', 'fecha', 'pickUp'];
+    const value = typeof rawValue === 'string' && !camposNoMayusculas.includes(field) ? rawValue.toUpperCase() : rawValue;
     setRollData(prev => prev.map(item => item.id === id ? { ...item, [field]: value } : item));
   };
 
@@ -1502,7 +1625,9 @@ export default function App() {
       showToast('Error al guardar en la nube', 'error');
     }
   };
-  const handleDatabaseChange = (id, field, value) => {
+  const handleDatabaseChange = (id, field, rawValue) => {
+    const camposNoMayusculas = ['hora', 'fecha', 'pickUp'];
+    const value = typeof rawValue === 'string' && !camposNoMayusculas.includes(field) ? rawValue.toUpperCase() : rawValue;
     setServices(prev => prev.map(item => item.id === id ? { ...item, [field]: value } : item));
   };
 
@@ -1679,7 +1804,8 @@ export default function App() {
     }
   };
 
-  const handleFleetChange = (id, field, value) => {
+  const handleFleetChange = (id, field, rawValue) => {
+    const value = typeof rawValue === 'string' && field !== 'fecha' ? rawValue.toUpperCase() : rawValue;
     setFleetExpenses(prev => prev.map(item => item.id === id ? { ...item, [field]: value } : item));
   };
 
@@ -1712,7 +1838,7 @@ export default function App() {
   // --- MÓDULO DE DEUDAS ---
   const handleDeudaChange = (e) => {
     const { name, value } = e.target;
-    setCurrentDeuda(prev => ({ ...prev, [name]: value }));
+    setCurrentDeuda(prev => ({ ...prev, [name]: typeof value === 'string' ? value.toUpperCase() : value }));
   };
 
   const saveDeuda = async () => {
@@ -1857,7 +1983,7 @@ export default function App() {
 
   const handleExpenseChange = (e) => {
     const { name, value } = e.target;
-    setCurrentExpense(prev => ({ ...prev, [name]: value }));
+    setCurrentExpense(prev => ({ ...prev, [name]: typeof value === 'string' && name !== 'fecha' ? value.toUpperCase() : value }));
   };
 
   const saveExpense = async () => {
@@ -2641,6 +2767,15 @@ export default function App() {
               </button>
             )}
 
+            {(userProfile?.rol === 'admin' || userProfile?.permisos?.vistas?.pagos_proveedores !== false) && (
+              <button
+                onClick={() => { setActiveTab('pagos_proveedores'); if (window.innerWidth <= 768) setIsSidebarOpen(false); }}
+                className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl font-medium transition-all ${activeTab === 'pagos_proveedores' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-900/50' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+              >
+                <Receipt size={20} /> Pagos Proveedores
+              </button>
+            )}
+
             {(userProfile?.rol === 'admin' || userProfile?.permisos?.vistas?.presupuestos !== false) && (
               <button
                 onClick={() => { setActiveTab('presupuestos'); if (window.innerWidth <= 768) setIsSidebarOpen(false); }}
@@ -3123,11 +3258,11 @@ export default function App() {
               </h2>
               <div className="bg-purple-50 p-6 rounded-lg border border-purple-100 mb-8">
                 <p className="text-sm text-purple-800 mb-4 font-medium">Pega el mensaje de WhatsApp aquí usando la plantilla requerida. El sistema calculará la comisión ($10 Venta / $5 Confirmación) automáticamente.</p>
-                <textarea
+                  <textarea
                   rows="5"
                   value={ccInput}
-                  onChange={(e) => setCcInput(e.target.value)}
-                  className="w-full border border-purple-200 rounded-md p-4 shadow-sm focus:ring-purple-500 focus:border-purple-500 text-sm font-mono"
+                  onChange={(e) => setCcInput(e.target.value.toUpperCase())}
+                  className="w-full border border-purple-200 rounded-md p-4 shadow-sm focus:ring-purple-500 focus:border-purple-500 text-sm font-mono uppercase"
                   placeholder="ACCIÓN: Venta&#10;CLIENTE: Juan Pérez&#10;RESERVA: 12345&#10;FECHA DEL SERVICIO: 15/06/2026&#10;NOTAS: Pasajero requiere asiento de bebé"
                 ></textarea>
                 <div className="mt-4 flex justify-end">
@@ -3237,13 +3372,13 @@ export default function App() {
                     <label className="block text-xs font-bold text-orange-800 mb-1 uppercase">Vehículo</label>
                     <select
                       name="vehiculo"
-                      value={currentExpense.vehiculo || ''}
+                      value={normalizarVehiculo(currentExpense.vehiculo) || ''}
                       onChange={handleExpenseChange}
-                      className="block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 cursor-pointer"
+                      className="block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 cursor-pointer uppercase"
                     >
-                      <option value="">Selecciona...</option>
-                      <option value="Expedition">Expedition</option>
-                      <option value="Hiace">Hiace</option>
+                      <option value="">SELECCIONA...</option>
+                      <option value="SUV">SUV</option>
+                      <option value="VAN">VAN</option>
                     </select>
                   </div>
                   {/* --- NUEVO MÓDULO DE CARRITO DE GASTOS --- */}
@@ -3692,6 +3827,7 @@ export default function App() {
                           <>
                             <th className="border p-2 border-b ocultar-en-foto">Proveedor</th>
                             <th className="border p-2 border-b ocultar-en-foto">Cantidad</th>
+                            <th className="border p-2 border-b ocultar-en-foto">Estado Pago</th>
                           </>
                         )}
 
@@ -3718,12 +3854,17 @@ export default function App() {
                           <td className="border p-2 text-center">{row.pax}</td>
                           <td className="border p-2 text-xs">{row.telefono}</td>
                           <td className="border p-2 text-xs">{row.tipoServicio}</td>
-                          <td className="border p-2">{row.vehiculo}</td>
+                          <td className="border p-2">{normalizarVehiculo(row.vehiculo)}</td>
                           {userProfile?.rol === 'admin' && (
                             <>
                               <td className="border p-2 text-xs border-b ocultar-en-foto">{row.proveedor}</td>
-                              <td className="border p-2 text-xs font-bold">
+                              <td className="border p-2 text-xs font-bold ocultar-en-foto">
                                 {row.costoProveedor ? `$${row.costoProveedor}` : ''}
+                              </td>
+                              <td className="border p-2 text-xs font-bold ocultar-en-foto">
+                                {(pagosProveedoresMap[row.id]?.estadoPago || 'DEBE') === 'PAGADO'
+                                  ? 'PAGADO'
+                                  : (pagosProveedoresMap[row.id]?.estadoPago === 'ABONO' ? 'ABONADO' : 'SE DEBE')}
                               </td>
                             </>
                           )}
@@ -3754,12 +3895,12 @@ export default function App() {
                     <tr className="text-gray-600 border-b">
                       <th className="p-2">Hora</th><th className="p-2">Chofer</th><th className="p-2">Nombre</th><th className="p-2">Apellido</th>
                       <th className="p-2">Vuelo</th><th className="p-2">Hotel</th><th className="p-2">Pax</th><th className="p-2">Teléfono</th>
-                      <th className="p-2">Tipo</th><th className="p-2">Vehículo</th><th className="p-2">Proveedor</th><th className="p-2">Cantidad</th>
+                      <th className="p-2">Tipo</th><th className="p-2">Vehículo</th><th className="p-2">Proveedor</th><th className="p-2">Cantidad</th><th className="p-2">Estado Pago</th>
                       <th className="p-2">Extras</th><th className="p-2">Comentario</th><th className="p-2 text-center">Acciones</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y">
-                    {rollData.length === 0 ? <tr><td colSpan="15" className="text-center p-8 text-gray-500">No hay servicios programados.</td></tr> : rollData.map(row => (
+                    {rollData.length === 0 ? <tr><td colSpan="16" className="text-center p-8 text-gray-500">No hay servicios programados.</td></tr> : rollData.map(row => (
                       <tr key={row.id} className="hover:bg-gray-50 transition-colors border-b">
 
                         {/* Hora */}
@@ -3841,21 +3982,55 @@ export default function App() {
                         {/* Vehículo */}
                         <td className="p-2">
                           {userProfile?.rol === 'admin' ? (
-                            <select value={row.vehiculo || ''} onChange={(e) => handleRollChange(row.id, 'vehiculo', e.target.value)} className="w-24 bg-transparent border-b border-dashed focus:outline-none text-sm cursor-pointer">
+                            <select value={normalizarVehiculo(row.vehiculo) || ''} onChange={(e) => handleRollChange(row.id, 'vehiculo', e.target.value)} className="w-24 bg-transparent border-b border-dashed focus:outline-none text-sm cursor-pointer font-bold">
                               <option value=""></option>
-                              <option value="Expedition">Expedition</option>
-                              <option value="Hiace">Hiace</option>
+                              <option value="SUV">SUV</option>
+                              <option value="VAN">VAN</option>
                             </select>
                           ) : (
-                            <span className="text-sm text-gray-700">{row.vehiculo}</span>
+                            <span className="text-sm text-gray-700 font-bold">{normalizarVehiculo(row.vehiculo)}</span>
                           )}
                         </td>
 
-                        {/* PROVEEDOR Y COSTO (Condicionados al rol de Admin) */}
+                        {/* PROVEEDOR, COSTO Y ESTADO DE PAGO (Condicionados al rol de Admin) */}
                         {userProfile?.rol === 'admin' && (
                           <>
-                            <td className="p-2"><input type="text" value={row.proveedor || ''} onChange={(e) => handleRollChange(row.id, 'proveedor', e.target.value)} className="w-24 bg-transparent border-b border-dashed focus:outline-none" /></td>
+                            <td className="p-2"><input type="text" value={row.proveedor || ''} onChange={(e) => handleRollChange(row.id, 'proveedor', e.target.value)} className="w-24 bg-transparent border-b border-dashed focus:outline-none uppercase" /></td>
                             <td className="p-2"><input type="number" value={row.costoProveedor || ''} onChange={(e) => handleRollChange(row.id, 'costoProveedor', e.target.value)} className="w-16 bg-transparent border-b border-dashed focus:outline-none font-bold text-red-700" /></td>
+                            <td className="p-2">
+                              {(() => {
+                                const infoPago = pagosProveedoresMap[row.id] || {};
+                                const estActual = (infoPago.estadoPago || 'DEBE').toUpperCase();
+                                return (
+                                  <select
+                                    value={estActual}
+                                    onChange={(e) => {
+                                      const nuevoEst = e.target.value;
+                                      const costo = parseFloat(row.costoProveedor) || parseFloat(row.cobro) || 0;
+                                      handleSavePagoServicio(row.id, {
+                                        ...infoPago,
+                                        proveedor: (row.proveedor || '').toUpperCase(),
+                                        costoTotal: costo,
+                                        estadoPago: nuevoEst,
+                                        montoPagado: nuevoEst === 'PAGADO' ? costo : nuevoEst === 'DEBE' ? 0 : (infoPago.montoPagado || 0),
+                                        fechaPago: nuevoEst === 'PAGADO' ? (infoPago.fechaPago || new Date().toISOString().split('T')[0]) : (infoPago.fechaPago || '')
+                                      });
+                                    }}
+                                    className={`px-2 py-1 rounded-md text-xs font-black border cursor-pointer focus:outline-none ${
+                                      estActual === 'PAGADO'
+                                        ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                                        : estActual === 'ABONO'
+                                          ? 'bg-amber-100 text-amber-900 border-amber-300'
+                                          : 'bg-red-100 text-red-800 border-red-300'
+                                    }`}
+                                  >
+                                    <option value="DEBE">SE DEBE</option>
+                                    <option value="ABONO">SE ABONÓ</option>
+                                    <option value="PAGADO">PAGADO</option>
+                                  </select>
+                                );
+                              })()}
+                            </td>
                           </>
                         )}
 
@@ -3955,7 +4130,7 @@ export default function App() {
                     type="text"
                     placeholder="Buscar reserva, nombre, hotel, vehículo..."
                     value={dbSearchTerm}
-                    onChange={(e) => setDbSearchTerm(e.target.value)}
+                    onChange={(e) => setDbSearchTerm(e.target.value.toUpperCase())}
                     className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm shadow-sm"
                   />
                 </div>
@@ -4121,19 +4296,19 @@ export default function App() {
                           </td>
                           <td className="p-2"><input type="text" value={row.chofer || ''} onChange={e => handleDatabaseChange(row.id, 'chofer', e.target.value)} className="w-20 bg-transparent border-b border-dashed focus:outline-none text-gray-600 text-xs" /></td>
                           <td className="p-2">
-                            <select value={row.vehiculo || ''} onChange={e => handleDatabaseChange(row.id, 'vehiculo', e.target.value)} className="w-24 bg-transparent border-b border-dashed focus:outline-none text-xs text-gray-600 cursor-pointer">
+                            <select value={normalizarVehiculo(row.vehiculo) || ''} onChange={e => handleDatabaseChange(row.id, 'vehiculo', e.target.value)} className="w-24 bg-transparent border-b border-dashed focus:outline-none text-xs text-gray-600 cursor-pointer font-bold">
                               <option value=""></option>
-                              <option value="Expedition">Expedition</option>
-                              <option value="Hiace">Hiace</option>
+                              <option value="SUV">SUV</option>
+                              <option value="VAN">VAN</option>
                             </select>
                           </td>
                           {userProfile?.rol === 'admin' && (
                             <>
                               <td className="p-2">
-                                <input type="text" value={row.proveedor || ''} onChange={(e) => handleRollChange(row.id, 'proveedor', e.target.value)} className="w-24 bg-transparent border-b border-dashed focus:outline-none" />
+                                <input type="text" value={row.proveedor || ''} onChange={(e) => handleDatabaseChange(row.id, 'proveedor', e.target.value)} className="w-24 bg-transparent border-b border-dashed focus:outline-none uppercase" />
                               </td>
                               <td className="p-2">
-                                <input type="number" value={row.costoProveedor || ''} onChange={(e) => handleRollChange(row.id, 'costoProveedor', e.target.value)} className="w-16 bg-transparent border-b border-dashed focus:outline-none font-bold text-red-700" />
+                                <input type="number" value={row.costoProveedor || ''} onChange={(e) => handleDatabaseChange(row.id, 'costoProveedor', e.target.value)} className="w-16 bg-transparent border-b border-dashed focus:outline-none font-bold text-red-700" />
                               </td>
                             </>
                           )}
@@ -4288,9 +4463,9 @@ export default function App() {
                       onChange={(e) => setCierreFiltroVehiculo(e.target.value)}
                       className="block w-full sm:w-40 border border-gray-300 rounded-md shadow-sm p-2 text-sm focus:ring-blue-500 focus:border-blue-500 cursor-pointer bg-white"
                     >
-                      <option value="">Todos los vehículos</option>
-                      <option value="Expedition">Expedition</option>
-                      <option value="Hiace">Hiace</option>
+                      <option value="">TODOS LOS VEHÍCULOS</option>
+                      <option value="SUV">SUV</option>
+                      <option value="VAN">VAN</option>
                     </select>
                   </div>
                 )}
@@ -4578,7 +4753,7 @@ export default function App() {
                           </div>
                           <div className="p-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 bg-white">
                             {/* Generamos los botones manualmente para asegurarnos de que existan */}
-                            {['ingresar_reserva', 'ingreso_cc', 'control_flota', 'base_de_datos', 'cierre', 'presupuestos'].map((llave) => (
+                            {['ingresar_reserva', 'ingreso_cc', 'control_flota', 'base_de_datos', 'cierre', 'pagos_proveedores', 'presupuestos'].map((llave) => (
                               <label key={llave} className="flex items-center gap-3 cursor-pointer p-2 hover:bg-purple-50 rounded border border-transparent hover:border-purple-200 transition-colors">
                                 <input
                                   type="checkbox"
@@ -4634,6 +4809,17 @@ export default function App() {
 
               </div>
             </div>
+          )}
+
+          {activeTab === 'pagos_proveedores' && (
+            <PagosProveedores
+              services={services}
+              pagosProveedoresMap={pagosProveedoresMap}
+              onSavePagoServicio={handleSavePagoServicio}
+              onBatchSavePagos={handleBatchSavePagos}
+              showToast={showToast}
+              userProfile={userProfile}
+            />
           )}
 
           {activeTab === 'presupuestos' && (

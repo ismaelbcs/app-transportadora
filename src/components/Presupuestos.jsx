@@ -663,7 +663,9 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
         }
       } else if (data) {
         setTablaSupabaseExiste(true);
-        const mapeados = data.map(mapSupabaseToCotizacion);
+        const mapeados = data
+          .filter(row => row.id !== 'CFG_PAGOS_PROVEEDORES_V1')
+          .map(mapSupabaseToCotizacion);
         setHistorialCotizaciones(mapeados);
         try {
           localStorage.setItem('ballard_presupuestos_v1', JSON.stringify(mapeados));
@@ -805,7 +807,7 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
         nombreCliente: nombreCompleto || prev.nombreCliente,
         hotelPrincipal: reserva.hotel || prev.hotelPrincipal,
         pax: reserva.pax ? String(reserva.pax) : prev.pax,
-        tipoVehiculo: (reserva.vehiculo?.toLowerCase().includes('hiace') || parseInt(reserva.pax, 10) > 6) ? 'VAN' : (prev.tipoVehiculo || 'SUV'),
+        tipoVehiculo: (reserva.vehiculo?.toLowerCase().includes('hiace') || reserva.vehiculo?.toUpperCase() === 'VAN' || parseInt(reserva.pax, 10) > 6) ? 'VAN' : (prev.tipoVehiculo || 'SUV'),
         aerolineaVuelo: reserva.vuelo || prev.aerolineaVuelo,
         metodoPago: reserva.metodoPago || prev.metodoPago,
         horaCheckout: reserva.pickUp || prev.horaCheckout,
@@ -881,7 +883,10 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
   };
 
   // Modificar campo de una etapa
-  const handleEtapaChange = (id, field, value) => {
+  const handleEtapaChange = (id, field, rawValue) => {
+    const value = typeof rawValue === 'string' && !['fecha', 'hora', 'horaRecogida', 'horaRegreso', 'tipo', 'id'].includes(field)
+      ? rawValue.toUpperCase()
+      : rawValue;
     setCotizacion(prev => {
       const nuevasEtapas = prev.etapas.map(e => {
         if (e.id === id) {
@@ -911,7 +916,10 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
   };
 
   // Modificar campo de la cotización general
-  const handleCotizacionChange = (field, value) => {
+  const handleCotizacionChange = (field, rawValue) => {
+    const value = typeof rawValue === 'string' && !['fechaEmision', 'horaCheckout', 'id'].includes(field)
+      ? rawValue.toUpperCase()
+      : rawValue;
     setCotizacion(prev => {
       const updated = { ...prev, [field]: value };
 
@@ -1369,7 +1377,7 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
         agencia: 'Directo',
         tipoServicio: tipoServicio,
         pax: etapa.pax?.toString() || c.pax?.toString() || '2',
-        vehiculo: c.tipoVehiculo === 'VAN' ? 'Hiace' : 'Expedition',
+        vehiculo: c.tipoVehiculo === 'VAN' ? 'VAN' : 'SUV',
         telefono: '',
         fecha: etapa.fecha || (idx === 0 ? c.fechaEmision : ''),
         hora: horaServicioCalculada,
@@ -1410,7 +1418,9 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
   };
 
   // Actualizar campo dentro del modal de conversión
-  const handleCambioServicioConversion = (idx, field, value) => {
+  const handleCambioServicioConversion = (idx, field, rawValue) => {
+    const camposNoMayusculas = ['fecha', 'hora', 'pickUp'];
+    const value = typeof rawValue === 'string' && !camposNoMayusculas.includes(field) ? rawValue.toUpperCase() : rawValue;
     setServiciosAConvertir(prev => {
       const actualizados = prev.map((item, i) => i === idx ? { ...item, [field]: value } : item);
       validarServiciosAConvertir(actualizados);
@@ -1453,7 +1463,7 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
         parada_compras: false,
         comentario: s.comentario || '',
         chofer: '',
-        vehiculo: s.vehiculo || (cotizacionAConvertir.tipoVehiculo === 'VAN' ? 'Hiace' : 'Expedition'),
+        vehiculo: s.vehiculo || (cotizacionAConvertir.tipoVehiculo === 'VAN' ? 'VAN' : 'SUV'),
         proveedor: '',
         costo_proveedor: ''
       }));
@@ -1716,7 +1726,7 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
                     <input
                       type="text"
                       value={searchReservaQuery}
-                      onChange={(e) => setSearchReservaQuery(e.target.value)}
+                      onChange={(e) => setSearchReservaQuery(e.target.value.toUpperCase())}
                       placeholder="Escribe el nombre o folio del cliente..."
                       className="w-full pl-9 pr-8 py-2 text-sm border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none bg-blue-50/30"
                     />
@@ -2700,7 +2710,7 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
                 <input
                   type="text"
                   value={filtroHistorial}
-                  onChange={(e) => setFiltroHistorial(e.target.value)}
+                  onChange={(e) => setFiltroHistorial(e.target.value.toUpperCase())}
                   placeholder="Buscar cliente, ticket o folio..."
                   className="w-full pl-9 pr-3 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none"
                 />
@@ -3117,12 +3127,12 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
                         <div>
                           <label className="block font-bold text-slate-600 uppercase mb-1">Vehículo</label>
                           <select
-                            value={srv.vehiculo || (cotizacionAConvertir.tipoVehiculo === 'VAN' ? 'Hiace' : 'Expedition')}
+                            value={srv.vehiculo || (cotizacionAConvertir.tipoVehiculo === 'VAN' ? 'VAN' : 'SUV')}
                             onChange={(e) => handleCambioServicioConversion(idx, 'vehiculo', e.target.value)}
                             className="w-full px-2 py-1.5 border border-slate-300 rounded text-xs font-bold bg-white text-slate-800"
                           >
-                            <option value="Expedition">Expedition (SUV)</option>
-                            <option value="Hiace">Hiace (VAN)</option>
+                            <option value="SUV">SUV</option>
+                            <option value="VAN">VAN</option>
                           </select>
                         </div>
 
