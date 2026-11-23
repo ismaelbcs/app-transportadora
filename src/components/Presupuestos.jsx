@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import { Document, Page, Text, View, pdf } from '@react-pdf/renderer';
 
-// Documento PDF Nativo Vectorial para Presupuesto / Ticket de Venta (100% texto seleccionable, completo y sin cortes)
+// Documento PDF Nativo Vectorial para Presupuesto / Ticket de Venta (Diseño Sobrio, Formal y Recto)
 const PresupuestoPDFDocument = ({ cotizacion, idioma, formatearMetodoPago }) => {
   const isEN = idioma === 'EN';
   const esVenta = cotizacion.tipoDocumento === 'VENTA' || cotizacion.estado === 'VENTA';
@@ -20,11 +20,11 @@ const PresupuestoPDFDocument = ({ cotizacion, idioma, formatearMetodoPago }) => 
     : (isEN ? 'TRANSPORTATION QUOTE' : 'PRESUPUESTO DE TRANSPORTE');
   const subtituloSeguro = esVenta
     ? (isEN
-      ? `✓ Confirmed Private Transportation (${cotizacion.tipoVehiculo || 'SUV'}) / Official Ticket`
-      : `✓ Transporte Privado Confirmado (${cotizacion.tipoVehiculo || 'SUV'}) / Boleto Oficial`)
+      ? `Confirmed Private Transportation (${cotizacion.tipoVehiculo || 'SUV'}) / Official Ticket`
+      : `Transporte Privado Confirmado (${cotizacion.tipoVehiculo || 'SUV'}) / Boleto Oficial`)
     : (isEN
-      ? `✓ Private Transportation (${cotizacion.tipoVehiculo || 'SUV'}) / Safe Ticket`
-      : `✓ Transporte Privado (${cotizacion.tipoVehiculo || 'SUV'}) / Boleto Seguro`);
+      ? `Private Transportation (${cotizacion.tipoVehiculo || 'SUV'}) / Safe Ticket`
+      : `Transporte Privado (${cotizacion.tipoVehiculo || 'SUV'}) / Boleto Seguro`);
   const badgeEstado = esVenta
     ? (isEN ? 'SALE CONFIRMED' : 'VENTA CONFIRMADA')
     : (isEN
@@ -45,126 +45,122 @@ const PresupuestoPDFDocument = ({ cotizacion, idioma, formatearMetodoPago }) => 
 
   return (
     <Document>
-      <Page size="LETTER" style={{ backgroundColor: '#ffffff', padding: 24, fontFamily: 'Helvetica', color: '#161D2D' }}>
-        <View style={{ borderWidth: 1, borderColor: '#d1d5db', borderRadius: 10, overflow: 'hidden' }}>
-          {/* ENCABEZADO OSCURO */}
-          <View style={{ backgroundColor: '#161D2D', padding: 20, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+      <Page size="LETTER" style={{ backgroundColor: '#ffffff', padding: 28, fontFamily: 'Helvetica', color: '#0f172a' }}>
+        <View style={{ borderWidth: 1, borderColor: '#94a3b8' }}>
+          {/* ENCABEZADO SOBRIO */}
+          <View style={{ backgroundColor: '#f8fafc', borderBottomWidth: 2, borderBottomColor: '#0f172a', padding: 18, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <View style={{ width: '62%' }}>
-              <Text style={{ color: '#FFB300', fontSize: 24, fontFamily: 'Helvetica-Bold', letterSpacing: 1 }}>BALLARD</Text>
-              <Text style={{ color: '#ffffff', fontSize: 10, letterSpacing: 1, marginTop: 2 }}>TOUR SERVICES</Text>
-              <Text style={{ color: '#ffffff', fontSize: 15, fontFamily: 'Helvetica-Bold', marginTop: 12 }}>{tituloPrincipal}</Text>
-              <Text style={{ color: esVenta ? '#34d399' : '#FFB300', fontSize: 9.5, marginTop: 3 }}>{subtituloSeguro}</Text>
+              <Text style={{ color: '#0f172a', fontSize: 20, fontFamily: 'Helvetica-Bold', letterSpacing: 0.5 }}>BALLARD TOUR SERVICES</Text>
+              <Text style={{ color: '#0f172a', fontSize: 13, fontFamily: 'Helvetica-Bold', marginTop: 8 }}>{tituloPrincipal}</Text>
+              <Text style={{ color: '#475569', fontSize: 9, marginTop: 2 }}>{subtituloSeguro}</Text>
             </View>
             <View style={{ width: '38%', alignItems: 'flex-end' }}>
-              <View style={{ backgroundColor: esVenta ? '#059669' : '#FFB300', paddingHorizontal: 12, paddingVertical: 5, borderRadius: 5, marginBottom: 8 }}>
-                <Text style={{ color: esVenta ? '#ffffff' : '#161D2D', fontSize: 9.5, fontFamily: 'Helvetica-Bold' }}>{badgeEstado}</Text>
+              <View style={{ borderWidth: 1, borderColor: '#0f172a', backgroundColor: '#ffffff', paddingHorizontal: 10, paddingVertical: 4, marginBottom: 6 }}>
+                <Text style={{ color: '#0f172a', fontSize: 8.5, fontFamily: 'Helvetica-Bold' }}>{badgeEstado}</Text>
               </View>
-              <Text style={{ color: esVenta ? '#6ee7b7' : '#a0aabf', fontSize: 10, fontFamily: 'Helvetica-Bold' }}>
+              <Text style={{ color: '#0f172a', fontSize: 10, fontFamily: 'Helvetica-Bold' }}>
                 {folioLabel} {numFolio}
               </Text>
-              <Text style={{ color: '#a0aabf', fontSize: 9, marginTop: 3 }}>
+              <Text style={{ color: '#475569', fontSize: 8.5, marginTop: 2 }}>
                 {fechaLabel} {fechaEmision}
               </Text>
             </View>
           </View>
 
           {/* CUERPO DEL DOCUMENTO */}
-          <View style={{ padding: 20 }}>
-            {/* FILA 1: CLIENTE, PAX, VEHÍCULO, VUELO */}
-            <View style={{ flexDirection: 'row', marginBottom: 14 }}>
-              <View style={{ width: '34%', paddingRight: 8 }}>
-                <Text style={{ fontSize: 8, color: '#7A7A7A', fontFamily: 'Helvetica-Bold', textTransform: 'uppercase', marginBottom: 3 }}>
-                  {isEN ? 'PASSENGER / CLIENT NAME' : 'NOMBRE DEL PASAJERO / CLIENTE'}
-                </Text>
-                <Text style={{ fontSize: 12.5, color: '#161D2D', fontFamily: 'Helvetica-Bold' }}>
-                  {cotizacion.nombreCliente || (isEN ? '[Client Name]' : '[Nombre del Cliente]')}
-                </Text>
+          <View style={{ padding: 18 }}>
+            {/* TABLA DE DATOS GENERALES DEL CLIENTE */}
+            <View style={{ borderWidth: 1, borderColor: '#cbd5e1', marginBottom: 14 }}>
+              {/* FILA 1: CLIENTE, PAX, VEHÍCULO, VUELO */}
+              <View style={{ flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#cbd5e1' }}>
+                <View style={{ width: '36%', padding: 8, borderRightWidth: 1, borderRightColor: '#cbd5e1' }}>
+                  <Text style={{ fontSize: 7.5, color: '#64748b', fontFamily: 'Helvetica-Bold', textTransform: 'uppercase', marginBottom: 2 }}>
+                    {isEN ? 'PASSENGER / CLIENT NAME' : 'NOMBRE DEL PASAJERO / CLIENTE'}
+                  </Text>
+                  <Text style={{ fontSize: 11.5, color: '#0f172a', fontFamily: 'Helvetica-Bold' }}>
+                    {cotizacion.nombreCliente || (isEN ? '[Client Name]' : '[Nombre del Cliente]')}
+                  </Text>
+                </View>
+                <View style={{ width: '14%', padding: 8, borderRightWidth: 1, borderRightColor: '#cbd5e1' }}>
+                  <Text style={{ fontSize: 7.5, color: '#64748b', fontFamily: 'Helvetica-Bold', textTransform: 'uppercase', marginBottom: 2 }}>
+                    PAX
+                  </Text>
+                  <Text style={{ fontSize: 11.5, color: '#0f172a', fontFamily: 'Helvetica-Bold' }}>
+                    {cotizacion.pax || '1'}
+                  </Text>
+                </View>
+                <View style={{ width: '20%', padding: 8, borderRightWidth: 1, borderRightColor: '#cbd5e1' }}>
+                  <Text style={{ fontSize: 7.5, color: '#64748b', fontFamily: 'Helvetica-Bold', textTransform: 'uppercase', marginBottom: 2 }}>
+                    {isEN ? 'VEHICLE TYPE' : 'VEHÍCULO'}
+                  </Text>
+                  <Text style={{ fontSize: 11.5, color: '#0f172a', fontFamily: 'Helvetica-Bold' }}>
+                    {cotizacion.tipoVehiculo === 'VAN' ? 'VAN' : 'SUV'}
+                  </Text>
+                </View>
+                <View style={{ width: '30%', padding: 8 }}>
+                  <Text style={{ fontSize: 7.5, color: '#64748b', fontFamily: 'Helvetica-Bold', textTransform: 'uppercase', marginBottom: 2 }}>
+                    {isEN ? 'AIRLINE & FLIGHT' : 'AEROLÍNEA Y VUELO'}
+                  </Text>
+                  <Text style={{ fontSize: 11, color: '#0f172a', fontFamily: 'Helvetica-Bold', textTransform: 'uppercase' }}>
+                    {cotizacion.aerolineaVuelo || (isEN ? '[Airline & Flight]' : '[Aerolínea y Vuelo]')}
+                  </Text>
+                </View>
               </View>
-              <View style={{ width: '16%', paddingRight: 8 }}>
-                <Text style={{ fontSize: 8, color: '#7A7A7A', fontFamily: 'Helvetica-Bold', textTransform: 'uppercase', marginBottom: 3 }}>
-                  {isEN ? 'PASSENGERS (PAX)' : 'PASAJEROS (PAX)'}
-                </Text>
-                <Text style={{ fontSize: 12, color: '#161D2D', fontFamily: 'Helvetica-Bold' }}>
-                  {cotizacion.pax || '1'}
-                </Text>
-              </View>
-              <View style={{ width: '20%', paddingRight: 8 }}>
-                <Text style={{ fontSize: 8, color: '#7A7A7A', fontFamily: 'Helvetica-Bold', textTransform: 'uppercase', marginBottom: 3 }}>
-                  {isEN ? 'VEHICLE TYPE' : 'TIPO DE VEHÍCULO'}
-                </Text>
-                <Text style={{ fontSize: 12, color: '#161D2D', fontFamily: 'Helvetica-Bold' }}>
-                  {cotizacion.tipoVehiculo === 'VAN' ? 'VAN' : 'SUV'}
-                </Text>
-              </View>
-              <View style={{ width: '30%' }}>
-                <Text style={{ fontSize: 8, color: '#7A7A7A', fontFamily: 'Helvetica-Bold', textTransform: 'uppercase', marginBottom: 3 }}>
-                  {isEN ? 'AIRLINE & FLIGHT' : 'AEROLÍNEA Y VUELO'}
-                </Text>
-                <Text style={{ fontSize: 11.5, color: '#161D2D', fontFamily: 'Helvetica-Bold', textTransform: 'uppercase' }}>
-                  {cotizacion.aerolineaVuelo || (isEN ? '[Airline & Flight]' : '[Aerolínea y Vuelo]')}
-                </Text>
+
+              {/* FILA 2: HOTEL, MÉTODO DE PAGO, CHECKOUT */}
+              <View style={{ flexDirection: 'row' }}>
+                <View style={{ width: '36%', padding: 8, borderRightWidth: 1, borderRightColor: '#cbd5e1' }}>
+                  <Text style={{ fontSize: 7.5, color: '#64748b', fontFamily: 'Helvetica-Bold', textTransform: 'uppercase', marginBottom: 2 }}>
+                    {isEN ? 'HOTEL / MAIN LODGING' : 'HOTEL / ALOJAMIENTO PRINCIPAL'}
+                  </Text>
+                  <Text style={{ fontSize: 11, color: '#0f172a', fontFamily: 'Helvetica-Bold' }}>
+                    {cotizacion.hotelPrincipal || (isEN ? '[Hotel or Villa Name]' : '[Nombre del Hotel o Villa]')}
+                  </Text>
+                </View>
+                <View style={{ width: '34%', padding: 8, borderRightWidth: 1, borderRightColor: '#cbd5e1' }}>
+                  <Text style={{ fontSize: 7.5, color: '#64748b', fontFamily: 'Helvetica-Bold', textTransform: 'uppercase', marginBottom: 2 }}>
+                    {isEN ? 'PAYMENT METHOD' : 'MÉTODO DE PAGO'}
+                  </Text>
+                  <Text style={{ fontSize: 11, color: '#0f172a', fontFamily: 'Helvetica-Bold' }}>
+                    {formatearMetodoPago ? formatearMetodoPago(cotizacion.metodoPago, idioma) : (cotizacion.metodoPago || '')}
+                  </Text>
+                </View>
+                <View style={{ width: '30%', padding: 8 }}>
+                  <Text style={{ fontSize: 7.5, color: '#64748b', fontFamily: 'Helvetica-Bold', textTransform: 'uppercase', marginBottom: 2 }}>
+                    {isEN ? 'RETURN TIME (CHECK-OUT)' : 'HORA DE REGRESO (CHECK-OUT)'}
+                  </Text>
+                  <Text style={{ fontSize: 11, color: '#0f172a', fontFamily: 'Helvetica-Bold' }}>
+                    {cotizacion.horaCheckout ? `${cotizacion.horaCheckout} HRS` : '[HH:MM HRS]'}
+                  </Text>
+                </View>
               </View>
             </View>
-
-            {/* FILA 2: HOTEL, MÉTODO DE PAGO, CHECKOUT */}
-            <View style={{ flexDirection: 'row', marginBottom: 14 }}>
-              <View style={{ width: '34%', paddingRight: 8 }}>
-                <Text style={{ fontSize: 8, color: '#7A7A7A', fontFamily: 'Helvetica-Bold', textTransform: 'uppercase', marginBottom: 3 }}>
-                  {isEN ? 'HOTEL / MAIN LODGING' : 'HOTEL / ALOJAMIENTO PRINCIPAL'}
-                </Text>
-                <Text style={{ fontSize: 11.5, color: '#161D2D', fontFamily: 'Helvetica-Bold' }}>
-                  {cotizacion.hotelPrincipal || (isEN ? '[Hotel or Villa Name]' : '[Nombre del Hotel o Villa]')}
-                </Text>
-              </View>
-              <View style={{ width: '36%', paddingRight: 8 }}>
-                <Text style={{ fontSize: 8, color: '#7A7A7A', fontFamily: 'Helvetica-Bold', textTransform: 'uppercase', marginBottom: 3 }}>
-                  {isEN ? 'PAYMENT METHOD' : 'MÉTODO DE PAGO'}
-                </Text>
-                <Text style={{ fontSize: 11.5, color: '#161D2D', fontFamily: 'Helvetica-Bold' }}>
-                  {formatearMetodoPago ? formatearMetodoPago(cotizacion.metodoPago, idioma) : (cotizacion.metodoPago || '')}
-                </Text>
-              </View>
-              <View style={{ width: '30%' }}>
-                <Text style={{ fontSize: 8, color: '#7A7A7A', fontFamily: 'Helvetica-Bold', textTransform: 'uppercase', marginBottom: 3 }}>
-                  {isEN ? 'RETURN TIME (CHECK-OUT)' : 'HORA DE REGRESO (CHECK-OUT)'}
-                </Text>
-                <Text style={{ fontSize: 11.5, color: '#D97706', fontFamily: 'Helvetica-Bold' }}>
-                  {cotizacion.horaCheckout ? `${cotizacion.horaCheckout} HRS` : '[HH:MM HRS]'}
-                </Text>
-              </View>
-            </View>
-
-            {/* DIVISOR PUNTEADO */}
-            <View style={{ borderBottomWidth: 1.5, borderBottomColor: '#e0e0e0', borderBottomStyle: 'dashed', marginVertical: 12 }} />
 
             {/* TÍTULO DE ITINERARIO */}
-            <View style={{ alignSelf: 'flex-start', borderBottomWidth: 2, borderBottomColor: '#161D2D', paddingBottom: 3, marginBottom: 10 }}>
-              <Text style={{ fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#161D2D' }}>
+            <View style={{ borderBottomWidth: 1.5, borderBottomColor: '#0f172a', paddingBottom: 3, marginBottom: 8 }}>
+              <Text style={{ fontSize: 11, fontFamily: 'Helvetica-Bold', color: '#0f172a', textTransform: 'uppercase' }}>
                 {isEN ? 'Requested Itinerary and Destinations' : 'Itinerario y Destinos Solicitados'}
               </Text>
             </View>
 
             {/* TABLA DE ITINERARIO */}
-            <View style={{ marginBottom: 16 }}>
-              {/* Encabezado de tabla */}
-              <View style={{ flexDirection: 'row', backgroundColor: '#f9f9f9', borderBottomWidth: 1, borderBottomColor: '#dddddd', paddingVertical: 7, paddingHorizontal: 8 }}>
-                <Text style={{ width: '20%', fontSize: 8, fontFamily: 'Helvetica-Bold', color: '#7A7A7A', textTransform: 'uppercase' }}>
+            <View style={{ marginBottom: 14, borderWidth: 1, borderColor: '#cbd5e1' }}>
+              <View style={{ flexDirection: 'row', backgroundColor: '#f1f5f9', borderBottomWidth: 1, borderBottomColor: '#94a3b8', paddingVertical: 6, paddingHorizontal: 8 }}>
+                <Text style={{ width: '20%', fontSize: 7.5, fontFamily: 'Helvetica-Bold', color: '#1e293b', textTransform: 'uppercase' }}>
                   {isEN ? 'STAGE' : 'ETAPA'}
                 </Text>
-                <Text style={{ width: '40%', fontSize: 8, fontFamily: 'Helvetica-Bold', color: '#7A7A7A', textTransform: 'uppercase' }}>
+                <Text style={{ width: '42%', fontSize: 7.5, fontFamily: 'Helvetica-Bold', color: '#1e293b', textTransform: 'uppercase' }}>
                   {isEN ? 'ROUTE / DESTINATION DESCRIPTION' : 'DESCRIPCIÓN DEL TRAYECTO / DESTINO'}
                 </Text>
-                <Text style={{ width: '12%', fontSize: 8, fontFamily: 'Helvetica-Bold', color: '#7A7A7A', textTransform: 'uppercase', textAlign: 'center' }}>
+                <Text style={{ width: '10%', fontSize: 7.5, fontFamily: 'Helvetica-Bold', color: '#1e293b', textTransform: 'uppercase', textAlign: 'center' }}>
                   PAX
                 </Text>
-                <Text style={{ width: '28%', fontSize: 8, fontFamily: 'Helvetica-Bold', color: '#7A7A7A', textTransform: 'uppercase' }}>
+                <Text style={{ width: '28%', fontSize: 7.5, fontFamily: 'Helvetica-Bold', color: '#1e293b', textTransform: 'uppercase' }}>
                   {isEN ? 'DATE AND TIME' : 'FECHA Y HORA'}
                 </Text>
               </View>
 
-              {/* Filas de etapas */}
               {(cotizacion.etapas || []).map((etapa, idx) => {
-                const esSalida = etapa.tipo === 'salida';
                 const traducirLugar = (txt) => {
                   if (!txt) return '';
                   return isEN ? String(txt).replace(/Aeropuerto SJD/gi, 'SJD Airport') : String(txt);
@@ -193,50 +189,50 @@ const PresupuestoPDFDocument = ({ cotizacion, idioma, formatearMetodoPago }) => 
                     wrap={false}
                     style={{
                       flexDirection: 'row',
-                      backgroundColor: esSalida ? '#fff9f0' : '#ffffff',
-                      borderBottomWidth: 1,
-                      borderBottomColor: '#eeeeee',
-                      paddingVertical: 9,
+                      backgroundColor: idx % 2 === 0 ? '#ffffff' : '#f8fafc',
+                      borderBottomWidth: 0.5,
+                      borderBottomColor: '#e2e8f0',
+                      paddingVertical: 8,
                       paddingHorizontal: 8
                     }}
                   >
                     <View style={{ width: '20%', paddingRight: 6 }}>
-                      <Text style={{ fontSize: 10, fontFamily: 'Helvetica-Bold', color: esSalida ? '#D97706' : '#333333' }}>
+                      <Text style={{ fontSize: 9.5, fontFamily: 'Helvetica-Bold', color: '#0f172a' }}>
                         {isEN ? (etapa.etiquetaEN || etapa.etiquetaES) : (etapa.etiquetaES || etapa.etiquetaEN)}
                       </Text>
                     </View>
-                    <View style={{ width: '40%', paddingRight: 6 }}>
-                      <Text style={{ fontSize: 10, color: '#222222' }}>
+                    <View style={{ width: '42%', paddingRight: 6 }}>
+                      <Text style={{ fontSize: 9.5, color: '#1e293b' }}>
                         {descripcionTrayecto}
                       </Text>
                     </View>
-                    <View style={{ width: '12%', alignItems: 'center' }}>
-                      <Text style={{ fontSize: 10, fontFamily: 'Helvetica-Bold', color: '#161D2D' }}>
+                    <View style={{ width: '10%', alignItems: 'center' }}>
+                      <Text style={{ fontSize: 9.5, fontFamily: 'Helvetica-Bold', color: '#0f172a' }}>
                         {paxTramo}
                       </Text>
                     </View>
                     <View style={{ width: '28%' }}>
-                      <Text style={{ fontSize: 9.5, fontFamily: 'Helvetica-Bold', color: '#161D2D', marginBottom: 2 }}>
+                      <Text style={{ fontSize: 9, fontFamily: 'Helvetica-Bold', color: '#0f172a', marginBottom: 2 }}>
                         {fechaFormateada}
                       </Text>
                       {horaPickUp ? (
-                        <Text style={{ fontSize: 8.5, color: '#334155' }}>
-                          <Text style={{ fontFamily: 'Helvetica-Bold', color: '#0284c7' }}>
+                        <Text style={{ fontSize: 8, color: '#334155' }}>
+                          <Text style={{ fontFamily: 'Helvetica-Bold' }}>
                             {isEN ? 'Pick-up: ' : 'Recogida: '}
                           </Text>
                           {horaPickUp}
                         </Text>
                       ) : null}
                       {horaReturn ? (
-                        <Text style={{ fontSize: 8.5, color: '#334155', marginTop: 1 }}>
-                          <Text style={{ fontFamily: 'Helvetica-Bold', color: '#d97706' }}>
+                        <Text style={{ fontSize: 8, color: '#334155', marginTop: 1 }}>
+                          <Text style={{ fontFamily: 'Helvetica-Bold' }}>
                             {isEN ? 'Return: ' : 'Regreso: '}
                           </Text>
                           {horaReturn}
                         </Text>
                       ) : null}
                       {!horaPickUp && !horaReturn ? (
-                        <Text style={{ fontSize: 8.5, color: '#64748b' }}>[HH:MM]</Text>
+                        <Text style={{ fontSize: 8, color: '#64748b' }}>[HH:MM]</Text>
                       ) : null}
                     </View>
                   </View>
@@ -244,19 +240,19 @@ const PresupuestoPDFDocument = ({ cotizacion, idioma, formatearMetodoPago }) => 
               })}
             </View>
 
-            {/* CUADRO DE PRECIO TOTAL */}
-            <View wrap={false} style={{ backgroundColor: '#f4f4f9', borderRadius: 6, padding: 14, alignItems: 'flex-end', marginBottom: 14 }}>
+            {/* CUADRO DE PRECIO TOTAL SOBRIO */}
+            <View wrap={false} style={{ backgroundColor: '#f8fafc', borderWidth: 1, borderColor: '#cbd5e1', padding: 12, alignItems: 'flex-end', marginBottom: 12 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <Text style={{ fontSize: 8.5, color: '#7A7A7A', fontFamily: 'Helvetica-Bold', textTransform: 'uppercase', marginRight: 8 }}>
+                <Text style={{ fontSize: 8.5, color: '#475569', fontFamily: 'Helvetica-Bold', textTransform: 'uppercase', marginRight: 8 }}>
                   {isEN ? 'TOTAL QUOTE:' : 'TOTAL DEL PRESUPUESTO:'}
                 </Text>
-                <Text style={{ fontSize: 18, color: '#161D2D', fontFamily: 'Helvetica-Bold' }}>
+                <Text style={{ fontSize: 16, color: '#0f172a', fontFamily: 'Helvetica-Bold' }}>
                   $ {totalNum.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {primaryCurrency}
                 </Text>
               </View>
               {mostrarConversion ? (
-                <View style={{ backgroundColor: '#dcfce7', borderWidth: 1, borderColor: '#bbf7d0', borderRadius: 4, paddingVertical: 4, paddingHorizontal: 8, marginTop: 5 }}>
-                  <Text style={{ fontSize: 8.5, color: '#166534', fontFamily: 'Helvetica-Bold' }}>
+                <View style={{ marginTop: 4 }}>
+                  <Text style={{ fontSize: 8.5, color: '#334155', fontFamily: 'Helvetica-Bold' }}>
                     {isEN ? 'Approx. ' : 'Equivalente: '}
                     $ {convertedNum.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {secondaryCurrency}
                     {'  '}
@@ -267,11 +263,11 @@ const PresupuestoPDFDocument = ({ cotizacion, idioma, formatearMetodoPago }) => 
             </View>
 
             {/* INSTRUCCIONES DE LLEGADA */}
-            <View wrap={false} style={{ backgroundColor: '#FFFBF0', borderWidth: 1, borderColor: '#FFE099', borderRadius: 6, padding: 12 }}>
-              <Text style={{ fontSize: 10.5, fontFamily: 'Helvetica-Bold', color: '#D97706', marginBottom: 5 }}>
-                {isEN ? '• How to find your driver upon arrival?' : '• ¿Cómo encontrar a su chofer a la llegada?'}
+            <View wrap={false} style={{ backgroundColor: '#f8fafc', borderWidth: 1, borderColor: '#cbd5e1', padding: 12 }}>
+              <Text style={{ fontSize: 9.5, fontFamily: 'Helvetica-Bold', color: '#0f172a', marginBottom: 4, textTransform: 'uppercase' }}>
+                {isEN ? 'HOW TO FIND YOUR DRIVER UPON ARRIVAL' : 'INSTRUCCIONES PARA UBICAR A SU CHOFER'}
               </Text>
-              <Text style={{ fontSize: 9, color: '#555555', lineHeight: 1.4, textAlign: 'justify' }}>
+              <Text style={{ fontSize: 8.5, color: '#334155', lineHeight: 1.4, textAlign: 'justify' }}>
                 {isEN
                   ? 'All transport companies are waiting outside the departure gate. You just have to walk to the parking lot and look for your name on a sign. We are usually located in the "GROUP EXIT" (Shadow 3 / Terminal 1). When you get there, walk into the parking lot and you will see our staff holding up your name signs.'
                   : 'Todas las compañías de transporte esperan afuera de la puerta de salidas. Solo tiene que caminar hacia el estacionamiento y buscar su nombre en un letrero. Usualmente nos encontramos en la "SALIDA DE GRUPOS" (Shadow 3 / Terminal 1). Cuando llegue ahí, camine al estacionamiento y verá a nuestro personal sosteniendo sus letreros.'}
@@ -279,11 +275,10 @@ const PresupuestoPDFDocument = ({ cotizacion, idioma, formatearMetodoPago }) => 
             </View>
           </View>
 
-          {/* PIE DE PÁGINA */}
-          <View wrap={false} style={{ backgroundColor: '#161D2D', paddingVertical: 11, paddingHorizontal: 20, flexDirection: 'row', justifyContent: 'center', alignItems: 'center' }}>
-            <Text style={{ fontSize: 9, color: '#FFB300', marginRight: 14 }}>Tel: +52 612 194 3286</Text>
-            <Text style={{ fontSize: 9, color: '#ffffff', marginRight: 14 }}>reservationballard@gmail.com</Text>
-            <Text style={{ fontSize: 9, color: '#ffffff' }}>www.caboprivateairporttransfers.com</Text>
+          {/* PIE DE PÁGINA SOBRIO */}
+          <View wrap={false} style={{ borderTopWidth: 1, borderTopColor: '#cbd5e1', backgroundColor: '#f1f5f9', paddingVertical: 10, paddingHorizontal: 20, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Text style={{ fontSize: 8.5, color: '#334155', fontFamily: 'Helvetica-Bold' }}>Tel: +52 612 194 3286   |   reservationballard@gmail.com</Text>
+            <Text style={{ fontSize: 8.5, color: '#0f172a', fontFamily: 'Helvetica-Bold' }}>www.caboprivateairporttransfers.com</Text>
           </View>
         </View>
       </Page>
@@ -2347,7 +2342,7 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
               </div>
             </div>
 
-            {/* CONTENEDOR DEL TICKET (Mismo formato HTML limpio del cliente) */}
+            {/* CONTENEDOR DEL TICKET (Diseño Sobrio, Formal y Recto) */}
             <div className="w-full flex justify-center overflow-x-auto pb-6">
               <div
                 id="area-impresion-presupuesto"
@@ -2357,41 +2352,39 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
                   width: '100%',
                   maxWidth: '800px',
                   backgroundColor: '#ffffff',
-                  border: '1px solid #e0e0e0',
-                  borderRadius: '12px',
-                  boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
+                  border: '1px solid #94a3b8',
+                  borderRadius: '0px',
                   overflow: 'hidden'
                 }}
               >
-                {/* ENCABEZADO */}
-                <table style={{ backgroundColor: '#161D2D', color: 'white', width: '100%', borderCollapse: 'collapse', border: 'none' }}>
+                {/* ENCABEZADO SOBRIO */}
+                <table style={{ backgroundColor: '#f8fafc', color: '#0f172a', width: '100%', borderCollapse: 'collapse', borderBottom: '2px solid #0f172a' }}>
                   <tbody>
                     <tr>
-                      <td style={{ padding: '25px', width: '60%', verticalAlign: 'top', border: 'none' }}>
-                        <h1 style={{ margin: 0, color: '#FFB300', fontSize: '32px', fontWeight: 900, letterSpacing: '1px' }}>BALLARD</h1>
-                        <p style={{ margin: 0, fontSize: '14px', letterSpacing: '1px', color: '#ffffff' }}>TOUR SERVICES</p>
-                        <br />
-                        <h2 style={{ margin: 0, fontSize: '20px', color: '#ffffff', fontWeight: 700 }}>{t.tituloPrincipal}</h2>
-                        <p style={{ margin: 0, fontSize: '12px', color: esVenta ? '#34d399' : '#FFB300' }}>{t.subtituloSeguro}</p>
+                      <td style={{ padding: '20px 24px', width: '60%', verticalAlign: 'top', border: 'none' }}>
+                        <h1 style={{ margin: 0, color: '#0f172a', fontSize: '24px', fontWeight: 900, letterSpacing: '0.5px' }}>BALLARD TOUR SERVICES</h1>
+                        <h2 style={{ margin: '8px 0 2px 0', fontSize: '16px', color: '#0f172a', fontWeight: 700 }}>{t.tituloPrincipal}</h2>
+                        <p style={{ margin: 0, fontSize: '11.5px', color: '#475569' }}>{t.subtituloSeguro}</p>
                       </td>
-                      <td style={{ padding: '25px', textAlign: 'right', width: '40%', verticalAlign: 'top', border: 'none' }}>
+                      <td style={{ padding: '20px 24px', textAlign: 'right', width: '40%', verticalAlign: 'top', border: 'none' }}>
                         <div style={{ 
-                          backgroundColor: esVenta ? '#059669' : '#FFB300', 
-                          color: esVenta ? '#ffffff' : '#161D2D', 
+                          backgroundColor: '#ffffff', 
+                          color: '#0f172a', 
+                          border: '1px solid #0f172a',
                           fontWeight: 'bold', 
-                          padding: '6px 16px', 
-                          borderRadius: '6px', 
+                          padding: '4px 12px', 
+                          borderRadius: '0px', 
                           display: 'inline-block', 
-                          fontSize: '13px', 
-                          marginBottom: '10px',
+                          fontSize: '11.5px', 
+                          marginBottom: '8px',
                           letterSpacing: '0.5px'
                         }}>
                           {t.badgeEstado}
                         </div>
-                        <p style={{ margin: 0, fontSize: '13px', color: esVenta ? '#6ee7b7' : '#a0aabf', fontFamily: 'monospace', fontWeight: 'bold' }}>
+                        <p style={{ margin: 0, fontSize: '13px', color: '#0f172a', fontFamily: 'monospace', fontWeight: 'bold' }}>
                           {t.folioLabel} {cotizacion.numeroTicket || cotizacion.folio}
                         </p>
-                        <p style={{ margin: '5px 0 0 0', fontSize: '12px', color: '#a0aabf' }}>
+                        <p style={{ margin: '3px 0 0 0', fontSize: '11.5px', color: '#475569' }}>
                           {t.fechaLabel} {cotizacion.fechaEmision || new Date().toISOString().split('T')[0]}
                         </p>
                       </td>
@@ -2400,68 +2393,66 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
                 </table>
 
                 {/* CUERPO DEL TICKET */}
-                <div style={{ padding: '20px 25px' }}>
-                  {/* DATOS DEL CLIENTE Y VUELO */}
-                  {/* DATOS DEL CLIENTE, VEHÍCULO Y VUELO */}
-                  <table style={{ width: '100%', marginBottom: '20px', borderCollapse: 'collapse', border: 'none' }}>
+                <div style={{ padding: '20px 24px' }}>
+                  {/* DATOS DEL CLIENTE, VEHÍCULO Y VUELO EN TABLA CON BORDES */}
+                  <table style={{ width: '100%', marginBottom: '18px', borderCollapse: 'collapse', border: '1px solid #cbd5e1' }}>
                     <tbody>
                       <tr>
-                        <td style={{ width: '34%', padding: '8px 12px', verticalAlign: 'top', border: 'none' }}>
-                          <div style={{ fontSize: '11px', color: '#7A7A7A', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '2px' }}>
+                        <td style={{ width: '36%', padding: '8px 12px', verticalAlign: 'top', border: '1px solid #cbd5e1' }}>
+                          <div style={{ fontSize: '10px', color: '#64748b', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '2px' }}>
                             {t.nombreClienteLabel}
                           </div>
-                          <div style={{ fontSize: '17px', color: '#161D2D', fontWeight: 'bold' }}>
+                          <div style={{ fontSize: '15px', color: '#0f172a', fontWeight: 'bold' }}>
                             {cotizacion.nombreCliente || (idioma === 'EN' ? '[Client Name]' : '[Nombre del Cliente]')}
                           </div>
                         </td>
-                        <td style={{ width: '14%', padding: '8px 12px', verticalAlign: 'top', border: 'none' }}>
-                          <div style={{ fontSize: '11px', color: '#7A7A7A', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '2px' }}>
+                        <td style={{ width: '14%', padding: '8px 12px', verticalAlign: 'top', border: '1px solid #cbd5e1' }}>
+                          <div style={{ fontSize: '10px', color: '#64748b', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '2px' }}>
                             {t.paxLabel}
                           </div>
-                          <div style={{ fontSize: '16px', color: '#161D2D', fontWeight: 'bold' }}>
+                          <div style={{ fontSize: '15px', color: '#0f172a', fontWeight: 'bold' }}>
                             {cotizacion.pax || '1'}
                           </div>
                         </td>
-                        <td style={{ width: '22%', padding: '8px 12px', verticalAlign: 'top', border: 'none' }}>
-                          <div style={{ fontSize: '11px', color: '#7A7A7A', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '2px' }}>
+                        <td style={{ width: '20%', padding: '8px 12px', verticalAlign: 'top', border: '1px solid #cbd5e1' }}>
+                          <div style={{ fontSize: '10px', color: '#64748b', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '2px' }}>
                             {t.vehiculoLabel}
                           </div>
-                          <div style={{ fontSize: '16px', color: '#161D2D', fontWeight: 'bold' }}>
+                          <div style={{ fontSize: '15px', color: '#0f172a', fontWeight: 'bold' }}>
                             {cotizacion.tipoVehiculo === 'VAN' ? 'VAN' : 'SUV'}
                           </div>
                         </td>
-                        <td style={{ width: '30%', padding: '8px 12px', verticalAlign: 'top', border: 'none' }}>
-                          <div style={{ fontSize: '11px', color: '#7A7A7A', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '2px' }}>
+                        <td style={{ width: '30%', padding: '8px 12px', verticalAlign: 'top', border: '1px solid #cbd5e1' }}>
+                          <div style={{ fontSize: '10px', color: '#64748b', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '2px' }}>
                             {t.vueloLabel}
                           </div>
-                          <div style={{ fontSize: '15px', color: '#161D2D', fontWeight: 'bold', textTransform: 'uppercase' }}>
+                          <div style={{ fontSize: '14px', color: '#0f172a', fontWeight: 'bold', textTransform: 'uppercase' }}>
                             {cotizacion.aerolineaVuelo || (idioma === 'EN' ? '[Airline & Flight]' : '[Aerolínea y Vuelo]')}
                           </div>
                         </td>
                       </tr>
-                      <tr><td colSpan="4" style={{ height: '12px', padding: 0, border: 'none' }}></td></tr>
                       <tr>
-                        <td style={{ padding: '8px 12px', verticalAlign: 'top', border: 'none' }}>
-                          <div style={{ fontSize: '11px', color: '#7A7A7A', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '2px' }}>
+                        <td style={{ padding: '8px 12px', verticalAlign: 'top', border: '1px solid #cbd5e1' }}>
+                          <div style={{ fontSize: '10px', color: '#64748b', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '2px' }}>
                             {t.hotelLabel}
                           </div>
-                          <div style={{ fontSize: '15px', color: '#161D2D', fontWeight: 'bold' }}>
+                          <div style={{ fontSize: '14px', color: '#0f172a', fontWeight: 'bold' }}>
                             {cotizacion.hotelPrincipal || (idioma === 'EN' ? '[Hotel or Villa Name]' : '[Nombre del Hotel o Villa]')}
                           </div>
                         </td>
-                        <td colSpan="2" style={{ padding: '8px 12px', verticalAlign: 'top', border: 'none' }}>
-                          <div style={{ fontSize: '11px', color: '#7A7A7A', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '2px' }}>
+                        <td colSpan="2" style={{ padding: '8px 12px', verticalAlign: 'top', border: '1px solid #cbd5e1' }}>
+                          <div style={{ fontSize: '10px', color: '#64748b', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '2px' }}>
                             {t.metodoPagoLabel}
                           </div>
-                          <div style={{ fontSize: '15px', color: '#161D2D', fontWeight: 'bold' }}>
+                          <div style={{ fontSize: '14px', color: '#0f172a', fontWeight: 'bold' }}>
                             {formatearMetodoPago(cotizacion.metodoPago, idioma)}
                           </div>
                         </td>
-                        <td style={{ padding: '8px 12px', verticalAlign: 'top', border: 'none' }}>
-                          <div style={{ fontSize: '11px', color: '#7A7A7A', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '2px' }}>
+                        <td style={{ padding: '8px 12px', verticalAlign: 'top', border: '1px solid #cbd5e1' }}>
+                          <div style={{ fontSize: '10px', color: '#64748b', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '2px' }}>
                             {t.horaCheckoutLabel}
                           </div>
-                          <div style={{ fontSize: '15px', color: '#D97706', fontWeight: 'bold' }}>
+                          <div style={{ fontSize: '14px', color: '#0f172a', fontWeight: 'bold' }}>
                             {cotizacion.horaCheckout ? `${cotizacion.horaCheckout} HRS` : '[HH:MM HRS]'}
                           </div>
                         </td>
@@ -2469,37 +2460,30 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
                     </tbody>
                   </table>
 
-                  <hr style={{ border: 0, borderTop: '2px dashed #e0e0e0', margin: '20px 0' }} />
-
                   {/* ITINERARIO / OPCIONES DE DESTINO */}
-                  <h3 style={{ color: '#161D2D', marginTop: 0, fontSize: '18px', borderBottom: '2px solid #161D2D', paddingBottom: '5px', display: 'inline-block', fontWeight: 700 }}>
+                  <h3 style={{ color: '#0f172a', marginTop: 0, marginBottom: '10px', fontSize: '14px', borderBottom: '1.5px solid #0f172a', paddingBottom: '4px', textTransform: 'uppercase', fontWeight: 700 }}>
                     {t.itinerarioTitulo}
                   </h3>
 
-                  <table style={{ width: '100%', marginBottom: '25px', borderBottom: '1px solid #eee', borderCollapse: 'collapse', border: 'none' }}>
+                  <table style={{ width: '100%', marginBottom: '18px', borderCollapse: 'collapse', border: '1px solid #cbd5e1' }}>
                     <thead>
-                      <tr style={{ backgroundColor: '#f9f9f9' }}>
-                        <th style={{ width: '20%', padding: '10px', borderBottom: '1px solid #ddd', textAlign: 'left', fontSize: '11px', color: '#7A7A7A', fontWeight: 'bold', textTransform: 'uppercase' }}>
+                      <tr style={{ backgroundColor: '#f1f5f9' }}>
+                        <th style={{ width: '20%', padding: '8px 10px', borderBottom: '1px solid #94a3b8', textAlign: 'left', fontSize: '10.5px', color: '#1e293b', fontWeight: 'bold', textTransform: 'uppercase' }}>
                           {t.colEtapa}
                         </th>
-                        <th style={{ width: '38%', padding: '10px', borderBottom: '1px solid #ddd', textAlign: 'left', fontSize: '11px', color: '#7A7A7A', fontWeight: 'bold', textTransform: 'uppercase' }}>
+                        <th style={{ width: '40%', padding: '8px 10px', borderBottom: '1px solid #94a3b8', textAlign: 'left', fontSize: '10.5px', color: '#1e293b', fontWeight: 'bold', textTransform: 'uppercase' }}>
                           {t.colDescripcion}
                         </th>
-                        <th style={{ width: '12%', padding: '10px', borderBottom: '1px solid #ddd', textAlign: 'center', fontSize: '11px', color: '#7A7A7A', fontWeight: 'bold', textTransform: 'uppercase' }}>
+                        <th style={{ width: '10%', padding: '8px 10px', borderBottom: '1px solid #94a3b8', textAlign: 'center', fontSize: '10.5px', color: '#1e293b', fontWeight: 'bold', textTransform: 'uppercase' }}>
                           {t.colPax}
                         </th>
-                        <th style={{ width: '30%', padding: '10px', borderBottom: '1px solid #ddd', textAlign: 'left', fontSize: '11px', color: '#7A7A7A', fontWeight: 'bold', textTransform: 'uppercase' }}>
+                        <th style={{ width: '30%', padding: '8px 10px', borderBottom: '1px solid #94a3b8', textAlign: 'left', fontSize: '10.5px', color: '#1e293b', fontWeight: 'bold', textTransform: 'uppercase' }}>
                           {t.colFechaHora}
                         </th>
                       </tr>
                     </thead>
                     <tbody>
-                      {cotizacion.etapas.map((etapa) => {
-                        const esSalida = etapa.tipo === 'salida';
-                        const backgroundFila = esSalida ? '#fff9f0' : 'transparent';
-                        const colorEtapa = esSalida ? '#D97706' : '#333333';
-
-                        // Descripción del trayecto
+                      {cotizacion.etapas.map((etapa, idx) => {
                         const traducirLugar = (txt) => {
                           if (!txt) return '';
                           return idioma === 'EN' ? String(txt).replace(/Aeropuerto SJD/gi, 'SJD Airport') : String(txt);
@@ -2517,47 +2501,40 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
                             : (idioma === 'EN' ? '[Origin → Destination]' : '[Lugar Origen → Lugar Destino]');
                         }
 
-                        // Fecha y horas formateadas
                         const fechaFormateada = etapa.fecha || (idioma === 'EN' ? '[YYYY-MM-DD]' : '[DD-MMM-AAAA]');
                         const paxTramo = etapa.pax || cotizacion.pax || '1';
                         const horaPickUp = etapa.horaRecogida || etapa.hora;
                         const horaReturn = etapa.horaRegreso;
 
                         return (
-                          <tr key={etapa.id} style={{ backgroundColor: backgroundFila }}>
-                            <td style={{ padding: '12px 10px', borderBottom: '1px solid #eee', verticalAlign: 'top' }}>
-                              <strong style={{ color: colorEtapa, fontSize: '14px' }}>
+                          <tr key={etapa.id} style={{ backgroundColor: idx % 2 === 0 ? '#ffffff' : '#f8fafc' }}>
+                            <td style={{ padding: '10px', borderBottom: '1px solid #e2e8f0', verticalAlign: 'top' }}>
+                              <strong style={{ color: '#0f172a', fontSize: '13px' }}>
                                 {idioma === 'EN' ? etapa.etiquetaEN : etapa.etiquetaES}
                               </strong>
                             </td>
-                            <td style={{ padding: '12px 10px', borderBottom: '1px solid #eee', fontSize: '14px', verticalAlign: 'top', color: '#222' }}>
+                            <td style={{ padding: '10px', borderBottom: '1px solid #e2e8f0', fontSize: '13px', verticalAlign: 'top', color: '#1e293b' }}>
                               {descripcionTrayecto}
                             </td>
-                            <td style={{ padding: '12px 10px', borderBottom: '1px solid #eee', textAlign: 'center', verticalAlign: 'top', fontWeight: 'bold', fontSize: '14px', color: '#161D2D' }}>
+                            <td style={{ padding: '10px', borderBottom: '1px solid #e2e8f0', textAlign: 'center', verticalAlign: 'top', fontWeight: 'bold', fontSize: '13px', color: '#0f172a' }}>
                               {paxTramo}
                             </td>
-                            <td style={{ padding: '12px 10px', borderBottom: '1px solid #eee', verticalAlign: 'top', color: '#161D2D' }}>
-                              <div style={{ fontWeight: 'bold', fontSize: '13px', marginBottom: '2px' }}>
+                            <td style={{ padding: '10px', borderBottom: '1px solid #e2e8f0', verticalAlign: 'top', color: '#0f172a' }}>
+                              <div style={{ fontWeight: 'bold', fontSize: '12.5px', marginBottom: '2px' }}>
                                 {fechaFormateada}
                               </div>
                               {horaPickUp && (
-                                <div style={{ fontSize: '12px', color: '#334155' }}>
-                                  <span style={{ fontWeight: 'bold', color: '#0284c7' }}>
-                                    {t.recogidaLabel}{' '}
-                                  </span>
-                                  {horaPickUp}
+                                <div style={{ fontSize: '11.5px', color: '#334155' }}>
+                                  <strong>{t.recogidaLabel} </strong>{horaPickUp}
                                 </div>
                               )}
                               {horaReturn && (
-                                <div style={{ fontSize: '12px', color: '#334155' }}>
-                                  <span style={{ fontWeight: 'bold', color: '#d97706' }}>
-                                    {t.regresoLabel}{' '}
-                                  </span>
-                                  {horaReturn}
+                                <div style={{ fontSize: '11.5px', color: '#334155' }}>
+                                  <strong>{t.regresoLabel} </strong>{horaReturn}
                                 </div>
                               )}
                               {!horaPickUp && !horaReturn && (
-                                <div style={{ fontSize: '12px', color: '#64748b' }}>
+                                <div style={{ fontSize: '11.5px', color: '#64748b' }}>
                                   [HH:MM]
                                 </div>
                               )}
@@ -2579,41 +2556,34 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
                     const secondaryCurrency = isUSD ? 'MXN' : 'USD';
 
                     return (
-                      <table style={{ width: '100%', marginBottom: '20px', borderCollapse: 'collapse', border: 'none' }}>
+                      <table style={{ width: '100%', marginBottom: '16px', borderCollapse: 'collapse', border: '1px solid #cbd5e1' }}>
                         <tbody>
                           <tr>
-                            <td style={{ textAlign: 'right', padding: '16px 20px', backgroundColor: '#f4f4f9', borderRadius: '8px', border: 'none' }}>
-                              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '5px' }}>
+                            <td style={{ textAlign: 'right', padding: '14px 18px', backgroundColor: '#f8fafc', border: 'none' }}>
+                              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', flexWrap: 'wrap', gap: '10px' }}>
-                                  <span style={{ fontSize: '11px', color: '#7A7A7A', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                  <span style={{ fontSize: '11px', color: '#475569', fontWeight: 'bold', textTransform: 'uppercase' }}>
                                     {t.totalPresupuesto}
                                   </span>
-                                  <span style={{ fontSize: '26px', color: '#161D2D', fontWeight: 900, letterSpacing: '-0.5px' }}>
+                                  <span style={{ fontSize: '22px', color: '#0f172a', fontWeight: 900 }}>
                                     $ {totalNum.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {primaryCurrency}
                                   </span>
                                 </div>
 
                                 {mostrarConversion && (
                                   <div style={{ 
-                                    fontSize: '12px', 
-                                    color: '#166534', 
+                                    fontSize: '11.5px', 
+                                    color: '#334155', 
                                     fontWeight: 700, 
-                                    backgroundColor: '#dcfce7', 
-                                    padding: '5px 12px', 
-                                    borderRadius: '6px', 
-                                    border: '1px solid #bbf7d0',
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: '6px',
                                     marginTop: '2px'
                                   }}>
                                     <span>
                                       {idioma === 'EN' ? 'Approx.' : 'Equivalente:'}{' '}
-                                      <strong style={{ fontSize: '13px', color: '#14532d' }}>
+                                      <strong style={{ color: '#0f172a' }}>
                                         $ {convertedNum.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {secondaryCurrency}
                                       </strong>
-                                    </span>
-                                    <span style={{ color: '#15803d', fontSize: '11px', fontWeight: 600 }}>
+                                    </span>{' '}
+                                    <span style={{ color: '#64748b', fontSize: '11px' }}>
                                       ({idioma === 'EN' ? 'Exchange Rate:' : 'Tipo de Cambio:'} ${tcNum.toFixed(2)} MXN/USD)
                                     </span>
                                   </div>
@@ -2627,24 +2597,24 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
                   })()}
 
                   {/* INSTRUCCIONES DE LLEGADA */}
-                  <div style={{ backgroundColor: '#FFFBF0', border: '1px solid #FFE099', padding: '15px 20px', borderRadius: '8px', marginBottom: '20px' }}>
-                    <h4 style={{ color: '#D97706', marginTop: 0, marginBottom: '10px', fontSize: '15px', fontWeight: 700 }}>
+                  <div style={{ backgroundColor: '#f8fafc', border: '1px solid #cbd5e1', padding: '14px 18px', borderRadius: '0px', marginBottom: '6px' }}>
+                    <h4 style={{ color: '#0f172a', marginTop: 0, marginBottom: '6px', fontSize: '13px', fontWeight: 700, textTransform: 'uppercase' }}>
                       {t.tituloInstrucciones}
                     </h4>
-                    <p style={{ margin: 0, fontSize: '13px', color: '#555', lineHeight: '1.5', textAlign: 'justify' }}>
+                    <p style={{ margin: 0, fontSize: '12px', color: '#334155', lineHeight: '1.5', textAlign: 'justify' }}>
                       {t.textoInstrucciones}
                     </p>
                   </div>
                 </div>
 
-                {/* PIE DE PÁGINA */}
-                <table style={{ backgroundColor: '#161D2D', color: 'white', width: '100%', borderCollapse: 'collapse', border: 'none' }}>
+                {/* PIE DE PÁGINA SOBRIO */}
+                <table style={{ backgroundColor: '#f1f5f9', color: '#0f172a', width: '100%', borderCollapse: 'collapse', borderTop: '1px solid #cbd5e1' }}>
                   <tbody>
                     <tr>
-                      <td style={{ padding: '15px 25px', textAlign: 'center', fontSize: '12px', border: 'none' }}>
-                        <span style={{ color: '#FFB300', marginRight: '15px' }}>&#9742; +52 612 194 3286</span>
-                        <span style={{ marginRight: '15px', color: '#ffffff' }}>&#9993; reservationballard@gmail.com</span>
-                        <span style={{ color: '#ffffff' }}>&#127760; www.caboprivateairporttransfers.com</span>
+                      <td style={{ padding: '12px 20px', textAlign: 'center', fontSize: '11.5px', fontWeight: 'bold', border: 'none' }}>
+                        <span style={{ marginRight: '18px' }}>Tel: +52 612 194 3286</span>
+                        <span style={{ marginRight: '18px' }}>reservationballard@gmail.com</span>
+                        <span>www.caboprivateairporttransfers.com</span>
                       </td>
                     </tr>
                   </tbody>

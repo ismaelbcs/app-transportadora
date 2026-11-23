@@ -447,7 +447,7 @@ const traducirNombreTicket = (nombre, apellido, lang = 'EN') => {
   return full;
 };
 
-// 4. Documento PDF Nativo Vectorial para el Ticket / Boleto de Transporte (Completo en 1 sola página Carta)
+// 4. Documento PDF Nativo Vectorial para el Ticket / Boleto de Transporte (Diseño Sobrio y Recto)
 const TicketPDFDocument = ({ data, lang = 'EN' }) => {
   const isEN = lang === 'EN';
   const isSalida = data.tipoServicio?.toLowerCase() === 'salida';
@@ -463,184 +463,165 @@ const TicketPDFDocument = ({ data, lang = 'EN' }) => {
 
   return (
     <Document>
-      <Page size="LETTER" style={{ backgroundColor: '#ffffff', padding: 28, fontFamily: 'Helvetica', color: '#1e293b' }}>
-        <View style={{ borderWidth: 1, borderColor: '#cbd5e1', borderRadius: 12, overflow: 'hidden' }}>
-          {/* ENCABEZADO OSCURO */}
-          <View style={{ backgroundColor: '#0f172a', padding: 24, color: '#ffffff' }}>
+      <Page size="LETTER" style={{ backgroundColor: '#ffffff', padding: 32, fontFamily: 'Helvetica', color: '#1e293b' }}>
+        <View style={{ borderWidth: 1, borderColor: '#94a3b8' }}>
+          {/* ENCABEZADO SOBRIO */}
+          <View style={{ borderBottomWidth: 2, borderBottomColor: '#0f172a', padding: 20, backgroundColor: '#f8fafc' }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <View>
-                <Text style={{ fontSize: 24, fontFamily: 'Helvetica-Bold', color: '#f59e0b', textTransform: 'uppercase', letterSpacing: 1 }}>
-                  BALLARD
+                <Text style={{ fontSize: 20, fontFamily: 'Helvetica-Bold', color: '#0f172a', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                  BALLARD TOUR SERVICES
                 </Text>
-                <Text style={{ fontSize: 10, color: '#cbd5e1', textTransform: 'uppercase', letterSpacing: 1.5, marginTop: 2 }}>
-                  TOUR SERVICES
+                <Text style={{ fontSize: 11, fontFamily: 'Helvetica-Bold', color: '#334155', textTransform: 'uppercase', marginTop: 6 }}>
+                  {isEN ? 'PRIVATE TRANSPORTATION TICKET' : 'BOLETO DE TRANSPORTE PRIVADO'}
                 </Text>
               </View>
               <View style={{ alignItems: 'flex-end' }}>
-                <View style={{ backgroundColor: '#f59e0b', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 4, marginBottom: 6 }}>
-                  <Text style={{ fontSize: 9, fontFamily: 'Helvetica-Bold', color: '#0f172a', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                <View style={{ borderWidth: 1, borderColor: '#0f172a', backgroundColor: '#ffffff', paddingHorizontal: 8, paddingVertical: 3, marginBottom: 6 }}>
+                  <Text style={{ fontSize: 8.5, fontFamily: 'Helvetica-Bold', color: '#0f172a', textTransform: 'uppercase' }}>
                     {isEN ? 'CONFIRMED' : 'CONFIRMADO'}
                   </Text>
                 </View>
-                <Text style={{ fontSize: 10, fontFamily: 'Helvetica-Bold', color: '#cbd5e1', textTransform: 'uppercase' }}>
+                <Text style={{ fontSize: 10, fontFamily: 'Helvetica-Bold', color: '#0f172a', textTransform: 'uppercase' }}>
                   FOLIO: {folio}
                 </Text>
               </View>
             </View>
-
-            <View style={{ marginTop: 18 }}>
-              <Text style={{ fontSize: 15, fontFamily: 'Helvetica-Bold', color: '#ffffff', textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                {isEN ? 'PRIVATE TRANSPORTATION' : 'TRANSPORTE PRIVADO'}
-              </Text>
-              <Text style={{ fontSize: 10, color: '#94a3b8', marginTop: 3 }}>
-                ✓ {isEN ? 'Safe Ticket' : 'Boleto Seguro'}
-              </Text>
-            </View>
           </View>
 
-          {/* LÍNEA DIVISORIA PUNTEADA */}
-          <View style={{ borderBottomWidth: 1.5, borderBottomColor: '#cbd5e1', borderBottomStyle: 'dashed', marginVertical: 2 }} />
-
-          {/* DATOS DEL BOLETO EN 2 COLUMNAS */}
-          <View style={{ padding: 24, flexDirection: 'row', justifyContent: 'space-between' }}>
-            {/* Columna Izquierda */}
-            <View style={{ width: '48%' }}>
-              <View style={{ marginBottom: 16 }}>
-                <Text style={{ fontSize: 9, fontFamily: 'Helvetica-Bold', color: '#64748b', textTransform: 'uppercase', marginBottom: 4 }}>
-                  {isEN ? 'PASSENGER NAME' : 'NOMBRE DEL PASAJERO'}
-                </Text>
-                <Text style={{ fontSize: 14, fontFamily: 'Helvetica-Bold', color: '#1e293b', textTransform: 'uppercase' }}>
-                  {nombreMostrar}
-                </Text>
-              </View>
-
-              <View>
-                <Text style={{ fontSize: 9, fontFamily: 'Helvetica-Bold', color: '#64748b', textTransform: 'uppercase', marginBottom: 4 }}>
-                  {isEN
-                    ? (isLlegada ? 'ARRIVAL DATE & TIME' : 'PICK UP DATE & TIME')
-                    : (isLlegada ? 'FECHA Y HORA DE LLEGADA' : 'FECHA Y HORA DE PICK UP')}
-                </Text>
-                <Text style={{ fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#1e293b', marginBottom: 3 }}>
-                  {data.fecha || ''}
-                </Text>
-                <Text style={{ fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#1e293b' }}>
-                  {horaMostrar} {isSalida ? '(Lobby)' : ''}
-                </Text>
-              </View>
-            </View>
-
-            {/* Columna Derecha */}
-            <View style={{ width: '48%' }}>
-              <View style={{ flexDirection: 'row', marginBottom: 16 }}>
-                <View style={{ width: '40%' }}>
-                  <Text style={{ fontSize: 9, fontFamily: 'Helvetica-Bold', color: '#64748b', textTransform: 'uppercase', marginBottom: 4 }}>
+          {/* DATOS DEL BOLETO EN TABLA FORMAL DE 2 COLUMNAS */}
+          <View style={{ padding: 20 }}>
+            <View style={{ borderWidth: 1, borderColor: '#cbd5e1' }}>
+              {/* Fila 1: Pasajero y PAX */}
+              <View style={{ flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#cbd5e1' }}>
+                <View style={{ width: '70%', padding: 10, borderRightWidth: 1, borderRightColor: '#cbd5e1' }}>
+                  <Text style={{ fontSize: 8, fontFamily: 'Helvetica-Bold', color: '#64748b', textTransform: 'uppercase', marginBottom: 3 }}>
+                    {isEN ? 'PASSENGER NAME' : 'NOMBRE DEL PASAJERO'}
+                  </Text>
+                  <Text style={{ fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#0f172a', textTransform: 'uppercase' }}>
+                    {nombreMostrar}
+                  </Text>
+                </View>
+                <View style={{ width: '30%', padding: 10 }}>
+                  <Text style={{ fontSize: 8, fontFamily: 'Helvetica-Bold', color: '#64748b', textTransform: 'uppercase', marginBottom: 3 }}>
                     PAX
                   </Text>
-                  <Text style={{ fontSize: 14, fontFamily: 'Helvetica-Bold', color: '#1e293b' }}>
+                  <Text style={{ fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#0f172a' }}>
                     {data.pax || '1'}
                   </Text>
                 </View>
-                <View style={{ width: '60%' }}>
-                  <Text style={{ fontSize: 9, fontFamily: 'Helvetica-Bold', color: '#64748b', textTransform: 'uppercase', marginBottom: 4 }}>
+              </View>
+
+              {/* Fila 2: Fecha/Hora y Vuelo */}
+              <View style={{ flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#cbd5e1' }}>
+                <View style={{ width: '50%', padding: 10, borderRightWidth: 1, borderRightColor: '#cbd5e1' }}>
+                  <Text style={{ fontSize: 8, fontFamily: 'Helvetica-Bold', color: '#64748b', textTransform: 'uppercase', marginBottom: 3 }}>
+                    {isEN
+                      ? (isLlegada ? 'ARRIVAL DATE & TIME' : 'PICK UP DATE & TIME')
+                      : (isLlegada ? 'FECHA Y HORA DE LLEGADA' : 'FECHA Y HORA DE PICK UP')}
+                  </Text>
+                  <Text style={{ fontSize: 12, fontFamily: 'Helvetica-Bold', color: '#0f172a' }}>
+                    {data.fecha || ''}   {horaMostrar} {isSalida ? '(LOBBY)' : ''}
+                  </Text>
+                </View>
+                <View style={{ width: '50%', padding: 10 }}>
+                  <Text style={{ fontSize: 8, fontFamily: 'Helvetica-Bold', color: '#64748b', textTransform: 'uppercase', marginBottom: 3 }}>
                     {isEN ? 'FLIGHT' : 'VUELO'}
                   </Text>
-                  <Text style={{ fontSize: 14, fontFamily: 'Helvetica-Bold', color: '#1e293b', textTransform: 'uppercase' }}>
+                  <Text style={{ fontSize: 12, fontFamily: 'Helvetica-Bold', color: '#0f172a', textTransform: 'uppercase' }}>
                     {data.vuelo || 'N/A'}
                     {isSalida && data.hora && data.hora !== (data.pickUp || data.pick_up) ? ` (${data.hora})` : ''}
                   </Text>
                 </View>
               </View>
 
-              <View style={{ marginBottom: 16 }}>
-                <Text style={{ fontSize: 9, fontFamily: 'Helvetica-Bold', color: '#64748b', textTransform: 'uppercase', marginBottom: 4 }}>
-                  {isEN ? 'HOTEL / DESTINATION' : 'HOTEL / DESTINO'}
-                </Text>
-                <Text style={{ fontSize: 12, fontFamily: 'Helvetica-Bold', color: '#1e293b', textTransform: 'uppercase', lineHeight: 1.3 }}>
-                  {data.hotel || ''}
-                </Text>
-              </View>
-
-              <View>
-                <Text style={{ fontSize: 9, fontFamily: 'Helvetica-Bold', color: '#64748b', textTransform: 'uppercase', marginBottom: 4 }}>
-                  {isEN ? 'PAYMENT / METHOD' : 'COBRO / MÉTODO'}
-                </Text>
-                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                  <View style={{ backgroundColor: '#f59e0b', borderRadius: 10, width: 16, height: 16, alignItems: 'center', justifyContent: 'center', marginRight: 6 }}>
-                    <Text style={{ fontSize: 9, fontFamily: 'Helvetica-Bold', color: '#0f172a' }}>$</Text>
-                  </View>
-                  <Text style={{ fontSize: 13, fontFamily: 'Helvetica-Bold', color: '#1e293b', textTransform: 'uppercase' }}>
+              {/* Fila 3: Hotel y Pago */}
+              <View style={{ flexDirection: 'row' }}>
+                <View style={{ width: '60%', padding: 10, borderRightWidth: 1, borderRightColor: '#cbd5e1' }}>
+                  <Text style={{ fontSize: 8, fontFamily: 'Helvetica-Bold', color: '#64748b', textTransform: 'uppercase', marginBottom: 3 }}>
+                    {isEN ? 'HOTEL / DESTINATION' : 'HOTEL / DESTINO'}
+                  </Text>
+                  <Text style={{ fontSize: 11.5, fontFamily: 'Helvetica-Bold', color: '#0f172a', textTransform: 'uppercase' }}>
+                    {data.hotel || ''}
+                  </Text>
+                </View>
+                <View style={{ width: '40%', padding: 10 }}>
+                  <Text style={{ fontSize: 8, fontFamily: 'Helvetica-Bold', color: '#64748b', textTransform: 'uppercase', marginBottom: 3 }}>
+                    {isEN ? 'PAYMENT / METHOD' : 'COBRO / MÉTODO'}
+                  </Text>
+                  <Text style={{ fontSize: 12, fontFamily: 'Helvetica-Bold', color: '#0f172a', textTransform: 'uppercase' }}>
                     {textoPago}
                   </Text>
                 </View>
               </View>
             </View>
+
+            {/* CÓDIGO DE BARRAS VECTORIAL */}
+            <View style={{ alignItems: 'center', marginVertical: 16 }}>
+              <Svg width="240" height="34" viewBox="0 0 200 50">
+                <Rect x="0" y="0" width="4" height="50" fill="#1e293b" />
+                <Rect x="6" y="0" width="2" height="50" fill="#1e293b" />
+                <Rect x="12" y="0" width="6" height="50" fill="#1e293b" />
+                <Rect x="22" y="0" width="2" height="50" fill="#1e293b" />
+                <Rect x="26" y="0" width="8" height="50" fill="#1e293b" />
+                <Rect x="38" y="0" width="4" height="50" fill="#1e293b" />
+                <Rect x="46" y="0" width="2" height="50" fill="#1e293b" />
+                <Rect x="52" y="0" width="6" height="50" fill="#1e293b" />
+                <Rect x="62" y="0" width="10" height="50" fill="#1e293b" />
+                <Rect x="76" y="0" width="4" height="50" fill="#1e293b" />
+                <Rect x="84" y="0" width="2" height="50" fill="#1e293b" />
+                <Rect x="90" y="0" width="8" height="50" fill="#1e293b" />
+                <Rect x="102" y="0" width="4" height="50" fill="#1e293b" />
+                <Rect x="110" y="0" width="6" height="50" fill="#1e293b" />
+                <Rect x="120" y="0" width="2" height="50" fill="#1e293b" />
+                <Rect x="126" y="0" width="8" height="50" fill="#1e293b" />
+                <Rect x="138" y="0" width="4" height="50" fill="#1e293b" />
+                <Rect x="146" y="0" width="2" height="50" fill="#1e293b" />
+                <Rect x="152" y="0" width="12" height="50" fill="#1e293b" />
+                <Rect x="168" y="0" width="4" height="50" fill="#1e293b" />
+                <Rect x="176" y="0" width="6" height="50" fill="#1e293b" />
+                <Rect x="186" y="0" width="2" height="50" fill="#1e293b" />
+                <Rect x="192" y="0" width="8" height="50" fill="#1e293b" />
+              </Svg>
+            </View>
+
+            {/* CUADRO DE INSTRUCCIONES SOBRIO */}
+            <View style={{ backgroundColor: '#f8fafc', borderWidth: 1, borderColor: '#cbd5e1', padding: 14, marginBottom: 14 }}>
+              <Text style={{ fontSize: 10, fontFamily: 'Helvetica-Bold', color: '#0f172a', marginBottom: 5, textTransform: 'uppercase' }}>
+                {isLlegada
+                  ? (isEN ? 'HOW TO SPOT YOUR DRIVER UPON ARRIVAL' : 'INSTRUCCIONES DE LLEGADA')
+                  : (isEN ? 'PICK-UP INSTRUCTIONS' : 'INSTRUCCIONES DE PICK-UP')}
+              </Text>
+              <Text style={{ fontSize: 9, color: '#334155', lineHeight: 1.45, textAlign: 'justify' }}>
+                {isLlegada
+                  ? (isEN
+                    ? 'All transport companies are waiting outside the departure gate. You just have to walk to the parking lot to look for your name on a sign. We are usually located in Shadow 3 or Terminal 1 ("GROUP EXIT"). So when you get there, just walk into the parking lot and you will see some staff members standing under these curtains holding up their signs, one of them will have your name on it.'
+                    : 'Todas las empresas de transporte esperan afuera de la puerta de salida. Camine al estacionamiento y busque su nombre en un letrero. Usualmente estamos en la Sombra 3 o Terminal 1 "SALIDA DE GRUPOS". Al llegar, camine al estacionamiento y verá a nuestro personal bajo los toldos con su letrero.')
+                  : (isEN
+                    ? 'Please be ready in the hotel lobby 15 minutes before your scheduled pick-up time. Look for the driver holding a Ballard Tour Services sign. If you have any issues, please contact us immediately.'
+                    : 'Por favor, esté listo en el lobby del hotel 15 minutos antes de su hora programada de pick-up. Busque al chofer con el letrero de Ballard Tour Services. Si tiene algún problema, contáctenos de inmediato.')}
+              </Text>
+            </View>
+
+            {/* SECCIÓN DE OTRAS ACTIVIDADES */}
+            <View style={{ paddingTop: 4, alignItems: 'center' }}>
+              <Text style={{ fontSize: 9.5, fontFamily: 'Helvetica-Bold', color: '#1e293b', marginBottom: 3, textAlign: 'center' }}>
+                {isEN ? 'Need other activities?' : '¿Buscas otras actividades?'}
+              </Text>
+              <Text style={{ fontSize: 8.5, color: '#64748b', textAlign: 'center', lineHeight: 1.35 }}>
+                {isEN
+                  ? 'We can take you to see the Arch of Los Cabos, ride a motorcycle, get to know the Historic Center of San Jose del Cabo, the Hotel California in Todos Santos, and much more...'
+                  : 'Podemos llevarte a conocer el Arco de Los Cabos, pasear en cuatrimoto, conocer el Centro Histórico de San José del Cabo, el Hotel California en Todos Santos y mucho más...'}
+              </Text>
+            </View>
           </View>
 
-          {/* CÓDIGO DE BARRAS VECTORIAL */}
-          <View style={{ alignItems: 'center', marginBottom: 18, paddingHorizontal: 24 }}>
-            <Svg width="260" height="40" viewBox="0 0 200 50">
-              <Rect x="0" y="0" width="4" height="50" fill="#1e293b" />
-              <Rect x="6" y="0" width="2" height="50" fill="#1e293b" />
-              <Rect x="12" y="0" width="6" height="50" fill="#1e293b" />
-              <Rect x="22" y="0" width="2" height="50" fill="#1e293b" />
-              <Rect x="26" y="0" width="8" height="50" fill="#1e293b" />
-              <Rect x="38" y="0" width="4" height="50" fill="#1e293b" />
-              <Rect x="46" y="0" width="2" height="50" fill="#1e293b" />
-              <Rect x="52" y="0" width="6" height="50" fill="#1e293b" />
-              <Rect x="62" y="0" width="10" height="50" fill="#1e293b" />
-              <Rect x="76" y="0" width="4" height="50" fill="#1e293b" />
-              <Rect x="84" y="0" width="2" height="50" fill="#1e293b" />
-              <Rect x="90" y="0" width="8" height="50" fill="#1e293b" />
-              <Rect x="102" y="0" width="4" height="50" fill="#1e293b" />
-              <Rect x="110" y="0" width="6" height="50" fill="#1e293b" />
-              <Rect x="120" y="0" width="2" height="50" fill="#1e293b" />
-              <Rect x="126" y="0" width="8" height="50" fill="#1e293b" />
-              <Rect x="138" y="0" width="4" height="50" fill="#1e293b" />
-              <Rect x="146" y="0" width="2" height="50" fill="#1e293b" />
-              <Rect x="152" y="0" width="12" height="50" fill="#1e293b" />
-              <Rect x="168" y="0" width="4" height="50" fill="#1e293b" />
-              <Rect x="176" y="0" width="6" height="50" fill="#1e293b" />
-              <Rect x="186" y="0" width="2" height="50" fill="#1e293b" />
-              <Rect x="192" y="0" width="8" height="50" fill="#1e293b" />
-            </Svg>
-          </View>
-
-          {/* CUADRO DE INSTRUCCIONES */}
-          <View style={{ backgroundColor: '#fffbeb', borderWidth: 1, borderColor: '#fde68a', borderRadius: 8, padding: 16, marginHorizontal: 18, marginBottom: 16 }}>
-            <Text style={{ fontSize: 11, fontFamily: 'Helvetica-Bold', color: '#78350f', marginBottom: 6 }}>
-              {isLlegada
-                ? (isEN ? '• How to spot your driver upon arrival?' : '• ¿Cómo ubicar a su chofer al llegar?')
-                : (isEN ? '• Pick-up Instructions' : '• Instrucciones de Pick-up')}
-            </Text>
-            <Text style={{ fontSize: 9.5, color: '#92400e', lineHeight: 1.45, textAlign: 'justify' }}>
-              {isLlegada
-                ? (isEN
-                  ? 'All transport companies are waiting outside the departure gate. You just have to walk to the parking lot to look for your name on a sign. We are usually located in Shadow 3 or Terminal 1 ("GROUP EXIT"). So when you get there, just walk into the parking lot and you will see some staff members standing under these curtains holding up their signs, one of them will have your name on it.'
-                  : 'Todas las empresas de transporte esperan afuera de la puerta de salida. Camine al estacionamiento y busque su nombre en un letrero. Usualmente estamos en la Sombra 3 o Terminal 1 "SALIDA DE GRUPOS". Al llegar, camine al estacionamiento y verá a nuestro personal bajo los toldos con su letrero.')
-                : (isEN
-                  ? 'Please be ready in the hotel lobby 15 minutes before your scheduled pick-up time. Look for the driver holding a Ballard Tour Services sign. If you have any issues, please contact us immediately.'
-                  : 'Por favor, esté listo en el lobby del hotel 15 minutos antes de su hora programada de pick-up. Busque al chofer con el letrero de Ballard Tour Services. Si tiene algún problema, contáctenos de inmediato.')}
-            </Text>
-          </View>
-
-          {/* SECCIÓN DE OTRAS ACTIVIDADES */}
-          <View style={{ paddingHorizontal: 24, paddingBottom: 16, alignItems: 'center' }}>
-            <Text style={{ fontSize: 10.5, fontFamily: 'Helvetica-Bold', color: '#1e293b', marginBottom: 4, textAlign: 'center' }}>
-              {isEN ? 'You need other activities?' : '¿Buscas otras actividades?'}
-            </Text>
-            <Text style={{ fontSize: 8.5, color: '#64748b', textAlign: 'center', lineHeight: 1.4 }}>
-              {isEN
-                ? 'We can take you to see the Arch of Los Cabos, ride a motorcycle, get to know the Historic Center of San Jose del Cabo, the Hotel California in Todos Santos, and much more...'
-                : 'Podemos llevarte a conocer el Arco de Los Cabos, pasear en cuatrimoto, conocer el Centro Histórico de San José del Cabo, el Hotel California en Todos Santos y mucho más...'}
-            </Text>
-          </View>
-
-          {/* PIE DE PÁGINA OSCURO */}
-          <View style={{ backgroundColor: '#0f172a', paddingVertical: 12, paddingHorizontal: 20, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Text style={{ fontSize: 9, color: '#cbd5e1' }}>
+          {/* PIE DE PÁGINA SOBRIO */}
+          <View style={{ borderTopWidth: 1, borderTopColor: '#cbd5e1', backgroundColor: '#f1f5f9', paddingVertical: 10, paddingHorizontal: 20, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Text style={{ fontSize: 8.5, color: '#334155', fontFamily: 'Helvetica-Bold' }}>
               Tel: +52 612 194 3286   |   reservationballard@gmail.com
             </Text>
-            <Text style={{ fontSize: 9, color: '#f59e0b', fontFamily: 'Helvetica-Bold' }}>
+            <Text style={{ fontSize: 8.5, color: '#0f172a', fontFamily: 'Helvetica-Bold' }}>
               www.caboprivateairporttransfers.com
             </Text>
           </View>
@@ -4846,9 +4827,9 @@ export default function App() {
             style={{
               width: '560px',
               backgroundColor: '#ffffff',
-              border: '3px solid #1e293b',
-              borderRadius: '16px',
-              padding: '26px',
+              border: '2px solid #0f172a',
+              borderRadius: '0px',
+              padding: '22px',
               fontFamily: "'Segoe UI', Arial, sans-serif",
               color: '#0f172a',
               boxSizing: 'border-box'
@@ -4860,64 +4841,64 @@ export default function App() {
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
-                borderBottom: '2px solid #e2e8f0',
-                paddingBottom: '18px',
-                marginBottom: '18px'
+                borderBottom: '2px solid #0f172a',
+                paddingBottom: '14px',
+                marginBottom: '14px'
               }}
             >
               <img
                 src="/logo-oficial.png"
                 alt="Ballard Tour Services"
-                style={{ height: '58px', width: 'auto', objectFit: 'contain', display: 'block' }}
+                style={{ height: '52px', width: 'auto', objectFit: 'contain', display: 'block' }}
               />
               <div style={{ textAlign: 'right' }}>
-                <div style={{ fontSize: '13px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '2px' }}>
-                  {renderData.data.fecha || ''}
+                <div style={{ fontSize: '12px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '2px' }}>
+                  FECHA: {renderData.data.fecha || ''}
                 </div>
-                <div style={{ fontSize: '28px', fontWeight: 900, color: '#0f172a', lineHeight: 1.1 }}>
+                <div style={{ fontSize: '26px', fontWeight: 900, color: '#0f172a', lineHeight: 1.1 }}>
                   {renderData.data.tipoServicio?.toLowerCase() === 'salida'
                     ? (renderData.data.pickUp || renderData.data.pick_up || renderData.data.hora)
                     : renderData.data.hora}
                 </div>
                 {renderData.data.tipoServicio?.toLowerCase() === 'salida' && (
-                  <div style={{ fontSize: '11px', fontWeight: 800, color: '#1d4ed8', textTransform: 'uppercase', letterSpacing: '0.8px', marginTop: '2px' }}>
+                  <div style={{ fontSize: '10px', fontWeight: 800, color: '#334155', textTransform: 'uppercase', marginTop: '2px' }}>
                     PICK UP (LOBBY)
                   </div>
                 )}
               </div>
             </div>
 
-            {/* CUERPO DE LA TARJETA */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            {/* CUERPO DE LA FICHA EN TABLA TÉCNICA DE BORDES RECTOS */}
+            <div style={{ border: '1px solid #94a3b8' }}>
               {/* PASAJERO */}
-              <div style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 16px' }}>
-                <div style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px' }}>
-                  Pasajero
+              <div style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #94a3b8', padding: '10px 14px' }}>
+                <div style={{ fontSize: '10px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: '2px' }}>
+                  PASAJERO
                 </div>
-                <div style={{ fontSize: '22px', fontWeight: 900, color: '#0f172a', textTransform: 'uppercase', lineHeight: 1.2 }}>
+                <div style={{ fontSize: '20px', fontWeight: 900, color: '#0f172a', textTransform: 'uppercase', lineHeight: 1.2 }}>
                   {renderData.data.nombre || ''} {renderData.data.apellido || ''}
                 </div>
               </div>
 
-              {/* HOTEL Y VUELO (2 COLUMNAS) */}
-              <div style={{ display: 'flex', gap: '12px' }}>
-                <div style={{ flex: 1, backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 14px' }}>
-                  <div style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: '4px' }}>
-                    📍 Hotel / Destino
+              {/* HOTEL Y VUELO */}
+              <div style={{ display: 'flex', borderBottom: '1px solid #94a3b8' }}>
+                <div style={{ flex: 1, borderRight: '1px solid #94a3b8', padding: '10px 14px', backgroundColor: '#ffffff' }}>
+                  <div style={{ fontSize: '10px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: '2px' }}>
+                    HOTEL / DESTINO
                   </div>
-                  <div style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a', lineHeight: 1.3 }}>
+                  <div style={{ fontSize: '14px', fontWeight: 800, color: '#0f172a', textTransform: 'uppercase', lineHeight: 1.25 }}>
                     {renderData.data.hotel || 'N/A'}
                   </div>
                 </div>
 
-                <div style={{ flex: 1, backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 14px' }}>
-                  <div style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: '4px' }}>
-                    ✈️ {renderData.data.tipoServicio?.toLowerCase() === 'salida' ? 'Vuelo / Salida' : 'Vuelo'}
+                <div style={{ flex: 1, padding: '10px 14px', backgroundColor: '#ffffff' }}>
+                  <div style={{ fontSize: '10px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: '2px' }}>
+                    {renderData.data.tipoServicio?.toLowerCase() === 'salida' ? 'VUELO / SALIDA' : 'VUELO'}
                   </div>
-                  <div style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a', lineHeight: 1.3 }}>
+                  <div style={{ fontSize: '14px', fontWeight: 800, color: '#0f172a', textTransform: 'uppercase', lineHeight: 1.25 }}>
                     {renderData.data.vuelo || 'N/A'}
                     {renderData.data.tipoServicio?.toLowerCase() === 'salida' && renderData.data.hora && renderData.data.hora !== (renderData.data.pickUp || renderData.data.pick_up) && (
-                      <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 600, marginLeft: '6px' }}>
+                      <span style={{ fontSize: '12px', color: '#475569', fontWeight: 600, marginLeft: '6px' }}>
                         ({renderData.data.hora})
                       </span>
                     )}
@@ -4925,162 +4906,115 @@ export default function App() {
                 </div>
               </div>
 
-              {/* PASAJEROS Y TIPO DE SERVICIO (2 COLUMNAS) */}
-              <div style={{ display: 'flex', gap: '12px' }}>
-                <div
-                  style={{
-                    flex: 1,
-                    border: '1px solid #cbd5e1',
-                    borderRadius: '10px',
-                    padding: '12px 16px',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    backgroundColor: '#ffffff'
-                  }}
-                >
-                  <span style={{ fontSize: '12px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>
-                    👥 Pasajeros
+              {/* PASAJEROS, SERVICIO Y VEHÍCULO */}
+              <div style={{ display: 'flex', backgroundColor: '#f8fafc' }}>
+                <div style={{ flex: 1, borderRight: '1px solid #94a3b8', padding: '10px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>
+                    PASAJEROS
                   </span>
-                  <span style={{ fontSize: '20px', fontWeight: 900, color: '#0f172a' }}>
+                  <span style={{ fontSize: '17px', fontWeight: 900, color: '#0f172a' }}>
                     {renderData.data.pax || '1'}
                   </span>
                 </div>
 
-                <div
-                  style={{
-                    flex: 1,
-                    border: '1px solid #cbd5e1',
-                    borderRadius: '10px',
-                    padding: '12px 16px',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    backgroundColor: '#ffffff'
-                  }}
-                >
-                  <span style={{ fontSize: '12px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>
-                    🚐 Servicio
+                <div style={{ flex: 1, borderRight: renderData.data.vehiculo ? '1px solid #94a3b8' : 'none', padding: '10px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>
+                    SERVICIO
                   </span>
-                  <span style={{ fontSize: '16px', fontWeight: 900, color: '#1e40af', textTransform: 'uppercase' }}>
-                    {renderData.data.tipoServicio || 'Traslado'}
+                  <span style={{ fontSize: '14px', fontWeight: 900, color: '#0f172a', textTransform: 'uppercase' }}>
+                    {renderData.data.tipoServicio || 'TRASLADO'}
                   </span>
                 </div>
+
+                {renderData.data.vehiculo && (
+                  <div style={{ flex: 1, padding: '10px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>
+                      VEHÍCULO
+                    </span>
+                    <span style={{ fontSize: '14px', fontWeight: 900, color: '#0f172a', textTransform: 'uppercase' }}>
+                      {normalizarVehiculo(renderData.data.vehiculo)}
+                    </span>
+                  </div>
+                )}
               </div>
 
-              {/* VEHÍCULO / CHOFER / AGENCIA SI EXISTEN */}
-              {(renderData.data.vehiculo || renderData.data.chofer) && (
-                <div style={{ display: 'flex', gap: '12px' }}>
-                  {renderData.data.vehiculo && (
-                    <div
-                      style={{
-                        flex: 1,
-                        border: '1px solid #e2e8f0',
-                        backgroundColor: '#f8fafc',
-                        borderRadius: '10px',
-                        padding: '10px 14px',
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center'
-                      }}
-                    >
-                      <span style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>
-                        Vehículo
-                      </span>
-                      <span style={{ fontSize: '14px', fontWeight: 800, color: '#0f172a' }}>
-                        {renderData.data.vehiculo}
-                      </span>
-                    </div>
-                  )}
-                  {renderData.data.chofer && (
-                    <div
-                      style={{
-                        flex: 1,
-                        border: '1px solid #e2e8f0',
-                        backgroundColor: '#f8fafc',
-                        borderRadius: '10px',
-                        padding: '10px 14px',
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center'
-                      }}
-                    >
-                      <span style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>
-                        Chofer
-                      </span>
-                      <span style={{ fontSize: '14px', fontWeight: 800, color: '#0f172a', textTransform: 'uppercase' }}>
-                        {renderData.data.chofer}
-                      </span>
-                    </div>
-                  )}
+              {/* CHOFER SI EXISTE */}
+              {renderData.data.chofer && (
+                <div style={{ borderTop: '1px solid #94a3b8', padding: '8px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#ffffff' }}>
+                  <span style={{ fontSize: '10px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>
+                    CHOFER ASIGNADO
+                  </span>
+                  <span style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a', textTransform: 'uppercase' }}>
+                    {renderData.data.chofer}
+                  </span>
                 </div>
               )}
 
               {/* EXTRAS (SILLAS DE BEBÉ / PARADA DE COMPRAS) */}
               {(renderData.data.carSeat > 0 || renderData.data.babySeat > 0 || renderData.data.booster > 0 || renderData.data.paradaCompras) && (
-                <div style={{ backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '10px', padding: '12px 16px' }}>
-                  <div style={{ fontSize: '11px', fontWeight: 800, color: '#1e3a8a', textTransform: 'uppercase', marginBottom: '6px' }}>
-                    🚗 Extras Solicitados
+                <div style={{ borderTop: '1px solid #94a3b8', backgroundColor: '#ffffff', padding: '10px 14px' }}>
+                  <div style={{ fontSize: '10px', fontWeight: 800, color: '#475569', textTransform: 'uppercase', marginBottom: '4px' }}>
+                    EXTRAS SOLICITADOS
                   </div>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', fontSize: '14px', fontWeight: 700, color: '#1e40af' }}>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', fontSize: '12px', fontWeight: 700, color: '#0f172a' }}>
                     {renderData.data.carSeat > 0 && (
-                      <span style={{ backgroundColor: '#dbeafe', padding: '3px 10px', borderRadius: '6px' }}>
-                        Car Seat: {renderData.data.carSeat}
+                      <span style={{ border: '1px solid #cbd5e1', backgroundColor: '#f8fafc', padding: '2px 8px' }}>
+                        CAR SEAT: {renderData.data.carSeat}
                       </span>
                     )}
                     {renderData.data.babySeat > 0 && (
-                      <span style={{ backgroundColor: '#dbeafe', padding: '3px 10px', borderRadius: '6px' }}>
-                        Baby Seat: {renderData.data.babySeat}
+                      <span style={{ border: '1px solid #cbd5e1', backgroundColor: '#f8fafc', padding: '2px 8px' }}>
+                        BABY SEAT: {renderData.data.babySeat}
                       </span>
                     )}
                     {renderData.data.booster > 0 && (
-                      <span style={{ backgroundColor: '#dbeafe', padding: '3px 10px', borderRadius: '6px' }}>
-                        Booster: {renderData.data.booster}
+                      <span style={{ border: '1px solid #cbd5e1', backgroundColor: '#f8fafc', padding: '2px 8px' }}>
+                        BOOSTER: {renderData.data.booster}
                       </span>
                     )}
                     {renderData.data.paradaCompras && (
-                      <span style={{ backgroundColor: '#bfdbfe', padding: '3px 10px', borderRadius: '6px' }}>
-                        🛒 Parada de Compras
+                      <span style={{ border: '1px solid #cbd5e1', backgroundColor: '#f8fafc', padding: '2px 8px' }}>
+                        PARADA DE COMPRAS
                       </span>
                     )}
                   </div>
                 </div>
               )}
 
-              {/* DETALLES DE NIÑOS / ACTIVIDAD / TRASLADO EXTRAÍDOS AUTOMÁTICAMENTE */}
+              {/* DETALLES DE NIÑOS / ACTIVIDAD / TRASLADO */}
               {(() => {
                 const det = parsearDetallesDeComentario(renderData.data);
                 return (
                   <>
                     {det.hayNinos && (
-                      <div style={{ backgroundColor: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: '10px', padding: '12px 16px' }}>
-                        <div style={{ fontSize: '11px', fontWeight: 800, color: '#0369a1', textTransform: 'uppercase', marginBottom: '4px' }}>
-                          👶 Información de Niños
+                      <div style={{ borderTop: '1px solid #94a3b8', backgroundColor: '#ffffff', padding: '10px 14px' }}>
+                        <div style={{ fontSize: '10px', fontWeight: 800, color: '#475569', textTransform: 'uppercase', marginBottom: '2px' }}>
+                          INFORMACIÓN DE NIÑOS
                         </div>
-                        <div style={{ fontSize: '14px', fontWeight: 800, color: '#0c4a6e' }}>
-                          Cantidad de niños: {det.cantidadNinos}
+                        <div style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a' }}>
+                          CANTIDAD: {det.cantidadNinos}
                           {det.incluirEdadesNinos && det.edadesNinos.filter(Boolean).length > 0 && (
-                            <span> — Edades: {det.edadesNinos.filter(Boolean).map(e => `${e} años`).join(', ')}</span>
+                            <span> | EDADES: {det.edadesNinos.filter(Boolean).map(e => `${e} AÑOS`).join(', ')}</span>
                           )}
                         </div>
                       </div>
                     )}
 
                     {renderData.data.tipoServicio === 'Actividad' && (det.nombreActividad || det.participantesActividad.some(p => p.nombre || p.edad)) && (
-                      <div style={{ backgroundColor: '#faf5ff', border: '1px solid #e9d5ff', borderRadius: '10px', padding: '12px 16px' }}>
-                        <div style={{ fontSize: '11px', fontWeight: 800, color: '#6b21a8', textTransform: 'uppercase', marginBottom: '4px' }}>
-                          🎯 Detalles de la Actividad
+                      <div style={{ borderTop: '1px solid #94a3b8', backgroundColor: '#ffffff', padding: '10px 14px' }}>
+                        <div style={{ fontSize: '10px', fontWeight: 800, color: '#475569', textTransform: 'uppercase', marginBottom: '2px' }}>
+                          DETALLES DE LA ACTIVIDAD
                         </div>
                         {det.nombreActividad && (
-                          <div style={{ fontSize: '15px', fontWeight: 900, color: '#581c87', marginBottom: '6px' }}>
-                            Actividad: {det.nombreActividad}
+                          <div style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a', marginBottom: '4px' }}>
+                            ACTIVIDAD: {det.nombreActividad}
                           </div>
                         )}
                         {det.participantesActividad.filter(p => p.nombre || p.edad).length > 0 && (
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '13px', fontWeight: 700, color: '#4c1d95' }}>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', fontSize: '12px', fontWeight: 600, color: '#334155' }}>
                             {det.participantesActividad.filter(p => p.nombre || p.edad).map((p, idx) => (
                               <div key={idx}>
-                                • {p.nombre || `Persona ${idx + 1}`}{p.edad ? ` (${p.edad} años)` : ''}
+                                - {p.nombre || `PERSONA ${idx + 1}`}{p.edad ? ` (${p.edad} AÑOS)` : ''}
                               </div>
                             ))}
                           </div>
@@ -5089,14 +5023,14 @@ export default function App() {
                     )}
 
                     {renderData.data.tipoServicio === 'Traslado' && (det.destinoTraslado || det.horaRecogidaTraslado || det.horaRegresoTraslado) && (
-                      <div style={{ backgroundColor: '#fffbeb', border: '1px solid #fde68a', borderRadius: '10px', padding: '12px 16px' }}>
-                        <div style={{ fontSize: '11px', fontWeight: 800, color: '#b45309', textTransform: 'uppercase', marginBottom: '4px' }}>
-                          🚐 Detalles del Traslado
+                      <div style={{ borderTop: '1px solid #94a3b8', backgroundColor: '#ffffff', padding: '10px 14px' }}>
+                        <div style={{ fontSize: '10px', fontWeight: 800, color: '#475569', textTransform: 'uppercase', marginBottom: '2px' }}>
+                          DETALLES DEL TRASLADO
                         </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '14px', fontWeight: 800, color: '#78350f' }}>
-                          {det.destinoTraslado && <div>📍 A dónde irán: {det.destinoTraslado}</div>}
-                          {det.horaRecogidaTraslado && <div>🕒 Hora de recogida: {det.horaRecogidaTraslado}</div>}
-                          {det.horaRegresoTraslado && <div>🔙 Hora de regreso: {det.horaRegresoTraslado}</div>}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', fontSize: '12px', fontWeight: 700, color: '#0f172a' }}>
+                          {det.destinoTraslado && <div>DESTINO: {det.destinoTraslado}</div>}
+                          {det.horaRecogidaTraslado && <div>HORA DE RECOGIDA: {det.horaRecogidaTraslado}</div>}
+                          {det.horaRegresoTraslado && <div>HORA DE REGRESO: {det.horaRegresoTraslado}</div>}
                         </div>
                       </div>
                     )}
@@ -5106,11 +5040,11 @@ export default function App() {
 
               {/* COMENTARIOS */}
               {renderData.data.comentario && renderData.data.comentario.trim() && (
-                <div style={{ backgroundColor: '#fffbeb', border: '1px solid #fde68a', borderRadius: '10px', padding: '12px 16px' }}>
-                  <div style={{ fontSize: '11px', fontWeight: 800, color: '#92400e', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px' }}>
-                    📝 Comentarios
+                <div style={{ borderTop: '1px solid #94a3b8', backgroundColor: '#f8fafc', padding: '10px 14px' }}>
+                  <div style={{ fontSize: '10px', fontWeight: 800, color: '#475569', textTransform: 'uppercase', marginBottom: '2px' }}>
+                    COMENTARIOS
                   </div>
-                  <div style={{ fontSize: '14px', fontWeight: 700, color: '#78350f', whiteSpace: 'pre-wrap', lineHeight: 1.4 }}>
+                  <div style={{ fontSize: '12.5px', fontWeight: 700, color: '#0f172a', whiteSpace: 'pre-wrap', lineHeight: 1.35 }}>
                     {renderData.data.comentario.trim()}
                   </div>
                 </div>
@@ -5499,165 +5433,119 @@ export default function App() {
             </button>
           </div>
 
-          {/* ÁREA DEL TICKET */}
+          {/* ÁREA DEL TICKET SOBRIO */}
           <div className="w-full max-w-2xl flex justify-center print:w-full">
-            <div ref={ticketPrintRef} className="w-full bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col border border-gray-200 print:shadow-none print:border-gray-400 print:rounded-none">
+            <div ref={ticketPrintRef} className="w-full bg-white overflow-hidden flex flex-col border border-slate-400 print:shadow-none print:border-slate-400">
 
-              <div className="bg-slate-900 text-white p-8 relative overflow-hidden">
-                <div className="absolute top-0 right-0 p-8 opacity-10">
-                  <SuvIcon size={150} />
-                </div>
-
-                <div className="relative z-10 flex justify-between items-start">
+              <div className="bg-slate-50 text-slate-900 p-6 border-b-2 border-slate-900">
+                <div className="flex justify-between items-start">
                   <div>
-                    <h1 className="text-3xl font-black tracking-wider text-amber-500 uppercase">Ballard</h1>
-                    <p className="text-sm font-medium tracking-widest text-slate-300 uppercase">Tour Services</p>
+                    <h1 className="text-2xl font-bold tracking-wide text-slate-900 uppercase">Ballard Tour Services</h1>
+                    <h2 className="text-sm font-bold text-slate-600 mt-1 uppercase">{ticketLang === 'EN' ? 'PRIVATE TRANSPORTATION TICKET' : 'BOLETO DE TRANSPORTE PRIVADO'}</h2>
                   </div>
                   <div className="text-right">
-                    <div className="inline-block bg-amber-500 text-slate-900 font-bold px-3 py-1 rounded text-xs tracking-wider mb-2 uppercase">
+                    <div className="inline-block border border-slate-900 bg-white text-slate-900 font-bold px-2.5 py-0.5 text-xs tracking-wider mb-1.5 uppercase">
                       {ticketLang === 'EN' ? 'CONFIRMED' : 'CONFIRMADO'}
                     </div>
-                    {/* El folio dinámico: Si no tiene reserva, usa su ID corto */}
-                    <p className="font-mono text-sm text-slate-300 uppercase font-bold">Folio: {ticketDataToPrint.reserva || ticketDataToPrint.id.slice(-5)}</p>
-                  </div>
-                </div>
-
-                <div className="mt-8 flex justify-between items-end relative z-10">
-                  <div>
-                    <h2 className="text-xl font-bold tracking-wide uppercase">{ticketLang === 'EN' ? 'PRIVATE TRANSPORTATION' : 'TRANSPORTE PRIVADO'}</h2>
-                    <p className="text-slate-400 text-sm mt-1 flex items-center gap-2">
-                      <ShieldCheck size={16} className="text-amber-500" />
-                      {ticketLang === 'EN' ? 'Safe Ticket' : 'Boleto Seguro'}
-                    </p>
+                    <p className="font-mono text-sm text-slate-800 uppercase font-bold">Folio: {ticketDataToPrint.reserva || ticketDataToPrint.id.slice(-5)}</p>
                   </div>
                 </div>
               </div>
 
-              <div className="relative h-4 bg-white">
-                <div className="absolute w-full border-t-2 border-dashed border-gray-300 top-1/2"></div>
-                <div className="absolute left-0 top-1/2 -mt-3 -ml-3 w-6 h-6 bg-gray-100 print:bg-white rounded-full"></div>
-                <div className="absolute right-0 top-1/2 -mt-3 -mr-3 w-6 h-6 bg-gray-100 print:bg-white rounded-full"></div>
-              </div>
-
-              <div className="p-8 pb-6 grid grid-cols-1 md:grid-cols-2 gap-y-6 gap-x-8">
-                <div className="space-y-5">
-                  <div>
-                    <p className="text-xs text-gray-500 font-bold uppercase tracking-wider mb-1">{ticketLang === 'EN' ? 'Passenger Name' : 'Nombre del Pasajero'}</p>
-                    <p className="text-lg font-bold text-slate-800 flex items-center gap-2 uppercase">
-                      <User size={18} className="text-amber-500" />
-                      {traducirNombreTicket(ticketDataToPrint.nombre, ticketDataToPrint.apellido, ticketLang)}
-                    </p>
-                  </div>
-
-                  <div>
-                    <p className="text-xs text-gray-500 font-bold uppercase tracking-wider mb-1">
-                      {ticketLang === 'EN'
-                        ? (ticketDataToPrint.tipoServicio === 'Llegada' ? 'Arrival Date & Time' : 'Pick Up Date & Time')
-                        : (ticketDataToPrint.tipoServicio === 'Llegada' ? 'Fecha y Hora de Llegada' : 'Fecha y Hora de Pick Up')}
-                    </p>
-                    <div className="flex flex-col gap-1">
-                      <p className="text-base font-bold text-slate-800 flex items-center gap-2">
-                        <Calendar size={18} className="text-amber-500" />
-                        {ticketDataToPrint.fecha}
-                      </p>
-                      <p className="text-base font-bold text-slate-800 flex items-center gap-2">
-                        <Clock size={18} className="text-amber-500" />
-                        {(ticketDataToPrint.tipoServicio?.toLowerCase() === 'salida' ? (ticketDataToPrint.pickUp || ticketDataToPrint.pick_up || ticketDataToPrint.hora) : ticketDataToPrint.hora)} {ticketDataToPrint.tipoServicio?.toLowerCase() === 'salida' ? '(Lobby)' : ''}
+              <div className="p-6">
+                <div className="border border-slate-300">
+                  <div className="grid grid-cols-1 md:grid-cols-3 border-b border-slate-300">
+                    <div className="p-3 md:col-span-2 md:border-r border-slate-300">
+                      <p className="text-[11px] text-slate-500 font-bold uppercase mb-1">{ticketLang === 'EN' ? 'Passenger Name' : 'Nombre del Pasajero'}</p>
+                      <p className="text-base font-bold text-slate-900 uppercase">
+                        {traducirNombreTicket(ticketDataToPrint.nombre, ticketDataToPrint.apellido, ticketLang)}
                       </p>
                     </div>
+                    <div className="p-3 border-t md:border-t-0 border-slate-300">
+                      <p className="text-[11px] text-slate-500 font-bold uppercase mb-1">PAX</p>
+                      <p className="text-base font-bold text-slate-900">{ticketDataToPrint.pax}</p>
+                    </div>
                   </div>
-                </div>
 
-                <div className="space-y-5">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-xs text-gray-500 font-bold uppercase tracking-wider mb-1">PAX</p>
-                      <p className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                        <Users size={18} className="text-amber-500" />
-                        {ticketDataToPrint.pax}
+                  <div className="grid grid-cols-1 md:grid-cols-2 border-b border-slate-300">
+                    <div className="p-3 md:border-r border-slate-300">
+                      <p className="text-[11px] text-slate-500 font-bold uppercase mb-1">
+                        {ticketLang === 'EN'
+                          ? (ticketDataToPrint.tipoServicio === 'Llegada' ? 'Arrival Date & Time' : 'Pick Up Date & Time')
+                          : (ticketDataToPrint.tipoServicio === 'Llegada' ? 'Fecha y Hora de Llegada' : 'Fecha y Hora de Pick Up')}
+                      </p>
+                      <p className="text-sm font-bold text-slate-900">
+                        {ticketDataToPrint.fecha} — {(ticketDataToPrint.tipoServicio?.toLowerCase() === 'salida' ? (ticketDataToPrint.pickUp || ticketDataToPrint.pick_up || ticketDataToPrint.hora) : ticketDataToPrint.hora)} {ticketDataToPrint.tipoServicio?.toLowerCase() === 'salida' ? '(Lobby)' : ''}
                       </p>
                     </div>
-                    <div>
-                      <p className="text-xs text-gray-500 font-bold uppercase tracking-wider mb-1">{ticketLang === 'EN' ? 'Flight' : 'Vuelo'}</p>
-                      <p className="text-lg font-bold text-slate-800 flex items-center gap-2 uppercase">
-                        <Plane size={18} className="text-amber-500" />
+                    <div className="p-3 border-t md:border-t-0 border-slate-300">
+                      <p className="text-[11px] text-slate-500 font-bold uppercase mb-1">{ticketLang === 'EN' ? 'Flight' : 'Vuelo'}</p>
+                      <p className="text-sm font-bold text-slate-900 uppercase">
                         {ticketDataToPrint.vuelo || 'N/A'}
                         {ticketDataToPrint.tipoServicio?.toLowerCase() === 'salida' && ticketDataToPrint.hora && ticketDataToPrint.hora !== (ticketDataToPrint.pickUp || ticketDataToPrint.pick_up) ? (
-                          <span className="text-xs text-gray-500 font-normal ml-1">({ticketDataToPrint.hora})</span>
+                          <span className="text-xs text-slate-500 font-normal ml-1">({ticketDataToPrint.hora})</span>
                         ) : null}
                       </p>
                     </div>
                   </div>
 
-                  <div>
-                    <p className="text-xs text-gray-500 font-bold uppercase tracking-wider mb-1">{ticketLang === 'EN' ? 'Hotel / Destination' : 'Hotel / Destino'}</p>
-                    <p className="text-base font-bold text-slate-800 flex items-start gap-2">
-                      <MapPin size={18} className="text-amber-500 min-w-max mt-0.5" />
-                      <span className="leading-tight uppercase">{ticketDataToPrint.hotel}</span>
-                    </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2">
+                    <div className="p-3 md:border-r border-slate-300">
+                      <p className="text-[11px] text-slate-500 font-bold uppercase mb-1">{ticketLang === 'EN' ? 'Hotel / Destination' : 'Hotel / Destino'}</p>
+                      <p className="text-sm font-bold text-slate-900 uppercase">{ticketDataToPrint.hotel}</p>
+                    </div>
+                    <div className="p-3 border-t md:border-t-0 border-slate-300">
+                      <p className="text-[11px] text-slate-500 font-bold uppercase mb-1">{ticketLang === 'EN' ? 'Payment / Method' : 'Cobro / Método'}</p>
+                      <p className="text-sm font-bold text-slate-900 uppercase">
+                        {ticketDataToPrint.cobro && ticketDataToPrint.cobro !== '0'
+                          ? `$${ticketDataToPrint.cobro} ${ticketDataToPrint.metodoPago ? `(${traducirMetodoPagoTicket(ticketDataToPrint.metodoPago, ticketLang)})` : ''}`
+                          : (ticketLang === 'EN' ? 'PREPAID' : 'PREPAGADO')}
+                      </p>
+                    </div>
                   </div>
+                </div>
 
-                  {/* NUEVA SECCIÓN DE PAGO */}
-                  <div>
-                    <p className="text-xs text-gray-500 font-bold uppercase tracking-wider mb-1">{ticketLang === 'EN' ? 'Payment / Method' : 'Cobro / Método'}</p>
-                    <p className="text-base font-bold text-slate-800 flex items-center gap-2 uppercase">
-                      {/* Ícono de dinero hecho a medida */}
-                      <span className="bg-amber-500 text-slate-900 rounded-full w-5 h-5 flex items-center justify-center font-black text-xs">
-                        $
-                      </span>
-                      {/* Lógica: Si hay cobro lo muestra con su método traducido, si está vacío o es 0 dice PREPAGADO */}
-                      {ticketDataToPrint.cobro && ticketDataToPrint.cobro !== '0'
-                        ? `$${ticketDataToPrint.cobro} ${ticketDataToPrint.metodoPago ? `(${traducirMetodoPagoTicket(ticketDataToPrint.metodoPago, ticketLang)})` : ''}`
-                        : (ticketLang === 'EN' ? 'PREPAID' : 'PREPAGADO')}
-                    </p>
-                  </div>
+                <div className="py-5 flex justify-center">
+                  <svg className="h-10 w-full max-w-xs" preserveAspectRatio="none" viewBox="0 0 200 50" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="0" y="0" width="4" height="50" className="text-slate-800" /><rect x="6" y="0" width="2" height="50" className="text-slate-800" /><rect x="12" y="0" width="6" height="50" className="text-slate-800" /><rect x="22" y="0" width="2" height="50" className="text-slate-800" /><rect x="26" y="0" width="8" height="50" className="text-slate-800" /><rect x="38" y="0" width="4" height="50" className="text-slate-800" /><rect x="46" y="0" width="2" height="50" className="text-slate-800" /><rect x="52" y="0" width="6" height="50" className="text-slate-800" /><rect x="62" y="0" width="10" height="50" className="text-slate-800" /><rect x="76" y="0" width="4" height="50" className="text-slate-800" /><rect x="84" y="0" width="2" height="50" className="text-slate-800" /><rect x="90" y="0" width="8" height="50" className="text-slate-800" /><rect x="102" y="0" width="4" height="50" className="text-slate-800" /><rect x="110" y="0" width="6" height="50" className="text-slate-800" /><rect x="120" y="0" width="2" height="50" className="text-slate-800" /><rect x="126" y="0" width="8" height="50" className="text-slate-800" /><rect x="138" y="0" width="4" height="50" className="text-slate-800" /><rect x="146" y="0" width="2" height="50" className="text-slate-800" /><rect x="152" y="0" width="12" height="50" className="text-slate-800" /><rect x="168" y="0" width="4" height="50" className="text-slate-800" /><rect x="176" y="0" width="6" height="50" className="text-slate-800" /><rect x="186" y="0" width="2" height="50" className="text-slate-800" /><rect x="192" y="0" width="8" height="50" className="text-slate-800" />
+                  </svg>
+                </div>
 
+                <div className="bg-slate-50 p-4 border border-slate-300 mb-4">
+                  <h3 className="text-xs font-bold text-slate-900 uppercase mb-1.5">
+                    {ticketDataToPrint.tipoServicio === 'Llegada'
+                      ? (ticketLang === 'EN' ? 'How to spot your driver upon arrival' : 'Instrucciones de llegada')
+                      : (ticketLang === 'EN' ? 'Pick-up Instructions' : 'Instrucciones de Pick-up')}
+                  </h3>
+                  <p className="text-xs text-slate-700 leading-relaxed text-justify">
+                    {ticketDataToPrint.tipoServicio === 'Llegada'
+                      ? (ticketLang === 'EN'
+                        ? 'All transport companies are waiting outside the departure gate. You just have to walk to the parking lot to look for your name on a sign. We are usually located in Shadow 3 or Terminal 1 ("GROUP EXIT"). So when you get there, just walk into the parking lot and you will see some staff members standing under these curtains holding up their signs, one of them will have your name on it.'
+                        : 'Todas las empresas de transporte esperan afuera de la puerta de salida. Camine al estacionamiento y busque su nombre en un letrero. Usualmente estamos en la Sombra 3 o Terminal 1 "SALIDA DE GRUPOS". Al llegar, camine al estacionamiento y verá a nuestro personal bajo los toldos con su letrero.')
+                      : (ticketLang === 'EN'
+                        ? 'Please be ready in the hotel lobby 15 minutes before your scheduled pick-up time. Look for the driver holding a Ballard Tour Services sign. If you have any issues, please contact us immediately.'
+                        : 'Por favor, esté listo en el lobby del hotel 15 minutos antes de su hora programada de pick-up. Busque al chofer con el letrero de Ballard Tour Services. Si tiene algún problema, contáctenos de inmediato.')}
+                  </p>
+                </div>
+
+                <div className="text-center">
+                  <h3 className="text-xs font-bold text-slate-800 mb-1">
+                    {ticketLang === 'EN' ? 'Need other activities?' : '¿Buscas otras actividades?'}
+                  </h3>
+                  <p className="text-[11px] text-slate-500">
+                    {ticketLang === 'EN'
+                      ? 'We can take you to see the Arch of Los Cabos, ride a motorcycle, get to know the Historic Center of San Jose del Cabo, the Hotel California in Todos Santos, and much more...'
+                      : 'Podemos llevarte a conocer el Arco de Los Cabos, pasear en cuatrimoto, conocer el Centro Histórico de San José del Cabo, el Hotel California en Todos Santos y mucho más...'}
+                  </p>
                 </div>
               </div>
 
-              <div className="px-8 flex justify-center mb-6">
-                <svg className="h-12 w-full max-w-sm" preserveAspectRatio="none" viewBox="0 0 200 50" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-                  <rect x="0" y="0" width="4" height="50" className="text-slate-800" /><rect x="6" y="0" width="2" height="50" className="text-slate-800" /><rect x="12" y="0" width="6" height="50" className="text-slate-800" /><rect x="22" y="0" width="2" height="50" className="text-slate-800" /><rect x="26" y="0" width="8" height="50" className="text-slate-800" /><rect x="38" y="0" width="4" height="50" className="text-slate-800" /><rect x="46" y="0" width="2" height="50" className="text-slate-800" /><rect x="52" y="0" width="6" height="50" className="text-slate-800" /><rect x="62" y="0" width="10" height="50" className="text-slate-800" /><rect x="76" y="0" width="4" height="50" className="text-slate-800" /><rect x="84" y="0" width="2" height="50" className="text-slate-800" /><rect x="90" y="0" width="8" height="50" className="text-slate-800" /><rect x="102" y="0" width="4" height="50" className="text-slate-800" /><rect x="110" y="0" width="6" height="50" className="text-slate-800" /><rect x="120" y="0" width="2" height="50" className="text-slate-800" /><rect x="126" y="0" width="8" height="50" className="text-slate-800" /><rect x="138" y="0" width="4" height="50" className="text-slate-800" /><rect x="146" y="0" width="2" height="50" className="text-slate-800" /><rect x="152" y="0" width="12" height="50" className="text-slate-800" /><rect x="168" y="0" width="4" height="50" className="text-slate-800" /><rect x="176" y="0" width="6" height="50" className="text-slate-800" /><rect x="186" y="0" width="2" height="50" className="text-slate-800" /><rect x="192" y="0" width="8" height="50" className="text-slate-800" />
-                </svg>
-              </div>
-
-              {/* INSTRUCCIONES DINÁMICAS (Llegada vs Salida / EN vs ES) */}
-              <div className="bg-amber-50 p-6 mx-4 rounded-xl border border-amber-200 mb-4">
-                <h3 className="text-sm font-bold text-amber-900 flex items-center gap-2 mb-2">
-                  <Info size={16} />
-                  {ticketDataToPrint.tipoServicio === 'Llegada'
-                    ? (ticketLang === 'EN' ? 'How to spot your driver upon arrival?' : '¿Cómo ubicar a su chofer al llegar?')
-                    : (ticketLang === 'EN' ? 'Pick-up Instructions' : 'Instrucciones de Pick-up')}
-                </h3>
-                <p className="text-sm text-amber-800/80 leading-relaxed text-justify">
-                  {ticketDataToPrint.tipoServicio === 'Llegada'
-                    ? (ticketLang === 'EN'
-                      ? 'All transport companies are waiting outside the departure gate. You just have to walk to the parking lot to look for your name on a sign. We are usually located in Shadow 3 or Terminal 1 ("GROUP EXIT"). So when you get there, just walk into the parking lot and you will see some staff members standing under these curtains holding up their signs, one of them will have your name on it.'
-                      : 'Todas las empresas de transporte esperan afuera de la puerta de salida. Camine al estacionamiento y busque su nombre en un letrero. Usualmente estamos en la Sombra 3 o Terminal 1 "SALIDA DE GRUPOS". Al llegar, camine al estacionamiento y verá a nuestro personal bajo los toldos con su letrero.')
-                    : (ticketLang === 'EN'
-                      ? 'Please be ready in the hotel lobby 15 minutes before your scheduled pick-up time. Look for the driver holding a Ballard Tour Services sign. If you have any issues, please contact us immediately.'
-                      : 'Por favor, esté listo en el lobby del hotel 15 minutos antes de su hora programada de pick-up. Busque al chofer con el letrero de Ballard Tour Services. Si tiene algún problema, contáctenos de inmediato.')}
-                </p>
-              </div>
-
-              <div className="px-6 pb-6 text-center">
-                <h3 className="text-sm font-bold text-slate-800 mb-1 flex items-center justify-center gap-2">
-                  <Map size={16} className="text-slate-500" />
-                  {ticketLang === 'EN' ? 'You need other activities?' : '¿Buscas otras actividades?'}
-                </h3>
-                <p className="text-xs text-slate-500">
-                  {ticketLang === 'EN'
-                    ? 'We can take you to see the Arch of Los Cabos, ride a motorcycle, get to know the Historic Center of San Jose del Cabo, the Hotel California in Todos Santos, and much more...'
-                    : 'Podemos llevarte a conocer el Arco de Los Cabos, pasear en cuatrimoto, conocer el Centro Histórico de San José del Cabo, el Hotel California en Todos Santos y mucho más...'}
-                </p>
-              </div>
-
-              <div className="bg-slate-900 text-slate-300 p-4 text-xs flex flex-col md:flex-row justify-between items-center gap-3">
+              <div className="bg-slate-100 border-t border-slate-300 text-slate-700 p-3 text-xs flex flex-col md:flex-row justify-between items-center gap-2 font-semibold">
                 <div className="flex items-center gap-4">
-                  <span className="flex items-center gap-1"><Phone size={14} className="text-amber-500" /> +52 612 194 3286</span>
-                  <span className="flex items-center gap-1 hidden sm:flex"><Mail size={14} className="text-amber-500" /> reservationballard@gmail.com</span>
+                  <span>Tel: +52 612 194 3286</span>
+                  <span className="hidden sm:inline">reservationballard@gmail.com</span>
                 </div>
-                <span className="flex items-center gap-1"><Globe size={14} className="text-amber-500" /> www.caboprivateairporttransfers.com</span>
+                <span className="text-slate-900 font-bold">www.caboprivateairporttransfers.com</span>
               </div>
 
             </div>
