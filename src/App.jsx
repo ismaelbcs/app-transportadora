@@ -2699,102 +2699,102 @@ export default function App() {
           </div>
         </div>
 
-        {/* Menú de Navegación Vertical */}
+        {/* Menú de Navegación Vertical Sobrio */}
         <div className={`flex-col h-full ${isSidebarOpen ? 'flex' : 'hidden'}`}>
-          <nav className="flex-1 overflow-y-auto py-6 px-3 space-y-2 custom-scrollbar">
-            <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-4 px-3">Menú Principal</div>
+          <nav className="flex-1 overflow-y-auto py-5 px-2.5 space-y-1 custom-scrollbar">
+            <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-3 px-3">Menú Principal</div>
 
             {(userProfile?.rol === 'admin' || userProfile?.permisos?.vistas?.ingresar_reserva) && (
               <button
                 onClick={() => { setActiveTab('form'); if (window.innerWidth <= 768) setIsSidebarOpen(false); }}
-                className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl font-medium transition-all ${activeTab === 'form' ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/50' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium transition-colors border-l-4 ${activeTab === 'form' ? 'bg-slate-800 text-white border-slate-200 font-semibold' : 'border-transparent text-slate-300 hover:bg-slate-800/60 hover:text-white'}`}
               >
-                <FileText size={20} /> Ingresar / Buscar
+                <FileText size={18} /> Ingresar / Buscar
               </button>
             )}
 
             {(userProfile?.rol === 'admin' || userProfile?.permisos?.vistas?.ingreso_cc) && (
               <button
                 onClick={() => { setActiveTab('callcenter'); if (window.innerWidth <= 768) setIsSidebarOpen(false); }}
-                className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl font-medium transition-all ${activeTab === 'callcenter' ? 'bg-purple-600 text-white shadow-lg shadow-purple-900/50' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium transition-colors border-l-4 ${activeTab === 'callcenter' ? 'bg-slate-800 text-white border-slate-200 font-semibold' : 'border-transparent text-slate-300 hover:bg-slate-800/60 hover:text-white'}`}
               >
-                <Headset size={20} /> Ingreso CC
+                <Headset size={18} /> Ingreso CC
               </button>
             )}
 
             {(userProfile?.rol === 'admin' || userProfile?.permisos?.rol_diario?.ver_modulo) && (
               <button
                 onClick={() => { setActiveTab('roll'); if (window.innerWidth <= 768) setIsSidebarOpen(false); }}
-                className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl font-medium transition-all ${activeTab === 'roll' ? 'bg-amber-500 text-white shadow-lg shadow-amber-900/50' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium transition-colors border-l-4 ${activeTab === 'roll' ? 'bg-slate-800 text-white border-slate-200 font-semibold' : 'border-transparent text-slate-300 hover:bg-slate-800/60 hover:text-white'}`}
               >
-                <CalendarCheck size={20} /> Rol Diario
+                <CalendarCheck size={18} /> Rol Diario
               </button>
             )}
 
             {(userProfile?.rol === 'admin' || userProfile?.permisos?.vistas?.control_flota) && (
               <button
                 onClick={() => { setActiveTab('flota'); if (window.innerWidth <= 768) setIsSidebarOpen(false); }}
-                className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl font-medium transition-all ${activeTab === 'flota' ? 'bg-orange-600 text-white shadow-lg shadow-orange-900/50' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium transition-colors border-l-4 ${activeTab === 'flota' ? 'bg-slate-800 text-white border-slate-200 font-semibold' : 'border-transparent text-slate-300 hover:bg-slate-800/60 hover:text-white'}`}
               >
-                <Fuel size={20} /> Control Flota
+                <Fuel size={18} /> Control Flota
               </button>
             )}
 
             {(userProfile?.rol === 'admin' || userProfile?.permisos?.vistas?.deudas) && (
               <button
                 onClick={() => { setActiveTab('deudas'); if (window.innerWidth <= 768) setIsSidebarOpen(false); }}
-                className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl font-medium transition-all ${activeTab === 'deudas' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-900/50' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium transition-colors border-l-4 ${activeTab === 'deudas' ? 'bg-slate-800 text-white border-slate-200 font-semibold' : 'border-transparent text-slate-300 hover:bg-slate-800/60 hover:text-white'}`}
               >
-                <DollarSign size={20} /> Deudas y Préstamos
+                <DollarSign size={18} /> Deudas y Préstamos
               </button>
             )}
 
             {(userProfile?.rol === 'admin' || userProfile?.permisos?.vistas?.base_de_datos) && (
               <button
                 onClick={() => { setActiveTab('database'); if (window.innerWidth <= 768) setIsSidebarOpen(false); }}
-                className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl font-medium transition-all ${activeTab === 'database' ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/50' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium transition-colors border-l-4 ${activeTab === 'database' ? 'bg-slate-800 text-white border-slate-200 font-semibold' : 'border-transparent text-slate-300 hover:bg-slate-800/60 hover:text-white'}`}
               >
-                <Database size={20} /> Base de Datos
+                <Database size={18} /> Base de Datos
               </button>
             )}
 
             {(userProfile?.rol === 'admin' || userProfile?.permisos?.vistas?.cierre) && (
               <button
                 onClick={() => { setActiveTab('cierre'); if (window.innerWidth <= 768) setIsSidebarOpen(false); }}
-                className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl font-medium transition-all ${activeTab === 'cierre' ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/50' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium transition-colors border-l-4 ${activeTab === 'cierre' ? 'bg-slate-800 text-white border-slate-200 font-semibold' : 'border-transparent text-slate-300 hover:bg-slate-800/60 hover:text-white'}`}
               >
-                <Wallet size={20} /> Cierre Financiero
+                <Wallet size={18} /> Cierre Financiero
               </button>
             )}
 
             {(userProfile?.rol === 'admin' || userProfile?.permisos?.vistas?.pagos_proveedores !== false) && (
               <button
                 onClick={() => { setActiveTab('pagos_proveedores'); if (window.innerWidth <= 768) setIsSidebarOpen(false); }}
-                className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl font-medium transition-all ${activeTab === 'pagos_proveedores' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-900/50' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium transition-colors border-l-4 ${activeTab === 'pagos_proveedores' ? 'bg-slate-800 text-white border-slate-200 font-semibold' : 'border-transparent text-slate-300 hover:bg-slate-800/60 hover:text-white'}`}
               >
-                <Receipt size={20} /> Pagos Proveedores
+                <Receipt size={18} /> Pagos Proveedores
               </button>
             )}
 
             {(userProfile?.rol === 'admin' || userProfile?.permisos?.vistas?.presupuestos !== false) && (
               <button
                 onClick={() => { setActiveTab('presupuestos'); if (window.innerWidth <= 768) setIsSidebarOpen(false); }}
-                className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl font-medium transition-all ${activeTab === 'presupuestos' ? 'bg-amber-500 text-slate-950 font-bold shadow-lg shadow-amber-900/50' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium transition-colors border-l-4 ${activeTab === 'presupuestos' ? 'bg-slate-800 text-white border-slate-200 font-semibold' : 'border-transparent text-slate-300 hover:bg-slate-800/60 hover:text-white'}`}
               >
-                <FileText size={20} /> Presupuestos
+                <FileText size={18} /> Presupuestos
               </button>
             )}
 
             {userProfile?.rol === 'admin' && (
               <>
-                <div className="mt-8 mb-4 border-t border-slate-700/50"></div>
-                <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-4 px-3">Administración</div>
+                <div className="mt-6 mb-3 border-t border-slate-800"></div>
+                <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2 px-3">Administración</div>
 
                 <button
                   onClick={() => { setActiveTab('usuarios'); if (window.innerWidth <= 768) setIsSidebarOpen(false); }}
-                  className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl font-medium transition-all ${activeTab === 'usuarios' ? 'bg-red-600 text-white shadow-lg shadow-red-900/50' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium transition-colors border-l-4 ${activeTab === 'usuarios' ? 'bg-slate-800 text-white border-slate-200 font-semibold' : 'border-transparent text-slate-300 hover:bg-slate-800/60 hover:text-white'}`}
                 >
-                  <ShieldCheck size={20} /> Permisos
+                  <ShieldCheck size={18} /> Permisos
                 </button>
               </>
             )}
@@ -3786,13 +3786,13 @@ export default function App() {
 
                 <div className="flex w-full sm:w-auto gap-2 justify-end">
                   {userProfile?.rol === 'admin' && (
-                    <button onClick={saveRollUpdates} className="flex-1 sm:flex-none bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 flex justify-center items-center gap-2 text-sm font-bold transition-colors shadow-sm">
+                    <button onClick={saveRollUpdates} className="flex-1 sm:flex-none bg-slate-800 text-white px-4 py-2 rounded-md hover:bg-slate-900 flex justify-center items-center gap-2 text-sm font-bold transition-colors shadow-sm">
                       <Save size={16} /> Guardar
                     </button>
                   )}
                   <button
                     onClick={downloadRolPNG}
-                    className="flex-1 sm:flex-none bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex justify-center items-center gap-2 text-sm font-bold transition-colors shadow-sm"
+                    className="flex-1 sm:flex-none bg-white text-slate-800 border border-slate-400 px-4 py-2 rounded-md hover:bg-slate-100 flex justify-center items-center gap-2 text-sm font-bold transition-colors shadow-sm"
                   >
                     <Download size={18} /> Bajar PNG
                   </button>
@@ -3969,11 +3969,11 @@ export default function App() {
 
                         {/* Tipo de Servicio */}
                         <td className="p-2">
-                          <span className={`px-2 py-1 rounded-full text-xs font-bold ${row.tipoServicio === 'Llegada' ? 'bg-green-100 text-green-800' :
-                            row.tipoServicio === 'Salida' ? 'bg-red-100 text-red-800' :
-                              row.tipoServicio === 'Traslado' ? 'bg-yellow-100 text-yellow-800' :
-                                row.tipoServicio === 'Actividad' ? 'bg-blue-100 text-blue-800' :
-                                  'bg-gray-100 text-gray-800'
+                          <span className={`px-2 py-0.5 border text-xs font-bold ${row.tipoServicio === 'Llegada' ? 'bg-slate-100 text-slate-800 border-slate-300' :
+                            row.tipoServicio === 'Salida' ? 'bg-slate-100 text-slate-700 border-slate-300' :
+                              row.tipoServicio === 'Traslado' ? 'bg-slate-50 text-slate-700 border-slate-300' :
+                                row.tipoServicio === 'Actividad' ? 'bg-slate-50 text-slate-800 border-slate-300' :
+                                  'bg-gray-100 text-gray-800 border-gray-300'
                             }`}>
                             {row.tipoServicio}
                           </span>
@@ -3996,7 +3996,7 @@ export default function App() {
                         {userProfile?.rol === 'admin' && (
                           <>
                             <td className="p-2"><input type="text" value={row.proveedor || ''} onChange={(e) => handleRollChange(row.id, 'proveedor', e.target.value)} className="w-24 bg-transparent border-b border-dashed focus:outline-none uppercase" /></td>
-                            <td className="p-2"><input type="number" value={row.costoProveedor || ''} onChange={(e) => handleRollChange(row.id, 'costoProveedor', e.target.value)} className="w-16 bg-transparent border-b border-dashed focus:outline-none font-bold text-red-700" /></td>
+                            <td className="p-2"><input type="number" value={row.costoProveedor || ''} onChange={(e) => handleRollChange(row.id, 'costoProveedor', e.target.value)} className="w-16 bg-transparent border-b border-dashed focus:outline-none font-bold text-slate-800" /></td>
                             <td className="p-2">
                               {(() => {
                                 const infoPago = pagosProveedoresMap[row.id] || {};
@@ -4016,12 +4016,12 @@ export default function App() {
                                         fechaPago: nuevoEst === 'PAGADO' ? (infoPago.fechaPago || new Date().toISOString().split('T')[0]) : (infoPago.fechaPago || '')
                                       });
                                     }}
-                                    className={`px-2 py-1 rounded-md text-xs font-black border cursor-pointer focus:outline-none ${
+                                    className={`px-2 py-1 text-xs font-bold border cursor-pointer focus:outline-none ${
                                       estActual === 'PAGADO'
-                                        ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                                        ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
                                         : estActual === 'ABONO'
-                                          ? 'bg-amber-100 text-amber-900 border-amber-300'
-                                          : 'bg-red-100 text-red-800 border-red-300'
+                                          ? 'bg-amber-50 text-amber-900 border-amber-300'
+                                          : 'bg-red-50 text-red-800 border-red-300'
                                     }`}
                                   >
                                     <option value="DEBE">SE DEBE</option>
