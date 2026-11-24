@@ -351,6 +351,11 @@ const ComprobantePagoPDFDocument = ({ items = [], tituloReporte = 'COMPROBANTE D
                 {item.pagoEnLlegada ? (
                   <Text style={{ fontSize: 6, color: '#334155' }}>COBRO LLEGADA (EFECTIVO)</Text>
                 ) : null}
+                {item.pagoEfectivoOficina ? (
+                  <Text style={{ fontSize: 6, color: '#334155', fontWeight: 'bold' }}>
+                    {item.estadoPago === 'PAGADO' ? 'EFECTIVO EN OFICINA' : 'EFECTIVO PEND. (PASAR A OFICINA)'}
+                  </Text>
+                ) : null}
                 {item.esTransferencia && item.referenciaTransferencia ? (
                   <Text style={{ fontSize: 6, color: '#0f172a', fontWeight: 'bold' }}>REF: {item.referenciaTransferencia}</Text>
                 ) : null}
@@ -413,7 +418,13 @@ const ComprobantePagoPDFDocument = ({ items = [], tituloReporte = 'COMPROBANTE D
                     {s.fecha} | {s.reserva || 'S/R'} | {s.proveedor || 'S/P'}
                   </Text>
                   <Text style={{ fontSize: 6.5, color: '#475569', width: '24%', textAlign: 'right' }}>
-                    {s.esTransferencia ? `TRANSF. ${s.referenciaTransferencia || ''}` : s.pagoEnLlegada ? 'LLEGADA (EFECT.)' : (s.formaPago || 'PAGADO')}
+                    {s.esTransferencia
+                      ? `TRANSF. ${s.referenciaTransferencia || ''}`
+                      : s.pagoEfectivoOficina
+                        ? 'EFECTIVO (OFICINA)'
+                        : s.pagoEnLlegada
+                          ? 'LLEGADA (EFECT.)'
+                          : (s.formaPago || 'PAGADO')}
                   </Text>
                   <Text style={{ fontSize: 6.8, fontWeight: 'bold', color: '#166534', width: '20%', textAlign: 'right' }}>
                     ${s.abonado.toFixed(2)}
@@ -478,6 +489,7 @@ export default function PagosProveedores({
   const [datosMasivos, setDatosMasivos] = useState({
     estadoPago: 'PAGADO',
     pagoEnLlegada: false,
+    pagoEfectivoOficina: false,
     esTransferencia: true,
     referenciaTransferencia: '',
     bancoDestino: '',
@@ -518,6 +530,7 @@ export default function PagosProveedores({
 
       const saldoPendiente = Math.max(0, costoBase - montoPagado);
       const pagoEnLlegada = Boolean(infoPago.pagoEnLlegada);
+      const pagoEfectivoOficina = Boolean(infoPago.pagoEfectivoOficina);
       const esTransferencia = Boolean(infoPago.esTransferencia);
       const referenciaTransferencia = (infoPago.referenciaTransferencia || '').toUpperCase();
       const bancoDestino = (infoPago.bancoDestino || '').toUpperCase();
@@ -526,10 +539,19 @@ export default function PagosProveedores({
       const notasPago = (infoPago.notasPago || '').toUpperCase();
 
       let formaPago = 'PENDIENTE';
-      if (pagoEnLlegada && esTransferencia) formaPago = 'EFECTIVO LLEGADA + TRANSF.';
-      else if (pagoEnLlegada) formaPago = 'EFECTIVO EN LLEGADA';
-      else if (esTransferencia) formaPago = 'TRANSFERENCIA';
-      else if (estadoPago === 'PAGADO') formaPago = (srv.metodoPago || 'EFECTIVO').toUpperCase();
+      if (pagoEfectivoOficina && esTransferencia) {
+        formaPago = 'EFECTIVO OFICINA + TRANSF.';
+      } else if (pagoEfectivoOficina) {
+        formaPago = estadoPago === 'PAGADO' ? 'EFECTIVO EN OFICINA' : 'EFECTIVO PENDIENTE (PASAR A OFICINA)';
+      } else if (pagoEnLlegada && esTransferencia) {
+        formaPago = 'EFECTIVO LLEGADA + TRANSF.';
+      } else if (pagoEnLlegada) {
+        formaPago = 'EFECTIVO EN LLEGADA';
+      } else if (esTransferencia) {
+        formaPago = 'TRANSFERENCIA';
+      } else if (estadoPago === 'PAGADO') {
+        formaPago = (srv.metodoPago || 'EFECTIVO').toUpperCase();
+      }
 
       return {
         ...srv,
@@ -540,6 +562,7 @@ export default function PagosProveedores({
         montoPagado,
         saldoPendiente,
         pagoEnLlegada,
+        pagoEfectivoOficina,
         esTransferencia,
         referenciaTransferencia,
         bancoDestino,
@@ -565,6 +588,7 @@ export default function PagosProveedores({
       if (filtroEstado !== 'TODOS' && item.estadoPago !== filtroEstado) return false;
       if (filtroProveedor && item.proveedor !== filtroProveedor) return false;
       if (filtroMetodo === 'LLEGADA' && !item.pagoEnLlegada) return false;
+      if (filtroMetodo === 'OFICINA' && !item.pagoEfectivoOficina) return false;
       if (filtroMetodo === 'TRANSFERENCIA' && !item.esTransferencia) return false;
       if (fechaInicio && item.fecha < fechaInicio) return false;
       if (fechaFin && item.fecha > fechaFin) return false;
@@ -644,6 +668,7 @@ export default function PagosProveedores({
       estadoPago: item.estadoPago || 'DEBE',
       montoPagado: item.montoPagado || 0,
       pagoEnLlegada: Boolean(item.pagoEnLlegada),
+      pagoEfectivoOficina: Boolean(item.pagoEfectivoOficina),
       esTransferencia: Boolean(item.esTransferencia),
       referenciaTransferencia: (item.referenciaTransferencia || '').toUpperCase(),
       bancoDestino: (item.bancoDestino || '').toUpperCase(),
@@ -679,6 +704,7 @@ export default function PagosProveedores({
       estadoPago: estado,
       montoPagado: abonado,
       pagoEnLlegada: servicioEditando.pagoEnLlegada,
+      pagoEfectivoOficina: servicioEditando.pagoEfectivoOficina,
       esTransferencia: servicioEditando.esTransferencia,
       referenciaTransferencia: (servicioEditando.referenciaTransferencia || '').toUpperCase(),
       bancoDestino: (servicioEditando.bancoDestino || '').toUpperCase(),
@@ -706,6 +732,7 @@ export default function PagosProveedores({
       estadoPago: nuevoEstado,
       montoPagado: nuevoMontoPagado,
       pagoEnLlegada: item.pagoEnLlegada,
+      pagoEfectivoOficina: item.pagoEfectivoOficina,
       esTransferencia: item.esTransferencia,
       referenciaTransferencia: item.referenciaTransferencia,
       bancoDestino: item.bancoDestino,
@@ -728,6 +755,7 @@ export default function PagosProveedores({
         estadoPago: datosMasivos.estadoPago,
         montoPagado: pagado,
         pagoEnLlegada: datosMasivos.pagoEnLlegada,
+        pagoEfectivoOficina: datosMasivos.pagoEfectivoOficina,
         esTransferencia: datosMasivos.esTransferencia,
         referenciaTransferencia: (datosMasivos.referenciaTransferencia || '').toUpperCase(),
         bancoDestino: (datosMasivos.bancoDestino || '').toUpperCase(),
@@ -991,7 +1019,7 @@ export default function PagosProveedores({
         <div className="flex flex-wrap items-center justify-between gap-3 mt-2.5 pt-2.5 border-t border-slate-200">
           <div className="flex flex-wrap items-center gap-1.5">
             <span className="text-[11px] font-bold text-slate-500 mr-1">MODALIDAD:</span>
-            {['TODOS', 'LLEGADA', 'TRANSFERENCIA'].map(mod => (
+            {['TODOS', 'LLEGADA', 'OFICINA', 'TRANSFERENCIA'].map(mod => (
               <button
                 key={mod}
                 onClick={() => setFiltroMetodo(mod)}
@@ -1001,7 +1029,13 @@ export default function PagosProveedores({
                     : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-100'
                 }`}
               >
-                {mod === 'TODOS' ? 'TODAS' : mod === 'LLEGADA' ? 'PAGO EN LLEGADA (EFECTIVO)' : 'TRANSFERENCIA'}
+                {mod === 'TODOS'
+                  ? 'TODAS'
+                  : mod === 'LLEGADA'
+                    ? 'PAGO EN LLEGADA (EFECTIVO)'
+                    : mod === 'OFICINA'
+                      ? 'EFECTIVO PENDIENTE (PASAR A OFICINA)'
+                      : 'TRANSFERENCIA'}
               </button>
             ))}
 
@@ -1062,6 +1096,7 @@ export default function PagosProveedores({
                 <th className="p-2.5 font-bold text-right border-r border-slate-200">ABONADO / PAGADO</th>
                 <th className="p-2.5 font-bold text-right border-r border-slate-200 bg-slate-200/70 text-slate-900">SE DEBE</th>
                 <th className="p-2.5 font-bold text-center border-r border-slate-200">PAGO EN LLEGADA</th>
+                <th className="p-2.5 font-bold text-center border-r border-slate-200">EFECTIVO (OFICINA)</th>
                 <th className="p-2.5 font-bold border-r border-slate-200">TRANSFERENCIA / REF.</th>
                 <th className="p-2.5 font-bold border-r border-slate-200">CONTROL / NOTAS</th>
                 <th className="p-2.5 font-bold text-center">ACCIONES</th>
@@ -1070,7 +1105,7 @@ export default function PagosProveedores({
             <tbody className="divide-y divide-slate-200">
               {serviciosFiltrados.length === 0 ? (
                 <tr>
-                  <td colSpan="14" className="p-8 text-center text-slate-500 font-semibold">
+                  <td colSpan="15" className="p-8 text-center text-slate-500 font-semibold">
                     NO SE ENCONTRARON SERVICIOS CON LOS FILTROS SELECCIONADOS.
                   </td>
                 </tr>
@@ -1183,6 +1218,23 @@ export default function PagosProveedores({
                           title="Marcar si se pagó en la llegada (cobro de efectivo)"
                         >
                           {item.pagoEnLlegada ? 'SÍ (LLEGADA)' : 'NO'}
+                        </button>
+                      </td>
+
+                      <td className="p-2.5 text-center border-r border-slate-100">
+                        <button
+                          onClick={() => onSavePagoServicio(item.id, {
+                            ...item,
+                            pagoEfectivoOficina: !item.pagoEfectivoOficina
+                          })}
+                          className={`px-2 py-0.5 text-[10px] font-bold border transition-colors ${
+                            item.pagoEfectivoOficina
+                              ? 'bg-slate-800 text-white border-slate-800'
+                              : 'bg-white text-slate-500 border-slate-300 hover:bg-slate-100'
+                          }`}
+                          title="Pago en efectivo pendiente (pasar a oficina)"
+                        >
+                          {item.pagoEfectivoOficina ? 'PASAR A OFICINA' : 'NO'}
                         </button>
                       </td>
 
@@ -1366,7 +1418,7 @@ export default function PagosProveedores({
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <label className={`p-3 border cursor-pointer flex items-start gap-2.5 ${
                   servicioEditando.pagoEnLlegada
                     ? 'border-slate-800 bg-slate-100'
@@ -1382,6 +1434,25 @@ export default function PagosProveedores({
                     <div className="text-xs font-bold text-slate-900">PAGO EN LA LLEGADA (EFECTIVO)</div>
                     <div className="text-[11px] text-slate-500 mt-0.5">
                       COBRO EN EFECTIVO AL MOMENTO DE LA LLEGADA.
+                    </div>
+                  </div>
+                </label>
+
+                <label className={`p-3 border cursor-pointer flex items-start gap-2.5 ${
+                  servicioEditando.pagoEfectivoOficina
+                    ? 'border-slate-800 bg-slate-100'
+                    : 'border-slate-300 bg-white hover:bg-slate-50'
+                }`}>
+                  <input
+                    type="checkbox"
+                    checked={Boolean(servicioEditando.pagoEfectivoOficina)}
+                    onChange={(e) => setServicioEditando(prev => ({ ...prev, pagoEfectivoOficina: e.target.checked }))}
+                    className="mt-0.5 w-4 h-4 text-slate-800"
+                  />
+                  <div>
+                    <div className="text-xs font-bold text-slate-900">EFECTIVO PENDIENTE (PASAR A OFICINA)</div>
+                    <div className="text-[11px] text-slate-500 mt-0.5">
+                      SE PAGA EN EFECTIVO DIRECTAMENTE EN OFICINA.
                     </div>
                   </div>
                 </label>
@@ -1737,14 +1808,22 @@ export default function PagosProveedores({
                 </select>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                 <label className="p-2.5 border border-slate-300 flex items-center gap-2 cursor-pointer bg-slate-50">
                   <input
                     type="checkbox"
                     checked={datosMasivos.pagoEnLlegada}
                     onChange={(e) => setDatosMasivos(prev => ({ ...prev, pagoEnLlegada: e.target.checked }))}
                   />
-                  <span className="text-xs font-bold">PAGO EN LLEGADA</span>
+                  <span className="text-[11px] font-bold">PAGO EN LLEGADA</span>
+                </label>
+                <label className="p-2.5 border border-slate-300 flex items-center gap-2 cursor-pointer bg-slate-50">
+                  <input
+                    type="checkbox"
+                    checked={Boolean(datosMasivos.pagoEfectivoOficina)}
+                    onChange={(e) => setDatosMasivos(prev => ({ ...prev, pagoEfectivoOficina: e.target.checked }))}
+                  />
+                  <span className="text-[11px] font-bold">EFECTIVO (PASAR A OFICINA)</span>
                 </label>
                 <label className="p-2.5 border border-slate-300 flex items-center gap-2 cursor-pointer bg-slate-50">
                   <input
@@ -1752,7 +1831,7 @@ export default function PagosProveedores({
                     checked={datosMasivos.esTransferencia}
                     onChange={(e) => setDatosMasivos(prev => ({ ...prev, esTransferencia: e.target.checked }))}
                   />
-                  <span className="text-xs font-bold">SE TRANSFIRIÓ</span>
+                  <span className="text-[11px] font-bold">SE TRANSFIRIÓ</span>
                 </label>
               </div>
 

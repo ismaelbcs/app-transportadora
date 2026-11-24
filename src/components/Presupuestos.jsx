@@ -1898,6 +1898,7 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
                     className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none bg-white font-medium text-slate-800"
                   >
                     <option value="Pendiente / Efectivo">{idioma === 'EN' ? 'Pending / Cash' : 'Pendiente / Efectivo'}</option>
+                    <option value="Pago en Efectivo Pendiente (Pasar a Oficina)">{idioma === 'EN' ? 'Pending Cash (Pay at Office)' : 'Pago en Efectivo Pendiente (Pasar a Oficina)'}</option>
                     <option value="Efectivo Chófer">{idioma === 'EN' ? 'Cash to Chauffeur' : 'Efectivo Chófer'}</option>
                     <option value="Tarjeta / Stripe">{idioma === 'EN' ? 'Credit Card / Stripe' : 'Tarjeta / Stripe'}</option>
                     <option value="Transferencia">{idioma === 'EN' ? 'Wire Transfer' : 'Transferencia'}</option>

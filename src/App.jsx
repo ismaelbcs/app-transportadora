@@ -3291,7 +3291,9 @@ export default function App() {
                       <select name="metodoPago" value={currentService.metodoPago} onChange={handleInputChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm bg-white">
                         <option value="">Seleccione...</option>
                         <option value="Efectivo">Efectivo</option>
+                        <option value="Efectivo Pendiente (Pasar a Oficina)">Efectivo Pendiente (Pasar a Oficina)</option>
                         <option value="Tarjeta">Tarjeta</option>
+                        <option value="Transferencia">Transferencia</option>
                         <option value="PayPal">PayPal</option>
                       </select>
                     </div>
@@ -4381,7 +4383,9 @@ export default function App() {
                             <select value={row.metodoPago || ''} onChange={e => handleDatabaseChange(row.id, 'metodoPago', e.target.value)} className="w-24 bg-transparent border-b border-dashed focus:outline-none text-xs cursor-pointer">
                               <option value=""></option>
                               <option value="Efectivo">Efectivo</option>
+                              <option value="Efectivo Pendiente (Pasar a Oficina)">Efectivo Pendiente (Pasar a Oficina)</option>
                               <option value="Tarjeta">Tarjeta</option>
+                              <option value="Transferencia">Transferencia</option>
                               <option value="PayPal">PayPal</option>
                             </select>
                           </td>
