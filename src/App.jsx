@@ -1414,6 +1414,23 @@ export default function App() {
       const { error } = await supabase.from('servicios').upsert(servicesToSave);
       if (error) throw error;
 
+      // Si estamos editando un servicio existente, sincronizamos su precio actualizado en pagosProveedoresMap
+      if (isEditing && currentService.id && pagosProveedoresMap[currentService.id]) {
+        const nuevoCosto = parseFloat(currentService.costoProveedor) || parseFloat(currentService.cobro) || 0;
+        const est = (pagosProveedoresMap[currentService.id].estadoPago || 'DEBE').toUpperCase();
+        const nuevoMapa = {
+          ...pagosProveedoresMap,
+          [currentService.id]: {
+            ...pagosProveedoresMap[currentService.id],
+            proveedor: (currentService.proveedor || pagosProveedoresMap[currentService.id].proveedor || '').toUpperCase(),
+            costoTotal: nuevoCosto,
+            montoPagado: est === 'PAGADO' ? nuevoCosto : est === 'DEBE' ? 0 : pagosProveedoresMap[currentService.id].montoPagado
+          }
+        };
+        setPagosProveedoresMap(nuevoMapa);
+        await persistirPagosProveedoresEnNube(nuevoMapa);
+      }
+
       showToast(isEditing ? 'Servicio actualizado en la nube' : 'Servicio(s) guardado(s) en la nube');
 
       // Volver a descargar los datos frescos de la nube para actualizar las tablas
@@ -1504,6 +1521,32 @@ export default function App() {
     const camposNoMayusculas = ['hora', 'fecha', 'pickUp'];
     const value = typeof rawValue === 'string' && !camposNoMayusculas.includes(field) ? rawValue.toUpperCase() : rawValue;
     setRollData(prev => prev.map(item => item.id === id ? { ...item, [field]: value } : item));
+    setServices(prev => prev.map(item => item.id === id ? { ...item, [field]: value } : item));
+
+    // Si se cambia el precio (costoProveedor) o proveedor en Rol Diario, actualizar también el mapa de pagos en memoria
+    if (field === 'costoProveedor' || field === 'proveedor') {
+      setPagosProveedoresMap(prev => {
+        if (!prev[id]) return prev;
+        const entry = { ...prev[id] };
+        if (field === 'costoProveedor') {
+          const nuevoCosto = parseFloat(value) || 0;
+          entry.costoTotal = nuevoCosto;
+          if ((entry.estadoPago || 'DEBE').toUpperCase() === 'PAGADO') {
+            entry.montoPagado = nuevoCosto;
+          } else if ((entry.estadoPago || 'DEBE').toUpperCase() === 'DEBE') {
+            entry.montoPagado = 0;
+          }
+        }
+        if (field === 'proveedor') {
+          entry.proveedor = value;
+        }
+        const actualizado = { ...prev, [id]: entry };
+        try {
+          localStorage.setItem('ballard_pagos_proveedores_v1', JSON.stringify(actualizado));
+        } catch (e) {}
+        return actualizado;
+      });
+    }
   };
 
   const descargarCierrePDF = async () => {
@@ -1593,12 +1636,33 @@ export default function App() {
       const { error } = await supabase.from('servicios').upsert(servicesToUpdate);
       if (error) throw error;
 
-      // 3. Si todo sale bien, actualizamos la memoria local de la app
+      // 3. Si todo sale bien, actualizamos la memoria local de la app y sincronizamos precios en Pagos Proveedores
       const updatedServices = services.map(srv => {
         const rollItem = rollData.find(r => r.id === srv.id);
         return rollItem ? { ...srv, ...rollItem } : srv;
       });
       setServices(updatedServices);
+
+      // Sincronizar también en la nube cualquier cambio de precio o proveedor en pagosProveedoresMap
+      const nuevoMapaPagos = { ...pagosProveedoresMap };
+      let huboCambioPagos = false;
+      rollData.forEach(r => {
+        if (nuevoMapaPagos[r.id]) {
+          const nuevoCosto = parseFloat(r.costoProveedor) || parseFloat(r.cobro) || 0;
+          const est = (nuevoMapaPagos[r.id].estadoPago || 'DEBE').toUpperCase();
+          nuevoMapaPagos[r.id] = {
+            ...nuevoMapaPagos[r.id],
+            proveedor: (r.proveedor || nuevoMapaPagos[r.id].proveedor || '').toUpperCase(),
+            costoTotal: nuevoCosto,
+            montoPagado: est === 'PAGADO' ? nuevoCosto : est === 'DEBE' ? 0 : nuevoMapaPagos[r.id].montoPagado
+          };
+          huboCambioPagos = true;
+        }
+      });
+      if (huboCambioPagos) {
+        setPagosProveedoresMap(nuevoMapaPagos);
+        await persistirPagosProveedoresEnNube(nuevoMapaPagos);
+      }
 
       showToast('¡Rol actualizado en la nube correctamente!');
     } catch (error) {
@@ -1610,6 +1674,31 @@ export default function App() {
     const camposNoMayusculas = ['hora', 'fecha', 'pickUp'];
     const value = typeof rawValue === 'string' && !camposNoMayusculas.includes(field) ? rawValue.toUpperCase() : rawValue;
     setServices(prev => prev.map(item => item.id === id ? { ...item, [field]: value } : item));
+    setRollData(prev => prev.map(item => item.id === id ? { ...item, [field]: value } : item));
+
+    if (field === 'costoProveedor' || field === 'cobro' || field === 'proveedor') {
+      setPagosProveedoresMap(prev => {
+        if (!prev[id]) return prev;
+        const entry = { ...prev[id] };
+        if (field === 'costoProveedor' || field === 'cobro') {
+          const nuevoCosto = parseFloat(value) || 0;
+          entry.costoTotal = nuevoCosto;
+          if ((entry.estadoPago || 'DEBE').toUpperCase() === 'PAGADO') {
+            entry.montoPagado = nuevoCosto;
+          } else if ((entry.estadoPago || 'DEBE').toUpperCase() === 'DEBE') {
+            entry.montoPagado = 0;
+          }
+        }
+        if (field === 'proveedor') {
+          entry.proveedor = value;
+        }
+        const actualizado = { ...prev, [id]: entry };
+        try {
+          localStorage.setItem('ballard_pagos_proveedores_v1', JSON.stringify(actualizado));
+        } catch (e) {}
+        return actualizado;
+      });
+    }
   };
 
   const saveDatabaseUpdates = async () => {
@@ -1679,6 +1768,27 @@ export default function App() {
       // Disparamos la actualización
       const { error } = await supabase.from('servicios').upsert(servicesToUpdate);
       if (error) throw error;
+
+      // Sincronizar también en la nube cualquier cambio de precio o proveedor en pagosProveedoresMap
+      const nuevoMapaPagos = { ...pagosProveedoresMap };
+      let huboCambioPagos = false;
+      services.forEach(s => {
+        if (nuevoMapaPagos[s.id]) {
+          const nuevoCosto = parseFloat(s.costoProveedor) || parseFloat(s.cobro) || 0;
+          const est = (nuevoMapaPagos[s.id].estadoPago || 'DEBE').toUpperCase();
+          nuevoMapaPagos[s.id] = {
+            ...nuevoMapaPagos[s.id],
+            proveedor: (s.proveedor || nuevoMapaPagos[s.id].proveedor || '').toUpperCase(),
+            costoTotal: nuevoCosto,
+            montoPagado: est === 'PAGADO' ? nuevoCosto : est === 'DEBE' ? 0 : nuevoMapaPagos[s.id].montoPagado
+          };
+          huboCambioPagos = true;
+        }
+      });
+      if (huboCambioPagos) {
+        setPagosProveedoresMap(nuevoMapaPagos);
+        await persistirPagosProveedoresEnNube(nuevoMapaPagos);
+      }
 
       showToast('¡Base de datos actualizada en la nube!');
     } catch (error) {

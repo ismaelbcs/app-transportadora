@@ -489,19 +489,30 @@ export default function PagosProveedores({
   const listaServiciosEnriquecida = useMemo(() => {
     return services.map(srv => {
       const infoPago = pagosProveedoresMap[srv.id] || {};
-      const costoBase = infoPago.costoTotal !== undefined && infoPago.costoTotal !== ''
-        ? parseFloat(infoPago.costoTotal) || 0
-        : (parseFloat(srv.costoProveedor) || parseFloat(srv.cobro) || 0);
+
+      // Priorizar siempre el precio actual del servicio (costoProveedor en Rol Diario/BD, o cobro)
+      // para que cualquier cambio de precio refleje de inmediato la deuda real
+      const costoServicioActual = srv.costoProveedor !== undefined && srv.costoProveedor !== null && String(srv.costoProveedor).trim() !== ''
+        ? parseFloat(srv.costoProveedor) || 0
+        : (srv.cobro !== undefined && srv.cobro !== null && String(srv.cobro).trim() !== ''
+          ? parseFloat(srv.cobro) || 0
+          : null);
+
+      const costoBase = costoServicioActual !== null
+        ? costoServicioActual
+        : (infoPago.costoTotal !== undefined && infoPago.costoTotal !== ''
+          ? parseFloat(infoPago.costoTotal) || 0
+          : 0);
 
       const estadoPago = (infoPago.estadoPago || srv.estadoPagoProveedor || 'DEBE').toUpperCase();
       let montoPagado = infoPago.montoPagado !== undefined && infoPago.montoPagado !== ''
         ? parseFloat(infoPago.montoPagado) || 0
         : 0;
 
-      if (estadoPago === 'PAGADO' && montoPagado === 0 && costoBase > 0) {
+      // Si el estado es PAGADO, el monto pagado es el costo actual completo; si es DEBE, es 0
+      if (estadoPago === 'PAGADO') {
         montoPagado = costoBase;
-      }
-      if (estadoPago === 'DEBE') {
+      } else if (estadoPago === 'DEBE') {
         montoPagado = 0;
       }
 
