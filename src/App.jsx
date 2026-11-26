@@ -448,7 +448,7 @@ const traducirNombreTicket = (nombre, apellido, lang = 'EN') => {
 };
 
 // 4. Documento PDF Nativo Vectorial para el Ticket / Boleto de Transporte (Diseño Sobrio y Recto)
-const TicketPDFDocument = ({ data, lang = 'EN' }) => {
+const TicketPDFDocument = ({ data, lang = 'EN', logoSrc }) => {
   const isEN = lang === 'EN';
   const isSalida = data.tipoServicio?.toLowerCase() === 'salida';
   const isLlegada = data.tipoServicio === 'Llegada';
@@ -465,18 +465,22 @@ const TicketPDFDocument = ({ data, lang = 'EN' }) => {
     <Document>
       <Page size="LETTER" style={{ backgroundColor: '#ffffff', padding: 32, fontFamily: 'Helvetica', color: '#1e293b' }}>
         <View style={{ borderWidth: 1, borderColor: '#94a3b8' }}>
-          {/* ENCABEZADO SOBRIO */}
-          <View style={{ borderBottomWidth: 2, borderBottomColor: '#0f172a', padding: 20, backgroundColor: '#f8fafc' }}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-              <View>
-                <Text style={{ fontSize: 20, fontFamily: 'Helvetica-Bold', color: '#0f172a', textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                  BALLARD TOUR SERVICES
-                </Text>
-                <Text style={{ fontSize: 11, fontFamily: 'Helvetica-Bold', color: '#334155', textTransform: 'uppercase', marginTop: 6 }}>
+          {/* ENCABEZADO CON LOGO CABO PRIVATE TRANSPORTATION */}
+          <View style={{ borderBottomWidth: 2, borderBottomColor: '#0f172a', padding: 20, backgroundColor: '#ffffff' }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+              <View style={{ width: '64%' }}>
+                {logoSrc ? (
+                  <PdfImage src={logoSrc} style={{ width: 250, height: 64, objectFit: 'contain' }} />
+                ) : (
+                  <Text style={{ fontSize: 18, fontFamily: 'Helvetica-Bold', color: '#0f172a' }}>
+                    CABO PRIVATE TRANSPORTATION
+                  </Text>
+                )}
+                <Text style={{ fontSize: 10.5, fontFamily: 'Helvetica-Bold', color: '#334155', textTransform: 'uppercase', marginTop: 6 }}>
                   {isEN ? 'PRIVATE TRANSPORTATION TICKET' : 'BOLETO DE TRANSPORTE PRIVADO'}
                 </Text>
               </View>
-              <View style={{ alignItems: 'flex-end' }}>
+              <View style={{ width: '36%', alignItems: 'flex-end' }}>
                 <View style={{ borderWidth: 1, borderColor: '#0f172a', backgroundColor: '#ffffff', paddingHorizontal: 8, paddingVertical: 3, marginBottom: 6 }}>
                   <Text style={{ fontSize: 8.5, fontFamily: 'Helvetica-Bold', color: '#0f172a', textTransform: 'uppercase' }}>
                     {isEN ? 'CONFIRMED' : 'CONFIRMADO'}
@@ -1289,37 +1293,59 @@ export default function App() {
     setSearchResults([]);
   };
 
-  const generarNumeroReserva = async () => {
-    try {
-      showToast('Generando número de reserva...');
+  const obtenerSiguienteCodigoReserva = async () => {
+    let maxNumero = 0;
 
-      // 1. Buscamos en Supabase todos los números de reserva que empiecen con BTS
+    // 1. Revisar servicios cargados en memoria
+    (services || []).forEach(item => {
+      const m = (item.reserva || '').match(/^BTS-?(\d+)/i);
+      if (m) {
+        const n = parseInt(m[1], 10);
+        if (!isNaN(n) && n > maxNumero) maxNumero = n;
+      }
+    });
+
+    // 2. Revisar en Supabase todos los números de reserva que empiecen con BTS
+    try {
       const { data, error } = await supabase
         .from('servicios')
         .select('reserva')
-        .like('reserva', 'BTS%');
+        .ilike('reserva', 'BTS%');
 
-      if (error) throw error;
-
-      let siguienteNumero = 1;
-
-      if (data && data.length > 0) {
-        // 2. Extraemos los números, los convertimos a enteros y buscamos el más alto
-        const numeros = data.map(item => {
-          const clicks = item.reserva.replace('BTS', '');
-          return parseInt(clicks, 10) || 0;
+      if (!error && data && data.length > 0) {
+        data.forEach(item => {
+          const m = (item.reserva || '').match(/^BTS-?(\d+)/i);
+          if (m) {
+            const n = parseInt(m[1], 10);
+            if (!isNaN(n) && n > maxNumero) maxNumero = n;
+          }
         });
-
-        const maxNumero = Math.max(...numeros);
-        if (maxNumero > 0) {
-          siguienteNumero = maxNumero + 1;
-        }
       }
+    } catch (e) {
+      console.warn('Error consultando consecutivo BTS en Supabase:', e);
+    }
 
-      // 3. Formateamos el número para que siempre tenga 5 dígitos (ej. BTS00001, BTS00015)
-      const nuevoCodigo = `BTS${siguienteNumero.toString().padStart(5, '0')}`;
+    // 3. Revisar en localStorage por respaldo
+    try {
+      const guardadoUltimo = localStorage.getItem('ballard_ultimo_folio_reserva');
+      if (guardadoUltimo) {
+        const n = parseInt(guardadoUltimo, 10);
+        if (!isNaN(n) && n > maxNumero) maxNumero = n;
+      }
+    } catch (e) {}
 
-      // 4. Lo inyectamos directamente en el formulario actual
+    const siguienteNumero = maxNumero + 1;
+    try {
+      localStorage.setItem('ballard_ultimo_folio_reserva', siguienteNumero.toString());
+    } catch (e) {}
+
+    return `BTS${siguienteNumero.toString().padStart(5, '0')}`;
+  };
+
+  const generarNumeroReserva = async () => {
+    try {
+      showToast('Generando número de reserva...');
+      const nuevoCodigo = await obtenerSiguienteCodigoReserva();
       setCurrentService(prev => ({ ...prev, reserva: nuevoCodigo }));
       showToast(`Código ${nuevoCodigo} generado`);
     } catch (error) {
@@ -1330,13 +1356,29 @@ export default function App() {
 
   const saveForm = async () => {
     let servicesToSave = [];
+    let reservaFolioFinal = (currentService.reserva || '').trim();
+    if (!reservaFolioFinal) {
+      reservaFolioFinal = await obtenerSiguienteCodigoReserva();
+      setCurrentService(prev => ({ ...prev, reserva: reservaFolioFinal }));
+    } else {
+      const m = reservaFolioFinal.match(/^BTS-?(\d+)/i);
+      if (m) {
+        const n = parseInt(m[1], 10);
+        if (!isNaN(n)) {
+          try {
+            const prevMax = parseInt(localStorage.getItem('ballard_ultimo_folio_reserva') || '0', 10) || 0;
+            if (n > prevMax) localStorage.setItem('ballard_ultimo_folio_reserva', n.toString());
+          } catch (e) {}
+        }
+      }
+    }
 
     // Preparar los datos mapeando a los nombres de las columnas de Supabase
     if (isEditing) {
       // MODO EDICIÓN: Solo empaquetamos el servicio que se está modificando
       servicesToSave.push({
         id: currentService.id,
-        reserva: currentService.reserva,
+        reserva: reservaFolioFinal,
         nombre: currentService.nombre,
         apellido: currentService.apellido,
         agencia: currentService.agencia,
@@ -1367,7 +1409,7 @@ export default function App() {
 
       const newService = {
         id: baseId,
-        reserva: currentService.reserva,
+        reserva: reservaFolioFinal,
         nombre: currentService.nombre,
         apellido: currentService.apellido,
         agencia: currentService.agencia,
@@ -2319,7 +2361,8 @@ export default function App() {
 
       if (formato === 'PDF') {
         // Generamos PDF 100% Nativo Vectorial completo (sin recortes ni capturas de pantalla)
-        const pdfBlob = await pdf(<TicketPDFDocument data={ticketDataToPrint} lang={ticketLang} />).toBlob();
+        const logoSrc = `${window.location.origin}/logo-letrero.jpg`;
+        const pdfBlob = await pdf(<TicketPDFDocument data={ticketDataToPrint} lang={ticketLang} logoSrc={logoSrc} />).toBlob();
         const filename = `TICKET-${numeroReserva}.pdf`;
         const file = new File([pdfBlob], filename, { type: 'application/pdf' });
 
@@ -4347,10 +4390,25 @@ export default function App() {
                         );
                       });
 
-                      // 2. Pintamos los datos ya filtrados
-                      if (filteredDatabase.length === 0) return <tr><td colSpan="20" className="text-center p-8 text-gray-500">No se encontraron servicios con los filtros actuales.</td></tr>;
+                      // 2. Ordenamos por folio de reserva en orden consecutivo y luego fecha/hora
+                      const sortedDatabase = [...filteredDatabase].sort((a, b) => {
+                        const resA = String(a.reserva || '').trim();
+                        const resB = String(b.reserva || '').trim();
+                        const numA = parseInt(resA.replace(/\D/g, ''), 10);
+                        const numB = parseInt(resB.replace(/\D/g, ''), 10);
+                        if (!isNaN(numA) && !isNaN(numB) && numA !== numB) {
+                          return numA - numB;
+                        }
+                        if (resA !== resB) {
+                          return resA.localeCompare(resB, undefined, { numeric: true });
+                        }
+                        return String(a.fecha || '').localeCompare(String(b.fecha || ''));
+                      });
 
-                      return filteredDatabase.map(row => (
+                      // 3. Pintamos los datos ya filtrados y ordenados
+                      if (sortedDatabase.length === 0) return <tr><td colSpan="20" className="text-center p-8 text-gray-500">No se encontraron servicios con los filtros actuales.</td></tr>;
+
+                      return sortedDatabase.map(row => (
                         <tr key={row.id} className="hover:bg-blue-50 transition-colors">
                           <td className="p-2"><input type="text" value={row.reserva || ''} onChange={e => handleDatabaseChange(row.id, 'reserva', e.target.value)} className="w-16 bg-transparent border-b border-dashed focus:outline-none" /></td>
                           <td className="p-2"><input type="text" value={row.agencia || ''} onChange={e => handleDatabaseChange(row.id, 'agencia', e.target.value)} className="w-20 bg-transparent border-b border-dashed focus:outline-none" /></td>
@@ -4961,9 +5019,9 @@ export default function App() {
               }}
             >
               <img
-                src="/logo-oficial.png"
-                alt="Ballard Tour Services"
-                style={{ height: '52px', width: 'auto', objectFit: 'contain', display: 'block' }}
+                src="/logo-letrero.jpg"
+                alt="Cabo Private Transportation"
+                style={{ height: '56px', width: 'auto', objectFit: 'contain', display: 'block' }}
               />
               <div style={{ textAlign: 'right' }}>
                 <div style={{ fontSize: '12px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '2px' }}>
@@ -5524,7 +5582,8 @@ export default function App() {
                 try {
                   showToast('Descargando Ticket en PDF Natural...');
                   const numeroReserva = (ticketDataToPrint?.reserva || ticketDataToPrint?.folio || (ticketDataToPrint?.id ? String(ticketDataToPrint.id).slice(-5) : "00000")).toString().trim().replace(/[/\\?%*:|"<>]/g, '_');
-                  const pdfBlob = await pdf(<TicketPDFDocument data={ticketDataToPrint} lang={ticketLang} />).toBlob();
+                  const logoSrc = `${window.location.origin}/logo-letrero.jpg`;
+                  const pdfBlob = await pdf(<TicketPDFDocument data={ticketDataToPrint} lang={ticketLang} logoSrc={logoSrc} />).toBlob();
                   guardarArchivoPNG(pdfBlob, `TICKET-${numeroReserva}.pdf`);
                   showToast('Ticket PDF Natural descargado');
                 } catch (e) {
@@ -5532,7 +5591,7 @@ export default function App() {
                   window.print();
                 }
               }}
-              className="bg-amber-500 hover:bg-amber-600 text-white font-bold py-2 px-4 rounded-xl shadow-md flex items-center gap-2 text-sm transition-colors"
+              className="bg-slate-900 hover:bg-slate-800 text-white font-bold py-2 px-4 rounded-xl shadow-md flex items-center gap-2 text-sm transition-colors"
             >
               🖨️ Descargar / Imprimir PDF
             </button>
@@ -5541,7 +5600,7 @@ export default function App() {
               onClick={() => {
                 setTicketDataToPrint(null);
               }}
-              className="bg-slate-800 hover:bg-slate-900 text-white font-bold py-2 px-4 rounded-xl shadow-md flex items-center gap-2 text-sm transition-colors"
+              className="bg-white hover:bg-slate-100 text-slate-800 border border-slate-300 font-bold py-2 px-4 rounded-xl shadow-md flex items-center gap-2 text-sm transition-colors"
             >
               ⬅️ Regresar al Menú
             </button>
@@ -5551,13 +5610,19 @@ export default function App() {
           <div className="w-full max-w-2xl flex justify-center print:w-full">
             <div ref={ticketPrintRef} className="w-full bg-white overflow-hidden flex flex-col border border-slate-400 print:shadow-none print:border-slate-400">
 
-              <div className="bg-slate-50 text-slate-900 p-6 border-b-2 border-slate-900">
-                <div className="flex justify-between items-start">
+              <div className="bg-white text-slate-900 p-6 border-b-2 border-slate-900">
+                <div className="flex justify-between items-center gap-4">
                   <div>
-                    <h1 className="text-2xl font-bold tracking-wide text-slate-900 uppercase">Ballard Tour Services</h1>
-                    <h2 className="text-sm font-bold text-slate-600 mt-1 uppercase">{ticketLang === 'EN' ? 'PRIVATE TRANSPORTATION TICKET' : 'BOLETO DE TRANSPORTE PRIVADO'}</h2>
+                    <img
+                      src="/logo-letrero.jpg"
+                      alt="Cabo Private Transportation"
+                      className="h-14 sm:h-16 w-auto object-contain"
+                    />
+                    <h2 className="text-xs font-bold text-slate-600 mt-1.5 uppercase tracking-wide">
+                      {ticketLang === 'EN' ? 'PRIVATE TRANSPORTATION TICKET' : 'BOLETO DE TRANSPORTE PRIVADO'}
+                    </h2>
                   </div>
-                  <div className="text-right">
+                  <div className="text-right shrink-0">
                     <div className="inline-block border border-slate-900 bg-white text-slate-900 font-bold px-2.5 py-0.5 text-xs tracking-wider mb-1.5 uppercase">
                       {ticketLang === 'EN' ? 'CONFIRMED' : 'CONFIRMADO'}
                     </div>

@@ -6,13 +6,13 @@ import {
   Eye, Edit3, X, Languages, ArrowLeft, Car, Receipt, ShoppingBag, BadgeCheck,
   Cloud, Database, RefreshCw, Send
 } from 'lucide-react';
-import { Document, Page, Text, View, pdf } from '@react-pdf/renderer';
+import { Document, Page, Text, View, Image as PdfImage, pdf } from '@react-pdf/renderer';
 
 // Documento PDF Nativo Vectorial para Presupuesto / Ticket de Venta (Diseño Sobrio, Formal y Recto)
-const PresupuestoPDFDocument = ({ cotizacion, idioma, formatearMetodoPago }) => {
+const PresupuestoPDFDocument = ({ cotizacion, idioma, formatearMetodoPago, logoSrc }) => {
   const isEN = idioma === 'EN';
   const esVenta = cotizacion.tipoDocumento === 'VENTA' || cotizacion.estado === 'VENTA';
-  const numFolio = cotizacion.numeroTicket || cotizacion.folio || 'COT-0000';
+  const numFolio = cotizacion.numeroTicket || cotizacion.folio || 'QT-00100';
   const fechaEmision = cotizacion.fechaEmision || new Date().toISOString().split('T')[0];
 
   const tituloPrincipal = esVenta
@@ -43,16 +43,23 @@ const PresupuestoPDFDocument = ({ cotizacion, idioma, formatearMetodoPago }) => 
   const primaryCurrency = isUSD ? 'USD' : 'MXN';
   const secondaryCurrency = isUSD ? 'MXN' : 'USD';
 
+  const tieneExtrasGenerales = cotizacion.paradaCompras || cotizacion.hayNinos || (parseInt(cotizacion.carSeat, 10) > 0) || (parseInt(cotizacion.babySeat, 10) > 0) || (parseInt(cotizacion.booster, 10) > 0);
+  const edadesValidas = (cotizacion.edadesNinos || []).map(e => String(e || '').trim()).filter(Boolean);
+
   return (
     <Document>
       <Page size="LETTER" style={{ backgroundColor: '#ffffff', padding: 28, fontFamily: 'Helvetica', color: '#0f172a' }}>
         <View style={{ borderWidth: 1, borderColor: '#94a3b8' }}>
-          {/* ENCABEZADO SOBRIO */}
-          <View style={{ backgroundColor: '#f8fafc', borderBottomWidth: 2, borderBottomColor: '#0f172a', padding: 18, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          {/* ENCABEZADO CON LOGO CABO PRIVATE TRANSPORTATION */}
+          <View style={{ backgroundColor: '#ffffff', borderBottomWidth: 2, borderBottomColor: '#0f172a', padding: 18, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
             <View style={{ width: '62%' }}>
-              <Text style={{ color: '#0f172a', fontSize: 20, fontFamily: 'Helvetica-Bold', letterSpacing: 0.5 }}>BALLARD TOUR SERVICES</Text>
-              <Text style={{ color: '#0f172a', fontSize: 13, fontFamily: 'Helvetica-Bold', marginTop: 8 }}>{tituloPrincipal}</Text>
-              <Text style={{ color: '#475569', fontSize: 9, marginTop: 2 }}>{subtituloSeguro}</Text>
+              {logoSrc ? (
+                <PdfImage src={logoSrc} style={{ width: 250, height: 64, objectFit: 'contain' }} />
+              ) : (
+                <Text style={{ color: '#0f172a', fontSize: 18, fontFamily: 'Helvetica-Bold' }}>CABO PRIVATE TRANSPORTATION</Text>
+              )}
+              <Text style={{ color: '#0f172a', fontSize: 12.5, fontFamily: 'Helvetica-Bold', marginTop: 6 }}>{tituloPrincipal}</Text>
+              <Text style={{ color: '#475569', fontSize: 8.5, marginTop: 2 }}>{subtituloSeguro}</Text>
             </View>
             <View style={{ width: '38%', alignItems: 'flex-end' }}>
               <View style={{ borderWidth: 1, borderColor: '#0f172a', backgroundColor: '#ffffff', paddingHorizontal: 10, paddingVertical: 4, marginBottom: 6 }}>
@@ -61,6 +68,11 @@ const PresupuestoPDFDocument = ({ cotizacion, idioma, formatearMetodoPago }) => 
               <Text style={{ color: '#0f172a', fontSize: 10, fontFamily: 'Helvetica-Bold' }}>
                 {folioLabel} {numFolio}
               </Text>
+              {cotizacion.folioReservaAsignado ? (
+                <Text style={{ color: '#0f172a', fontSize: 8.5, fontFamily: 'Helvetica-Bold', marginTop: 1 }}>
+                  {isEN ? 'RESERVATION #:' : 'RESERVA:'} {cotizacion.folioReservaAsignado}
+                </Text>
+              ) : null}
               <Text style={{ color: '#475569', fontSize: 8.5, marginTop: 2 }}>
                 {fechaLabel} {fechaEmision}
               </Text>
@@ -108,7 +120,7 @@ const PresupuestoPDFDocument = ({ cotizacion, idioma, formatearMetodoPago }) => 
               </View>
 
               {/* FILA 2: HOTEL, MÉTODO DE PAGO, CHECKOUT */}
-              <View style={{ flexDirection: 'row' }}>
+              <View style={{ flexDirection: 'row', borderBottomWidth: tieneExtrasGenerales ? 1 : 0, borderBottomColor: '#cbd5e1' }}>
                 <View style={{ width: '36%', padding: 8, borderRightWidth: 1, borderRightColor: '#cbd5e1' }}>
                   <Text style={{ fontSize: 7.5, color: '#64748b', fontFamily: 'Helvetica-Bold', textTransform: 'uppercase', marginBottom: 2 }}>
                     {isEN ? 'HOTEL / MAIN LODGING' : 'HOTEL / ALOJAMIENTO PRINCIPAL'}
@@ -127,13 +139,48 @@ const PresupuestoPDFDocument = ({ cotizacion, idioma, formatearMetodoPago }) => 
                 </View>
                 <View style={{ width: '30%', padding: 8 }}>
                   <Text style={{ fontSize: 7.5, color: '#64748b', fontFamily: 'Helvetica-Bold', textTransform: 'uppercase', marginBottom: 2 }}>
-                    {isEN ? 'RETURN TIME (CHECK-OUT)' : 'HORA DE REGRESO (CHECK-OUT)'}
+                    {isEN ? 'RETURN PICK-UP (LOBBY)' : 'PICK-UP REGRESO (LOBBY)'}
                   </Text>
                   <Text style={{ fontSize: 11, color: '#0f172a', fontFamily: 'Helvetica-Bold' }}>
                     {cotizacion.horaCheckout ? `${cotizacion.horaCheckout} HRS` : '[HH:MM HRS]'}
                   </Text>
                 </View>
               </View>
+
+              {/* FILA 3 (SI HAY EXTRAS GENERALES: PARADA DE COMPRAS, NIÑOS, SILLAS) */}
+              {tieneExtrasGenerales ? (
+                <View style={{ padding: 8, backgroundColor: '#f8fafc', flexDirection: 'row', flexWrap: 'wrap' }}>
+                  <Text style={{ fontSize: 7.5, color: '#64748b', fontFamily: 'Helvetica-Bold', textTransform: 'uppercase', marginRight: 6 }}>
+                    {isEN ? 'REQUESTED EXTRAS & DETAILS:' : 'EXTRAS Y DETALLES SOLICITADOS:'}
+                  </Text>
+                  {cotizacion.paradaCompras ? (
+                    <Text style={{ fontSize: 8.5, color: '#0f172a', fontFamily: 'Helvetica-Bold', marginRight: 10 }}>
+                      • {isEN ? 'Shopping Stop (+$30 USD)' : 'Parada de Compras (+$30 USD)'}
+                    </Text>
+                  ) : null}
+                  {cotizacion.hayNinos ? (
+                    <Text style={{ fontSize: 8.5, color: '#0f172a', fontFamily: 'Helvetica-Bold', marginRight: 10 }}>
+                      • {isEN ? `Children: ${cotizacion.cantidadNinos || 1}` : `Niños: ${cotizacion.cantidadNinos || 1}`}
+                      {edadesValidas.length > 0 ? ` (${isEN ? 'Ages' : 'Edades'}: ${edadesValidas.join(', ')})` : ''}
+                    </Text>
+                  ) : null}
+                  {parseInt(cotizacion.carSeat, 10) > 0 ? (
+                    <Text style={{ fontSize: 8.5, color: '#0f172a', fontFamily: 'Helvetica-Bold', marginRight: 10 }}>
+                      • Car Seat: {cotizacion.carSeat}
+                    </Text>
+                  ) : null}
+                  {parseInt(cotizacion.babySeat, 10) > 0 ? (
+                    <Text style={{ fontSize: 8.5, color: '#0f172a', fontFamily: 'Helvetica-Bold', marginRight: 10 }}>
+                      • Baby Seat: {cotizacion.babySeat}
+                    </Text>
+                  ) : null}
+                  {parseInt(cotizacion.booster, 10) > 0 ? (
+                    <Text style={{ fontSize: 8.5, color: '#0f172a', fontFamily: 'Helvetica-Bold', marginRight: 10 }}>
+                      • Booster: {cotizacion.booster}
+                    </Text>
+                  ) : null}
+                </View>
+              ) : null}
             </View>
 
             {/* TÍTULO DE ITINERARIO */}
@@ -146,10 +193,10 @@ const PresupuestoPDFDocument = ({ cotizacion, idioma, formatearMetodoPago }) => 
             {/* TABLA DE ITINERARIO */}
             <View style={{ marginBottom: 14, borderWidth: 1, borderColor: '#cbd5e1' }}>
               <View style={{ flexDirection: 'row', backgroundColor: '#f1f5f9', borderBottomWidth: 1, borderBottomColor: '#94a3b8', paddingVertical: 6, paddingHorizontal: 8 }}>
-                <Text style={{ width: '20%', fontSize: 7.5, fontFamily: 'Helvetica-Bold', color: '#1e293b', textTransform: 'uppercase' }}>
+                <Text style={{ width: '18%', fontSize: 7.5, fontFamily: 'Helvetica-Bold', color: '#1e293b', textTransform: 'uppercase' }}>
                   {isEN ? 'STAGE' : 'ETAPA'}
                 </Text>
-                <Text style={{ width: '42%', fontSize: 7.5, fontFamily: 'Helvetica-Bold', color: '#1e293b', textTransform: 'uppercase' }}>
+                <Text style={{ width: '44%', fontSize: 7.5, fontFamily: 'Helvetica-Bold', color: '#1e293b', textTransform: 'uppercase' }}>
                   {isEN ? 'ROUTE / DESTINATION DESCRIPTION' : 'DESCRIPCIÓN DEL TRAYECTO / DESTINO'}
                 </Text>
                 <Text style={{ width: '10%', fontSize: 7.5, fontFamily: 'Helvetica-Bold', color: '#1e293b', textTransform: 'uppercase', textAlign: 'center' }}>
@@ -180,8 +227,9 @@ const PresupuestoPDFDocument = ({ cotizacion, idioma, formatearMetodoPago }) => 
 
                 const fechaFormateada = etapa.fecha || (isEN ? '[YYYY-MM-DD]' : '[DD-MMM-AAAA]');
                 const paxTramo = etapa.pax || cotizacion.pax || '1';
-                const horaPickUp = etapa.horaRecogida || etapa.hora;
-                const horaReturn = etapa.horaRegreso;
+                const aeroVuelo = [etapa.aerolinea, etapa.numeroVuelo].filter(Boolean).join(' ').trim();
+                const tieneSillasTramo = (parseInt(etapa.carSeat, 10) > 0) || (parseInt(etapa.babySeat, 10) > 0) || (parseInt(etapa.booster, 10) > 0);
+                const edadesTramo = (etapa.edadesNinos || []).map(e => String(e || '').trim()).filter(Boolean);
 
                 return (
                   <View
@@ -196,15 +244,29 @@ const PresupuestoPDFDocument = ({ cotizacion, idioma, formatearMetodoPago }) => 
                       paddingHorizontal: 8
                     }}
                   >
-                    <View style={{ width: '20%', paddingRight: 6 }}>
+                    <View style={{ width: '18%', paddingRight: 6 }}>
                       <Text style={{ fontSize: 9.5, fontFamily: 'Helvetica-Bold', color: '#0f172a' }}>
                         {isEN ? (etapa.etiquetaEN || etapa.etiquetaES) : (etapa.etiquetaES || etapa.etiquetaEN)}
                       </Text>
                     </View>
-                    <View style={{ width: '42%', paddingRight: 6 }}>
+                    <View style={{ width: '44%', paddingRight: 6 }}>
                       <Text style={{ fontSize: 9.5, color: '#1e293b' }}>
                         {descripcionTrayecto}
                       </Text>
+                      {aeroVuelo ? (
+                        <Text style={{ fontSize: 8, color: '#334155', marginTop: 2 }}>
+                          <Text style={{ fontFamily: 'Helvetica-Bold' }}>{isEN ? 'Flight: ' : 'Vuelo: '}</Text>
+                          {aeroVuelo}
+                        </Text>
+                      ) : null}
+                      {(etapa.hayNinos || tieneSillasTramo) ? (
+                        <Text style={{ fontSize: 7.5, color: '#475569', marginTop: 2 }}>
+                          {etapa.hayNinos ? `${isEN ? 'Children' : 'Niños'}: ${etapa.cantidadNinos || 1}${edadesTramo.length > 0 ? ` (${edadesTramo.join(', ')})` : ''} ` : ''}
+                          {parseInt(etapa.carSeat, 10) > 0 ? `| Car Seat: ${etapa.carSeat} ` : ''}
+                          {parseInt(etapa.babySeat, 10) > 0 ? `| Baby Seat: ${etapa.babySeat} ` : ''}
+                          {parseInt(etapa.booster, 10) > 0 ? `| Booster: ${etapa.booster}` : ''}
+                        </Text>
+                      ) : null}
                     </View>
                     <View style={{ width: '10%', alignItems: 'center' }}>
                       <Text style={{ fontSize: 9.5, fontFamily: 'Helvetica-Bold', color: '#0f172a' }}>
@@ -215,25 +277,54 @@ const PresupuestoPDFDocument = ({ cotizacion, idioma, formatearMetodoPago }) => 
                       <Text style={{ fontSize: 9, fontFamily: 'Helvetica-Bold', color: '#0f172a', marginBottom: 2 }}>
                         {fechaFormateada}
                       </Text>
-                      {horaPickUp ? (
-                        <Text style={{ fontSize: 8, color: '#334155' }}>
-                          <Text style={{ fontFamily: 'Helvetica-Bold' }}>
-                            {isEN ? 'Pick-up: ' : 'Recogida: '}
-                          </Text>
-                          {horaPickUp}
-                        </Text>
-                      ) : null}
-                      {horaReturn ? (
-                        <Text style={{ fontSize: 8, color: '#334155', marginTop: 1 }}>
-                          <Text style={{ fontFamily: 'Helvetica-Bold' }}>
-                            {isEN ? 'Return: ' : 'Regreso: '}
-                          </Text>
-                          {horaReturn}
-                        </Text>
-                      ) : null}
-                      {!horaPickUp && !horaReturn ? (
-                        <Text style={{ fontSize: 8, color: '#64748b' }}>[HH:MM]</Text>
-                      ) : null}
+                      {etapa.tipo === 'llegada' ? (
+                        <>
+                          {(etapa.horaLlegada || etapa.horaRecogida || etapa.hora) ? (
+                            <Text style={{ fontSize: 8, color: '#334155' }}>
+                              <Text style={{ fontFamily: 'Helvetica-Bold' }}>{isEN ? 'Arrival: ' : 'Hora Llegada: '}</Text>
+                              {etapa.horaLlegada || etapa.horaRecogida || etapa.hora}
+                            </Text>
+                          ) : (
+                            <Text style={{ fontSize: 8, color: '#64748b' }}>[HH:MM]</Text>
+                          )}
+                        </>
+                      ) : etapa.tipo === 'salida' ? (
+                        <>
+                          {(etapa.horaPickUpLobby || etapa.horaRecogida || etapa.hora) ? (
+                            <Text style={{ fontSize: 8, color: '#334155' }}>
+                              <Text style={{ fontFamily: 'Helvetica-Bold' }}>{isEN ? 'Pick-up (Lobby): ' : 'Pick-up (Lobby): '}</Text>
+                              {etapa.horaPickUpLobby || etapa.horaRecogida || etapa.hora}
+                            </Text>
+                          ) : null}
+                          {(etapa.horaSalidaVuelo || etapa.horaRegreso) ? (
+                            <Text style={{ fontSize: 8, color: '#334155', marginTop: 1 }}>
+                              <Text style={{ fontFamily: 'Helvetica-Bold' }}>{isEN ? 'Flight Dep.: ' : 'Salida Vuelo: '}</Text>
+                              {etapa.horaSalidaVuelo || etapa.horaRegreso}
+                            </Text>
+                          ) : null}
+                          {!(etapa.horaPickUpLobby || etapa.horaRecogida || etapa.hora) && !(etapa.horaSalidaVuelo || etapa.horaRegreso) ? (
+                            <Text style={{ fontSize: 8, color: '#64748b' }}>[HH:MM]</Text>
+                          ) : null}
+                        </>
+                      ) : (
+                        <>
+                          {(etapa.horaRecogida || etapa.hora) ? (
+                            <Text style={{ fontSize: 8, color: '#334155' }}>
+                              <Text style={{ fontFamily: 'Helvetica-Bold' }}>{isEN ? 'Pick-up: ' : 'Recogida: '}</Text>
+                              {etapa.horaRecogida || etapa.hora}
+                            </Text>
+                          ) : null}
+                          {etapa.horaRegreso ? (
+                            <Text style={{ fontSize: 8, color: '#334155', marginTop: 1 }}>
+                              <Text style={{ fontFamily: 'Helvetica-Bold' }}>{isEN ? 'Return: ' : 'Regreso: '}</Text>
+                              {etapa.horaRegreso}
+                            </Text>
+                          ) : null}
+                          {!(etapa.horaRecogida || etapa.hora) && !etapa.horaRegreso ? (
+                            <Text style={{ fontSize: 8, color: '#64748b' }}>[HH:MM]</Text>
+                          ) : null}
+                        </>
+                      )}
                     </View>
                   </View>
                 );
@@ -242,6 +333,11 @@ const PresupuestoPDFDocument = ({ cotizacion, idioma, formatearMetodoPago }) => 
 
             {/* CUADRO DE PRECIO TOTAL SOBRIO */}
             <View wrap={false} style={{ backgroundColor: '#f8fafc', borderWidth: 1, borderColor: '#cbd5e1', padding: 12, alignItems: 'flex-end', marginBottom: 12 }}>
+              {cotizacion.paradaCompras ? (
+                <Text style={{ fontSize: 8, color: '#475569', fontFamily: 'Helvetica-Bold', marginBottom: 3 }}>
+                  {isEN ? '* Includes Shopping Stop (+$30.00 USD)' : '* Incluye Parada de Compras (+$30.00 USD)'}
+                </Text>
+              ) : null}
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                 <Text style={{ fontSize: 8.5, color: '#475569', fontFamily: 'Helvetica-Bold', textTransform: 'uppercase', marginRight: 8 }}>
                   {isEN ? 'TOTAL QUOTE:' : 'TOTAL DEL PRESUPUESTO:'}
@@ -317,10 +413,44 @@ export default function Presupuestos({
     return '20.00';
   };
 
+  // Calcular siguiente folio de cotización consecutivo (QT-00100, QT-00101, ...)
+  const calcularSiguienteFolioQT = (listaHistorial = []) => {
+    let maxNum = 99; // para que el primero sea 100 -> QT-00100
+
+    try {
+      const guardadoContador = localStorage.getItem('ballard_ultimo_folio_qt');
+      if (guardadoContador) {
+        const n = parseInt(guardadoContador, 10);
+        if (!isNaN(n) && n > maxNum) maxNum = n;
+      }
+    } catch (e) {}
+
+    try {
+      const guardado = localStorage.getItem('ballard_presupuestos_v1');
+      const items = guardado ? JSON.parse(guardado) : [];
+      const combinados = [...(Array.isArray(items) ? items : []), ...(Array.isArray(listaHistorial) ? listaHistorial : [])];
+      combinados.forEach(item => {
+        [item?.folio, item?.id].forEach(str => {
+          if (str && typeof str === 'string') {
+            const m = str.match(/QT-(\d+)/i);
+            if (m) {
+              const n = parseInt(m[1], 10);
+              if (!isNaN(n) && n > maxNum) maxNum = n;
+            }
+          }
+        });
+      });
+    } catch (e) {}
+
+    const siguiente = maxNum + 1;
+    return `QT-${siguiente.toString().padStart(5, '0')}`;
+  };
+
   // Estado del presupuesto actual
-  const [cotizacion, setCotizacion] = useState({
+  const [cotizacion, setCotizacion] = useState(() => ({
     id: `COT-${Date.now()}`,
-    folio: `COT-${Math.floor(1000 + Math.random() * 9000)}`,
+    folio: calcularSiguienteFolioQT(),
+    folioReservaAsignado: null,
     fechaEmision: new Date().toISOString().split('T')[0],
     estado: 'EN REVISIÓN', // 'EN REVISIÓN' | 'COTIZADO' | 'APROBADO' | 'CONVERTIDO' | 'VENTA'
     tipoDocumento: 'PRESUPUESTO', // 'PRESUPUESTO' | 'VENTA'
@@ -340,6 +470,15 @@ export default function Presupuestos({
     mostrarEquivalenteMXN: true,
     notasPersonalizadas: '',
 
+    // Extras generales en Datos del Cliente
+    paradaCompras: false,
+    hayNinos: false,
+    cantidadNinos: 1,
+    edadesNinos: [''],
+    carSeat: 0,
+    babySeat: 0,
+    booster: 0,
+
     // Etapas / Destinos
     etapas: [
       {
@@ -350,6 +489,9 @@ export default function Presupuestos({
         origen: 'Aeropuerto SJD',
         destino: '',
         fecha: '',
+        aerolinea: '',
+        numeroVuelo: '',
+        horaLlegada: '',
         horaRecogida: '',
         horaRegreso: '',
         hora: '',
@@ -368,6 +510,12 @@ export default function Presupuestos({
         horaRegreso: '',
         hora: '',
         pax: '2',
+        hayNinos: false,
+        cantidadNinos: 1,
+        edadesNinos: [''],
+        carSeat: 0,
+        babySeat: 0,
+        booster: 0,
         precio: ''
       },
       {
@@ -378,6 +526,10 @@ export default function Presupuestos({
         origen: '',
         destino: 'Aeropuerto SJD',
         fecha: '',
+        horaPickUpLobby: '',
+        horaSalidaVuelo: '',
+        aerolinea: '',
+        numeroVuelo: '',
         horaRecogida: '',
         horaRegreso: '',
         hora: '',
@@ -385,7 +537,7 @@ export default function Presupuestos({
         precio: ''
       }
     ]
-  });
+  }));
 
   // Historial de cotizaciones (localStorage con fallback persistente)
   const [historialCotizaciones, setHistorialCotizaciones] = useState([]);
@@ -516,7 +668,7 @@ export default function Presupuestos({
 
   // Revertir de Venta a Cotización preliminar
   const handleRevertirACotizacion = () => {
-    const nuevoFolio = `COT-${Math.floor(1000 + Math.random() * 9000)}`;
+    const nuevoFolio = calcularSiguienteFolioQT(historialCotizaciones);
     setCotizacion(prev => ({
       ...prev,
       tipoDocumento: 'PRESUPUESTO',
@@ -524,7 +676,7 @@ export default function Presupuestos({
       folio: nuevoFolio,
       estado: 'EN REVISIÓN'
     }));
-    if (showToast) showToast('Cambiado a Cotización preliminar', 'info');
+    if (showToast) showToast(`Cambiado a Cotización preliminar (${nuevoFolio})`, 'info');
   };
 
   // Modal para convertir cotización a reserva
@@ -665,6 +817,15 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
         try {
           localStorage.setItem('ballard_presupuestos_v1', JSON.stringify(mapeados));
         } catch (e) {}
+
+        // Si el presupuesto en pantalla aún no se ha guardado ni editado, asegurar que su folio QT- sea consecutivo respecto a la nube
+        setCotizacion(prev => {
+          const yaGuardado = mapeados.some(m => m.id === prev.id || m.folio === prev.folio);
+          if (!prev.nombreCliente && (!prev.folio?.startsWith('QT-') || yaGuardado)) {
+            return { ...prev, folio: calcularSiguienteFolioQT(mapeados) };
+          }
+          return prev;
+        });
       }
     } catch (err) {
       console.warn('Error al conectar con Supabase:', err);
@@ -838,6 +999,12 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
         horaRegreso: '',
         hora: '',
         pax: prev.pax || '2',
+        hayNinos: prev.hayNinos || false,
+        cantidadNinos: prev.cantidadNinos || 1,
+        edadesNinos: Array.isArray(prev.edadesNinos) ? [...prev.edadesNinos] : [''],
+        carSeat: prev.carSeat || 0,
+        babySeat: prev.babySeat || 0,
+        booster: prev.booster || 0,
         precio: ''
       };
 
@@ -879,18 +1046,39 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
 
   // Modificar campo de una etapa
   const handleEtapaChange = (id, field, rawValue) => {
-    const value = typeof rawValue === 'string' && !['fecha', 'hora', 'horaRecogida', 'horaRegreso', 'tipo', 'id'].includes(field)
+    const camposNoMayusculas = ['fecha', 'hora', 'horaLlegada', 'horaPickUpLobby', 'horaSalidaVuelo', 'horaRecogida', 'horaRegreso', 'tipo', 'id'];
+    const value = typeof rawValue === 'string' && !camposNoMayusculas.includes(field)
       ? rawValue.toUpperCase()
       : rawValue;
     setCotizacion(prev => {
       const nuevasEtapas = prev.etapas.map(e => {
         if (e.id === id) {
-          return { ...e, [field]: value };
+          const updatedEtapa = { ...e, [field]: value };
+          if (field === 'horaLlegada') {
+            updatedEtapa.hora = value;
+            updatedEtapa.horaRecogida = value;
+          }
+          if (field === 'horaPickUpLobby') {
+            updatedEtapa.horaRecogida = value;
+          }
+          if (field === 'horaSalidaVuelo') {
+            updatedEtapa.hora = value;
+            updatedEtapa.horaRegreso = value;
+          }
+          if (field === 'cantidadNinos') {
+            const cant = Math.max(1, parseInt(value, 10) || 1);
+            let eds = Array.isArray(updatedEtapa.edadesNinos) ? [...updatedEtapa.edadesNinos] : [];
+            while (eds.length < cant) eds.push('');
+            if (eds.length > cant) eds = eds.slice(0, cant);
+            updatedEtapa.cantidadNinos = cant;
+            updatedEtapa.edadesNinos = eds;
+          }
+          return updatedEtapa;
         }
         return e;
       });
 
-      // Si se asignan precios individuales, calcular el total automáticamente
+      // Si se asignan precios individuales, calcular el total automáticamente (+ $30 USD si hay parada de compras)
       let nuevoTotal = prev.precioTotal;
       if (field === 'precio') {
         const suma = nuevasEtapas.reduce((acc, curr) => {
@@ -898,12 +1086,32 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
           return acc + val;
         }, 0);
         if (suma > 0) {
-          nuevoTotal = suma.toFixed(2);
+          const tc = parseFloat(prev.tipoCambio) || 20;
+          const extraParada = prev.paradaCompras ? ((prev.moneda || 'USD') === 'USD' ? 30 : 30 * tc) : 0;
+          nuevoTotal = (suma + extraParada).toFixed(2);
         }
+      }
+
+      // Sincronizar aerolínea y vuelo de llegada o salida con el encabezado si está vacío
+      let nuevoAeroVuelo = prev.aerolineaVuelo;
+      if (field === 'aerolinea' || field === 'numeroVuelo') {
+        const etapaLlegada = nuevasEtapas.find(e => e.tipo === 'llegada');
+        if (etapaLlegada) {
+          const comb = [etapaLlegada.aerolinea, etapaLlegada.numeroVuelo].filter(Boolean).join(' ').trim();
+          if (comb) nuevoAeroVuelo = comb;
+        }
+      }
+
+      // Sincronizar horaPickUpLobby de salida con horaCheckout del encabezado
+      let nuevaHoraCheckout = prev.horaCheckout;
+      if (field === 'horaPickUpLobby') {
+        nuevaHoraCheckout = value;
       }
 
       return {
         ...prev,
+        aerolineaVuelo: nuevoAeroVuelo,
+        horaCheckout: nuevaHoraCheckout,
         etapas: nuevasEtapas,
         precioTotal: nuevoTotal
       };
@@ -918,6 +1126,30 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
     setCotizacion(prev => {
       const updated = { ...prev, [field]: value };
 
+      // Si cambió parada de compras ($30 USD), sumar o restar automáticamente al total
+      if (field === 'paradaCompras') {
+        const activar = !!rawValue;
+        const estabaActivo = !!prev.paradaCompras;
+        if (activar !== estabaActivo) {
+          const isUSD = (prev.moneda || 'USD') === 'USD';
+          const tc = parseFloat(prev.tipoCambio) || 20;
+          const delta = isUSD ? 30 : 30 * tc;
+          const actual = parseFloat(prev.precioTotal) || 0;
+          const nuevoMonto = activar ? actual + delta : Math.max(0, actual - delta);
+          updated.precioTotal = nuevoMonto.toFixed(2);
+        }
+      }
+
+      // Si cambió cantidad de niños en datos del cliente, ajustar arreglo de edades
+      if (field === 'cantidadNinos') {
+        const cant = Math.max(1, parseInt(rawValue, 10) || 1);
+        let eds = Array.isArray(prev.edadesNinos) ? [...prev.edadesNinos] : [];
+        while (eds.length < cant) eds.push('');
+        if (eds.length > cant) eds = eds.slice(0, cant);
+        updated.cantidadNinos = cant;
+        updated.edadesNinos = eds;
+      }
+
       // Si cambió el hotel principal, sincronizarlo en las etapas que correspondan
       if (field === 'hotelPrincipal' && value) {
         updated.etapas = prev.etapas.map(e => {
@@ -931,11 +1163,19 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
         });
       }
 
-      // Si cambió el PAX general, sincronizarlo en las etapas que no tengan un valor personalizado
-      if (field === 'pax' && value) {
+      // Si cambió el PAX general en Datos del Cliente, pasarlo a todas las etapas (y cada etapa sigue siendo editable individualmente)
+      if (field === 'pax') {
+        updated.etapas = prev.etapas.map(e => ({
+          ...e,
+          pax: value
+        }));
+      }
+
+      // Si cambió horaCheckout en Datos del Cliente, sincronizar con Retorno (Salida) si no tenía horaPickUpLobby
+      if (field === 'horaCheckout' && value) {
         updated.etapas = prev.etapas.map(e => {
-          if (!e.pax || e.pax === prev.pax) {
-            return { ...e, pax: value };
+          if (e.tipo === 'salida' && (!e.horaPickUpLobby || e.horaPickUpLobby === prev.horaCheckout)) {
+            return { ...e, horaPickUpLobby: value, horaRecogida: value };
           }
           return e;
         });
@@ -952,16 +1192,34 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
       return;
     }
 
+    let folioActual = cotizacion.folio;
+    if (!folioActual || (!folioActual.startsWith('QT-') && !folioActual.startsWith('TCK-') && !folioActual.startsWith('BTS'))) {
+      folioActual = calcularSiguienteFolioQT(historialCotizaciones);
+    }
+
+    const matchQT = String(folioActual).match(/QT-(\d+)/i);
+    if (matchQT) {
+      const n = parseInt(matchQT[1], 10);
+      if (!isNaN(n)) {
+        try {
+          const prevMax = parseInt(localStorage.getItem('ballard_ultimo_folio_qt') || '99', 10) || 99;
+          if (n > prevMax) localStorage.setItem('ballard_ultimo_folio_qt', n.toString());
+        } catch (e) {}
+      }
+    }
+
     const nuevaCotizacion = {
       ...cotizacion,
+      folio: folioActual,
       fechaGuardado: new Date().toISOString(),
       idiomaGuardado: idioma
     };
+    setCotizacion(nuevaCotizacion);
 
-    const esVentaDoc = cotizacion.tipoDocumento === 'VENTA' || cotizacion.estado === 'VENTA';
-    const tagDoc = esVentaDoc ? `Ticket de Venta ${cotizacion.numeroTicket || cotizacion.folio}` : `Presupuesto ${cotizacion.folio}`;
+    const esVentaDoc = nuevaCotizacion.tipoDocumento === 'VENTA' || nuevaCotizacion.estado === 'VENTA';
+    const tagDoc = esVentaDoc ? `Ticket de Venta ${nuevaCotizacion.numeroTicket || nuevaCotizacion.folio}` : `Presupuesto ${nuevaCotizacion.folio}`;
     
-    const indexExistente = historialCotizaciones.findIndex(c => c.id === cotizacion.id);
+    const indexExistente = historialCotizaciones.findIndex(c => c.id === nuevaCotizacion.id);
     let nuevoHistorial;
     if (indexExistente >= 0) {
       nuevoHistorial = [...historialCotizaciones];
@@ -986,12 +1244,27 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
     }
   };
 
-  // Crear una nueva cotización limpia
+  // Crear una nueva cotización limpia con siguiente folio QT-00100 consecutivo
   const handleNuevoPresupuesto = () => {
     limpiarVinculacion();
+    // Si el folio actual era QT- y ya se usó, avanzamos el contador
+    const matchActual = (cotizacion.folio || '').match(/QT-(\d+)/i);
+    if (matchActual && cotizacion.nombreCliente?.trim()) {
+      const numActual = parseInt(matchActual[1], 10);
+      if (!isNaN(numActual)) {
+        try {
+          const prevMax = parseInt(localStorage.getItem('ballard_ultimo_folio_qt') || '99', 10) || 99;
+          if (numActual > prevMax) localStorage.setItem('ballard_ultimo_folio_qt', numActual.toString());
+        } catch (e) {}
+      }
+    }
+
+    const nuevoFolioQT = calcularSiguienteFolioQT(historialCotizaciones);
+
     setCotizacion({
       id: `COT-${Date.now()}`,
-      folio: `COT-${Math.floor(1000 + Math.random() * 9000)}`,
+      folio: nuevoFolioQT,
+      folioReservaAsignado: null,
       fechaEmision: new Date().toISOString().split('T')[0],
       estado: 'EN REVISIÓN',
       tipoDocumento: 'PRESUPUESTO',
@@ -1008,6 +1281,13 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
       tipoCambio: getInitialTipoCambio(),
       mostrarEquivalenteMXN: true,
       notasPersonalizadas: '',
+      paradaCompras: false,
+      hayNinos: false,
+      cantidadNinos: 1,
+      edadesNinos: [''],
+      carSeat: 0,
+      babySeat: 0,
+      booster: 0,
       etapas: [
         {
           id: 'etapa-1',
@@ -1017,6 +1297,9 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
           origen: 'Aeropuerto SJD',
           destino: '',
           fecha: '',
+          aerolinea: '',
+          numeroVuelo: '',
+          horaLlegada: '',
           horaRecogida: '',
           horaRegreso: '',
           hora: '',
@@ -1035,6 +1318,12 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
           horaRegreso: '',
           hora: '',
           pax: '2',
+          hayNinos: false,
+          cantidadNinos: 1,
+          edadesNinos: [''],
+          carSeat: 0,
+          babySeat: 0,
+          booster: 0,
           precio: ''
         },
         {
@@ -1045,6 +1334,10 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
           origen: '',
           destino: 'Aeropuerto SJD',
           fecha: '',
+          horaPickUpLobby: '',
+          horaSalidaVuelo: '',
+          aerolinea: '',
+          numeroVuelo: '',
           horaRecogida: '',
           horaRegreso: '',
           hora: '',
@@ -1054,7 +1347,7 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
       ]
     });
     setActiveSubTab('editor');
-    if (showToast) showToast('Formulario de presupuesto listo', 'success');
+    if (showToast) showToast(`Formulario listo (${nuevoFolioQT})`, 'success');
   };
 
   // Cargar una cotización del historial al editor
@@ -1163,11 +1456,13 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
 
       if (formato === 'PDF') {
         // PDF 100% Nativo Vectorial completo sin recortes
+        const logoSrc = `${window.location.origin}/logo-letrero.jpg`;
         const pdfBlob = await pdf(
           <PresupuestoPDFDocument
             cotizacion={cotizActual}
             idioma={idiomaActual}
             formatearMetodoPago={formatearMetodoPago}
+            logoSrc={logoSrc}
           />
         ).toBlob();
         const filename = `${baseFilename}.pdf`;
@@ -1274,11 +1569,13 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
       const numFolio = cotizActual.numeroTicket || cotizActual.folio;
       const filename = `${prefijoDoc}_${numFolio}_${nombreLimpio}.pdf`;
 
+      const logoSrc = `${window.location.origin}/logo-letrero.jpg`;
       const pdfBlob = await pdf(
         <PresupuestoPDFDocument
           cotizacion={cotizActual}
           idioma={idiomaActual}
           formatearMetodoPago={formatearMetodoPago}
+          logoSrc={logoSrc}
         />
       ).toBlob();
 
@@ -1326,25 +1623,74 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
   };
 
   // -------------------------------------------------------------------------------------
-  // LÓGICA DE CONVERSIÓN DE COTIZACIÓN A RESERVAS EN AUTOMÁTICO (CON DETECCIÓN DE FALTANTES)
+  // LÓGICA DE CONVERSIÓN DE COTIZACIÓN A RESERVAS EN AUTOMÁTICO (CON CONSECUTIVO DE RESERVAS BTS)
   // -------------------------------------------------------------------------------------
-  const iniciarConversionAReserva = (cotiz) => {
+  const obtenerSiguienteNumeroReservaSistema = async () => {
+    let maxNumero = 0;
+
+    // 1. Revisar servicios actuales en memoria
+    (services || []).forEach(item => {
+      const m = (item.reserva || '').match(/^BTS-?(\d+)/i);
+      if (m) {
+        const n = parseInt(m[1], 10);
+        if (!isNaN(n) && n > maxNumero) maxNumero = n;
+      }
+    });
+
+    // 2. Revisar en Supabase la tabla servicios
+    if (supabase) {
+      try {
+        const { data } = await supabase
+          .from('servicios')
+          .select('reserva')
+          .ilike('reserva', 'BTS%');
+        if (data && data.length > 0) {
+          data.forEach(item => {
+            const m = (item.reserva || '').match(/^BTS-?(\d+)/i);
+            if (m) {
+              const n = parseInt(m[1], 10);
+              if (!isNaN(n) && n > maxNumero) maxNumero = n;
+            }
+          });
+        }
+      } catch (e) {}
+    }
+
+    // 3. Revisar en localStorage
+    try {
+      const guardadoUltimo = localStorage.getItem('ballard_ultimo_folio_reserva');
+      if (guardadoUltimo) {
+        const n = parseInt(guardadoUltimo, 10);
+        if (!isNaN(n) && n > maxNumero) maxNumero = n;
+      }
+    } catch (e) {}
+
+    const siguiente = maxNumero + 1;
+    return `BTS${siguiente.toString().padStart(5, '0')}`;
+  };
+
+  const iniciarConversionAReserva = async (cotiz) => {
     const c = cotiz || cotizacion;
     if (!c.nombreCliente.trim()) {
       if (showToast) showToast('Se requiere el nombre del cliente para crear reservas', 'error');
       return;
     }
 
-    setCotizacionAConvertir(c);
+    const siguienteFolioReserva = c.folioReservaAsignado || await obtenerSiguienteNumeroReservaSistema();
+
+    setCotizacionAConvertir({
+      ...c,
+      folioReservaAsignado: siguienteFolioReserva
+    });
 
     // Separar nombre y apellido si es posible
     const partesNombre = c.nombreCliente.trim().split(' ');
     const nombre = partesNombre[0] || '';
     const apellido = partesNombre.slice(1).join(' ') || '';
 
-    // Convertir cada etapa en un candidato a servicio
+    // Convertir cada etapa en un candidato a servicio con el folio consecutivo de reservas
     const candidatos = c.etapas.map((etapa, idx) => {
-      let tipoServicio = 'Tour / Traslado';
+      let tipoServicio = 'Traslado';
       if (etapa.tipo === 'llegada') tipoServicio = 'Llegada';
       else if (etapa.tipo === 'salida') tipoServicio = 'Salida';
 
@@ -1353,36 +1699,75 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
       else if (etapa.tipo === 'salida') hotelTramo = etapa.origen || c.hotelPrincipal || '';
       else hotelTramo = etapa.destino || etapa.origen || c.hotelPrincipal || '';
 
-      // Descripción del trayecto
-      const trayectoDesc = etapa.origen && etapa.destino 
-        ? `${etapa.origen} → ${etapa.destino}`
-        : (etapa.tipo === 'llegada' ? `Aeropuerto SJD → ${hotelTramo}` : (etapa.tipo === 'salida' ? `${hotelTramo} → Aeropuerto SJD` : (etapa.destino || 'Destino')));
+      const aeroVueloEtapa = [etapa.aerolinea, etapa.numeroVuelo].filter(Boolean).join(' ').trim();
+      const vueloFinal = aeroVueloEtapa || (etapa.tipo === 'llegada' ? (c.aerolineaVuelo || '') : '');
 
-      const horaPickUpCalculada = etapa.horaRecogida || (etapa.tipo === 'salida' ? (c.horaCheckout || etapa.hora || '') : (etapa.hora || ''));
-      const horaServicioCalculada = etapa.hora || etapa.horaRecogida || '';
-      const comentarioRegreso = etapa.horaRegreso ? `Regreso: ${etapa.horaRegreso}` : '';
+      let horaPickUpCalculada = '';
+      let horaServicioCalculada = '';
+
+      if (etapa.tipo === 'llegada') {
+        horaServicioCalculada = etapa.horaLlegada || etapa.hora || etapa.horaRecogida || '';
+        horaPickUpCalculada = horaServicioCalculada;
+      } else if (etapa.tipo === 'salida') {
+        horaPickUpCalculada = etapa.horaPickUpLobby || etapa.horaRecogida || c.horaCheckout || etapa.hora || '';
+        horaServicioCalculada = etapa.horaSalidaVuelo || etapa.horaRegreso || etapa.hora || horaPickUpCalculada;
+      } else {
+        horaPickUpCalculada = etapa.horaRecogida || etapa.hora || '';
+        horaServicioCalculada = horaPickUpCalculada;
+      }
+
+      const usarNinosEtapa = etapa.tipo === 'destino' && (etapa.hayNinos !== undefined ? etapa.hayNinos : c.hayNinos);
+      const hayNinosTramo = etapa.tipo === 'destino' ? usarNinosEtapa : !!c.hayNinos;
+      const cantNinosTramo = etapa.tipo === 'destino' && etapa.hayNinos ? (etapa.cantidadNinos || 1) : (c.cantidadNinos || 1);
+      const edadesTramo = (etapa.tipo === 'destino' && etapa.hayNinos ? (etapa.edadesNinos || []) : (c.edadesNinos || []))
+        .map(e => String(e || '').trim())
+        .filter(Boolean);
+
+      const carSeatTramo = parseInt(etapa.carSeat, 10) || parseInt(c.carSeat, 10) || 0;
+      const babySeatTramo = parseInt(etapa.babySeat, 10) || parseInt(c.babySeat, 10) || 0;
+      const boosterTramo = parseInt(etapa.booster, 10) || parseInt(c.booster, 10) || 0;
+      const paradaComprasTramo = idx === 0 ? !!c.paradaCompras : false;
+
+      const notasExtra = [];
+      if (c.folio && c.folio !== siguienteFolioReserva) {
+        notasExtra.push(`Cotización: ${c.folio}`);
+      }
+      if (etapa.tipo === 'destino' && etapa.horaRegreso) {
+        notasExtra.push(`[TRASLADO: Irán a: ${hotelTramo} | Recogida: ${horaPickUpCalculada} | Regreso: ${etapa.horaRegreso}]`);
+      }
+      if (hayNinosTramo) {
+        if (edadesTramo.length > 0) {
+          notasExtra.push(`[NIÑOS: ${cantNinosTramo} | Edades: ${edadesTramo.map(e => `${e} años`).join(', ')}]`);
+        } else {
+          notasExtra.push(`[NIÑOS: ${cantNinosTramo}]`);
+        }
+      }
 
       return {
         idLocal: `conv-${idx}-${Date.now()}`,
         etapaId: etapa.id,
         nombreEtapa: etapa.etiquetaES || `Tramo ${idx + 1}`,
-        reserva: c.numeroTicket || c.folio,
+        reserva: siguienteFolioReserva,
         nombre: nombre,
         apellido: apellido,
-        agencia: 'Directo',
+        agencia: 'DIRECTO',
         tipoServicio: tipoServicio,
         pax: etapa.pax?.toString() || c.pax?.toString() || '2',
         vehiculo: c.tipoVehiculo === 'VAN' ? 'VAN' : 'SUV',
         telefono: '',
         fecha: etapa.fecha || (idx === 0 ? c.fechaEmision : ''),
         hora: horaServicioCalculada,
-        vuelo: etapa.tipo === 'llegada' ? (c.aerolineaVuelo || '') : '',
+        vuelo: vueloFinal,
         pickUp: horaPickUpCalculada,
         hotel: hotelTramo,
         cobro: etapa.precio || (idx === 0 && c.precioTotal ? c.precioTotal : ''),
         metodoPago: c.metodoPago || 'Efectivo',
         tipoViaje: 'One way',
-        comentario: comentarioRegreso
+        carSeat: carSeatTramo,
+        babySeat: babySeatTramo,
+        booster: boosterTramo,
+        paradaCompras: paradaComprasTramo,
+        comentario: notasExtra.join(' | ')
       };
     });
 
@@ -1435,12 +1820,26 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
 
       // Formatear para la tabla `servicios` en Supabase
       const timestampBase = Date.now();
+      const folioReservaFinal = serviciosAConvertir[0]?.reserva || cotizacionAConvertir.folioReservaAsignado || cotizacionAConvertir.folio;
+
+      // Persistir último número de reserva BTS consecutivo si corresponde
+      const matchBTS = String(folioReservaFinal).match(/^BTS-?(\d+)/i);
+      if (matchBTS) {
+        const n = parseInt(matchBTS[1], 10);
+        if (!isNaN(n)) {
+          try {
+            const prevMax = parseInt(localStorage.getItem('ballard_ultimo_folio_reserva') || '0', 10) || 0;
+            if (n > prevMax) localStorage.setItem('ballard_ultimo_folio_reserva', n.toString());
+          } catch (e) {}
+        }
+      }
+
       const servicesToSave = serviciosAConvertir.map((s, idx) => ({
         id: `${timestampBase}_${idx}`,
-        reserva: s.reserva || cotizacionAConvertir.folio,
+        reserva: s.reserva || folioReservaFinal,
         nombre: s.nombre,
         apellido: s.apellido,
-        agencia: s.agencia || 'Directo',
+        agencia: s.agencia || 'DIRECTO',
         tipo_servicio: s.tipoServicio,
         pax: s.pax?.toString() || '1',
         telefono: s.telefono || '',
@@ -1452,10 +1851,10 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
         hotel: s.hotel,
         cobro: s.cobro?.toString() || '',
         metodo_pago: s.metodoPago || '',
-        car_seat: 0,
-        baby_seat: 0,
-        booster: 0,
-        parada_compras: false,
+        car_seat: parseInt(s.carSeat, 10) || 0,
+        baby_seat: parseInt(s.babySeat, 10) || 0,
+        booster: parseInt(s.booster, 10) || 0,
+        parada_compras: !!s.paradaCompras,
         comentario: s.comentario || '',
         chofer: '',
         vehiculo: s.vehiculo || (cotizacionAConvertir.tipoVehiculo === 'VAN' ? 'VAN' : 'SUV'),
@@ -1469,9 +1868,12 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
         if (error) throw error;
       }
 
-      // Actualizar el estado de la cotización a CONVERTIDO
+      // Actualizar el estado de la cotización a CONVERTIDO y cambiar su folio al consecutivo de las reservas
       const cotizActualizada = {
         ...cotizacionAConvertir,
+        folioOriginalCotizacion: cotizacionAConvertir.folioOriginalCotizacion || cotizacionAConvertir.folio,
+        folio: folioReservaFinal,
+        folioReservaAsignado: folioReservaFinal,
         estado: 'CONVERTIDO'
       };
       const index = historialCotizaciones.findIndex(c => c.id === cotizacionAConvertir.id);
@@ -1481,10 +1883,16 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
       } else {
         nuevoHistorial = [cotizActualizada, ...historialCotizaciones];
       }
-      guardarEnStorage(nuevoHistorial);
+      guardarEnStorage(nuevoHistorial, cotizActualizada);
 
       if (cotizacion.id === cotizacionAConvertir.id) {
-        setCotizacion(prev => ({ ...prev, estado: 'CONVERTIDO' }));
+        setCotizacion(prev => ({
+          ...prev,
+          folioOriginalCotizacion: prev.folioOriginalCotizacion || prev.folio,
+          folio: folioReservaFinal,
+          folioReservaAsignado: folioReservaFinal,
+          estado: 'CONVERTIDO'
+        }));
       }
 
       // Refrescar datos en toda la aplicación
@@ -1494,7 +1902,7 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
 
       setMostrarModalConversion(false);
       if (showToast) {
-        showToast(`¡Se crearon con éxito ${servicesToSave.length} reservas en el sistema!`, 'success');
+        showToast(`¡Convertido a Reserva ${folioReservaFinal} (${servicesToSave.length} tramos)!`, 'success');
       }
     } catch (err) {
       console.error('Error al guardar reservas:', err);
@@ -1611,8 +2019,8 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
       {/* HEADER DE LA SECCIÓN DE PRESUPUESTOS */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
-            <FileText className="text-amber-500" /> Presupuestos y Cotizaciones
+          <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
+            <FileText className="text-slate-800" /> Presupuestos y Cotizaciones
           </h1>
           <p className="text-sm text-slate-500 mt-1">
             Diseña, cotiza y exporta boletos de presupuesto en PDF o conviértelos directamente en Reservas reales.
@@ -1625,7 +2033,7 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
             onClick={() => setActiveSubTab('editor')}
             className={`px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 transition-all ${
               activeSubTab === 'editor'
-                ? 'bg-amber-500 text-white shadow-md'
+                ? 'bg-slate-900 text-white shadow-sm'
                 : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
             }`}
           >
@@ -1635,14 +2043,14 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
             onClick={() => setActiveSubTab('historial')}
             className={`px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 transition-all ${
               activeSubTab === 'historial'
-                ? 'bg-amber-500 text-white shadow-md'
+                ? 'bg-slate-900 text-white shadow-sm'
                 : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
             }`}
           >
             <FileText size={16} /> Historial
             {historialCotizaciones.length > 0 && (
               <span className={`text-xs px-2 py-0.5 rounded-full font-black ${
-                activeSubTab === 'historial' ? 'bg-amber-700 text-white' : 'bg-amber-200 text-amber-900'
+                activeSubTab === 'historial' ? 'bg-white text-slate-900' : 'bg-slate-300 text-slate-800'
               }`}>
                 {historialCotizaciones.length}
               </span>
@@ -1661,32 +2069,32 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
             {/* BARRA DE ACCIÓN RÁPIDA: IDIOMA Y BOTÓN NUEVO */}
             <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Languages className="text-amber-500" size={18} />
+                <Languages className="text-slate-700" size={18} />
                 <span className="text-xs font-bold uppercase text-slate-600">Idioma del Ticket:</span>
                 <div className="flex bg-slate-100 rounded-lg p-1 border border-slate-200">
                   <button
                     onClick={() => setIdioma('ES')}
                     className={`px-3 py-1 rounded text-xs font-bold transition-all ${
-                      idioma === 'ES' ? 'bg-amber-500 text-slate-950 shadow-sm' : 'text-slate-500 hover:text-slate-800'
+                      idioma === 'ES' ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800'
                     }`}
                   >
-                    🇪🇸 Español
+                    es Español
                   </button>
                   <button
                     onClick={() => setIdioma('EN')}
                     className={`px-3 py-1 rounded text-xs font-bold transition-all ${
-                      idioma === 'EN' ? 'bg-amber-500 text-slate-950 shadow-sm' : 'text-slate-500 hover:text-slate-800'
+                      idioma === 'EN' ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800'
                     }`}
                   >
-                    🇺🇸 English
+                    us English
                   </button>
                 </div>
               </div>
 
               <button
                 onClick={handleNuevoPresupuesto}
-                className="text-xs font-bold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-lg border border-slate-300 transition-colors"
-                title="Limpiar formulario para un nuevo presupuesto"
+                className="text-xs font-bold text-slate-700 hover:text-slate-950 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-lg border border-slate-300 transition-colors"
+                title="Limpiar formulario para un nuevo presupuesto consecutivo"
               >
                 + Nuevo
               </button>
@@ -1696,7 +2104,7 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
             <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
               <div className="flex items-center justify-between border-b pb-3">
                 <span className="text-sm font-bold text-slate-800 flex items-center gap-2">
-                  <Users size={18} className="text-blue-600" />
+                  <Users size={18} className="text-slate-700" />
                   ¿El cliente ya tiene reserva en el sistema?
                 </span>
                 <label className="relative inline-flex items-center cursor-pointer">
@@ -1709,7 +2117,7 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
                     }}
                     className="sr-only peer"
                   />
-                  <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                  <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-slate-900"></div>
                 </label>
               </div>
 
@@ -1723,7 +2131,7 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
                       value={searchReservaQuery}
                       onChange={(e) => setSearchReservaQuery(e.target.value.toUpperCase())}
                       placeholder="Escribe el nombre o folio del cliente..."
-                      className="w-full pl-9 pr-8 py-2 text-sm border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none bg-blue-50/30"
+                      className="w-full pl-9 pr-8 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-900 focus:outline-none bg-slate-50"
                     />
                     {searchReservaQuery && (
                       <button
@@ -1742,13 +2150,13 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
                         <div
                           key={r.id}
                           onClick={() => handleSeleccionarReserva(r)}
-                          className="p-3 hover:bg-blue-50 cursor-pointer transition-colors flex justify-between items-center text-xs"
+                          className="p-3 hover:bg-slate-100 cursor-pointer transition-colors flex justify-between items-center text-xs"
                         >
                           <div>
                             <p className="font-bold text-slate-800">{r.nombre} {r.apellido}</p>
                             <p className="text-slate-500 text-[11px]">{r.hotel} • {r.pax} PAX • {r.fecha}</p>
                           </div>
-                          <span className="font-mono bg-blue-100 text-blue-800 px-2 py-0.5 rounded text-[10px] font-bold">
+                          <span className="font-mono bg-slate-200 text-slate-800 px-2 py-0.5 rounded text-[10px] font-bold">
                             {r.reserva || r.id?.slice(-5)}
                           </span>
                         </div>
@@ -1757,12 +2165,12 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
                   )}
 
                   {reservaSeleccionada && (
-                    <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-lg flex items-center justify-between text-xs text-emerald-800">
+                    <div className="p-3 bg-slate-100 border border-slate-300 rounded-lg flex items-center justify-between text-xs text-slate-800">
                       <span className="flex items-center gap-1.5 font-medium">
-                        <CheckCircle size={14} className="text-emerald-600" />
+                        <CheckCircle size={14} className="text-slate-800" />
                         Vinculado a reserva: <strong>{reservaSeleccionada.reserva || reservaSeleccionada.id}</strong>
                       </span>
-                      <button onClick={limpiarVinculacion} className="text-emerald-700 underline text-[11px]">
+                      <button onClick={limpiarVinculacion} className="text-slate-700 underline text-[11px]">
                         Desvincular
                       </button>
                     </div>
@@ -1781,12 +2189,14 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
                 <span>{esVenta ? 'Datos del Cliente y Venta' : 'Datos del Cliente y Cotización'}</span>
                 <div className="flex items-center gap-1.5">
                   {esVenta ? (
-                    <span className="text-xs font-mono font-black text-emerald-800 bg-emerald-100 border border-emerald-300 px-2 py-0.5 rounded-md flex items-center gap-1">
-                      <Receipt size={12} className="text-emerald-600" />
+                    <span className="text-xs font-mono font-black text-slate-900 bg-slate-100 border border-slate-300 px-2 py-0.5 rounded-md flex items-center gap-1">
+                      <Receipt size={12} className="text-slate-700" />
                       Ticket: {cotizacion.numeroTicket || cotizacion.folio}
                     </span>
                   ) : (
-                    <span className="text-xs font-mono text-slate-500 font-normal">Folio: {cotizacion.folio}</span>
+                    <span className="text-xs font-mono text-slate-700 font-bold bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                      Folio: {cotizacion.folio}
+                    </span>
                   )}
                 </div>
               </h2>
@@ -1799,7 +2209,7 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
                     value={cotizacion.nombreCliente}
                     onChange={(e) => handleCotizacionChange('nombreCliente', e.target.value)}
                     placeholder="Ej. John Doe / Familia Martínez"
-                    className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none font-semibold text-slate-800"
+                    className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-900 focus:outline-none font-semibold text-slate-800"
                   />
                 </div>
 
@@ -1810,7 +2220,7 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
                     min="1"
                     value={cotizacion.pax}
                     onChange={(e) => handleCotizacionChange('pax', e.target.value)}
-                    className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                    className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-900 focus:outline-none font-bold text-slate-900"
                   />
                 </div>
 
@@ -1821,7 +2231,7 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
                     value={cotizacion.aerolineaVuelo}
                     onChange={(e) => handleCotizacionChange('aerolineaVuelo', e.target.value)}
                     placeholder="Ej. AA 1234 / DL 567"
-                    className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none uppercase"
+                    className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-900 focus:outline-none uppercase"
                   />
                 </div>
 
@@ -1829,11 +2239,11 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
                 <div className="col-span-2 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
                   <div className="flex items-center justify-between mb-1.5">
                     <label className="text-xs font-bold text-slate-700 uppercase flex items-center gap-1.5">
-                      <Car size={15} className="text-amber-500" />
+                      <Car size={15} className="text-slate-700" />
                       {idioma === 'EN' ? 'Vehicle Type (Car) *' : 'Tipo de Carro / Vehículo *'}
                     </label>
                     <span className="text-[10px] font-semibold text-slate-500">
-                      {cotizacion.tipoVehiculo === 'VAN' ? '🚐 VAN (Hiace / hasta 10-14 pax)' : '🚙 SUV (Expedition / hasta 5-6 pax)'}
+                      {cotizacion.tipoVehiculo === 'VAN' ? 'VAN (Hiace / hasta 10-14 pax)' : 'SUV (Expedition / hasta 5-6 pax)'}
                     </span>
                   </div>
                   <div className="grid grid-cols-2 gap-2">
@@ -1842,11 +2252,11 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
                       onClick={() => handleCotizacionChange('tipoVehiculo', 'SUV')}
                       className={`py-2 px-3 rounded-lg font-black text-xs sm:text-sm flex items-center justify-center gap-2 border-2 transition-all ${
                         (cotizacion.tipoVehiculo || 'SUV') === 'SUV'
-                          ? 'bg-amber-500 text-slate-950 border-amber-500 shadow-sm'
+                          ? 'bg-slate-900 text-white border-slate-900 shadow-sm'
                           : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300 hover:bg-slate-100'
                       }`}
                     >
-                      <span className="text-base">🚙</span>
+                      <Car size={16} />
                       <div className="text-left">
                         <div className="leading-tight font-black">SUV</div>
                         <div className="text-[10px] font-normal opacity-75">Expedition / Suburban</div>
@@ -1858,11 +2268,11 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
                       onClick={() => handleCotizacionChange('tipoVehiculo', 'VAN')}
                       className={`py-2 px-3 rounded-lg font-black text-xs sm:text-sm flex items-center justify-center gap-2 border-2 transition-all ${
                         cotizacion.tipoVehiculo === 'VAN'
-                          ? 'bg-amber-500 text-slate-950 border-amber-500 shadow-sm'
+                          ? 'bg-slate-900 text-white border-slate-900 shadow-sm'
                           : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300 hover:bg-slate-100'
                       }`}
                     >
-                      <span className="text-base">🚐</span>
+                      <Car size={16} />
                       <div className="text-left">
                         <div className="leading-tight font-black">VAN</div>
                         <div className="text-[10px] font-normal opacity-75">Toyota Hiace / Van</div>
@@ -1879,7 +2289,7 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
                     value={cotizacion.hotelPrincipal}
                     onChange={(e) => handleCotizacionChange('hotelPrincipal', e.target.value)}
                     placeholder="Selecciona o escribe el hotel..."
-                    className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                    className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-900 focus:outline-none"
                   />
                   <datalist id="lista-hoteles-cotizacion">
                     {LISTA_HOTELES.map((h, i) => (
@@ -1895,7 +2305,7 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
                   <select
                     value={cotizacion.metodoPago}
                     onChange={(e) => handleCotizacionChange('metodoPago', e.target.value)}
-                    className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none bg-white font-medium text-slate-800"
+                    className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-900 focus:outline-none bg-white font-medium text-slate-800"
                   >
                     <option value="Pendiente / Efectivo">{idioma === 'EN' ? 'Pending / Cash' : 'Pendiente / Efectivo'}</option>
                     <option value="Pago en Efectivo Pendiente (Pasar a Oficina)">{idioma === 'EN' ? 'Pending Cash (Pay at Office)' : 'Pago en Efectivo Pendiente (Pasar a Oficina)'}</option>
@@ -1908,32 +2318,165 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold text-slate-600 uppercase mb-1 block">Hora Retorno (Check-out)</label>
+                  <label className="text-xs font-bold text-slate-600 uppercase mb-1 block">Hora Pick-Up Retorno (Lobby)</label>
                   <input
                     type="time"
                     value={cotizacion.horaCheckout}
                     onChange={(e) => handleCotizacionChange('horaCheckout', e.target.value)}
-                    className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                    className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-900 focus:outline-none"
                   />
                 </div>
 
+                {/* SECCIÓN EXTRAS EN DATOS DEL CLIENTE: PARADA DE COMPRAS ($30 USD), NIÑOS Y EDADES, SILLAS */}
+                <div className="col-span-2 bg-slate-50 p-3.5 rounded-xl border border-slate-200 space-y-3">
+                  <div className="text-xs font-bold text-slate-700 uppercase tracking-wide border-b border-slate-200 pb-1.5">
+                    Opciones Adicionales (Compras, Niños y Asientos)
+                  </div>
+
+                  {/* Botón/Toggle Parada de Compras ($30 USD) */}
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+                      <ShoppingBag size={14} className="text-slate-700" />
+                      Parada de Compras (+$30 USD)
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleCotizacionChange('paradaCompras', !cotizacion.paradaCompras)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all flex items-center gap-1.5 ${
+                        cotizacion.paradaCompras
+                          ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
+                          : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-100'
+                      }`}
+                    >
+                      {cotizacion.paradaCompras ? <Check size={13} /> : null}
+                      {cotizacion.paradaCompras ? 'Seleccionado (+$30 USD)' : 'No seleccionado'}
+                    </button>
+                  </div>
+
+                  {/* ¿Hay niños? y edades */}
+                  <div className="pt-2 border-t border-slate-200 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-slate-700">¿Viajan niños?</span>
+                      <div className="flex gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => handleCotizacionChange('hayNinos', true)}
+                          className={`px-3 py-1 rounded-lg text-xs font-bold border transition-all ${
+                            cotizacion.hayNinos
+                              ? 'bg-slate-900 text-white border-slate-900'
+                              : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-100'
+                          }`}
+                        >
+                          Sí
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleCotizacionChange('hayNinos', false)}
+                          className={`px-3 py-1 rounded-lg text-xs font-bold border transition-all ${
+                            !cotizacion.hayNinos
+                              ? 'bg-slate-900 text-white border-slate-900'
+                              : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-100'
+                          }`}
+                        >
+                          No
+                        </button>
+                      </div>
+                    </div>
+
+                    {cotizacion.hayNinos && (
+                      <div className="bg-white p-2.5 rounded-lg border border-slate-200 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <label className="text-[11px] font-bold text-slate-600 uppercase">Cantidad de Niños:</label>
+                          <input
+                            type="number"
+                            min="1"
+                            max="15"
+                            value={cotizacion.cantidadNinos || 1}
+                            onChange={(e) => handleCotizacionChange('cantidadNinos', e.target.value)}
+                            className="w-20 px-2 py-1 text-xs font-bold text-center border border-slate-300 rounded-md focus:ring-1 focus:ring-slate-900"
+                          />
+                        </div>
+                        <div className="grid grid-cols-3 gap-2">
+                          {Array.from({ length: Math.max(1, parseInt(cotizacion.cantidadNinos, 10) || 1) }).map((_, i) => (
+                            <div key={i}>
+                              <label className="text-[10px] font-bold text-slate-500 uppercase block mb-0.5">
+                                Edad Niño {i + 1}
+                              </label>
+                              <input
+                                type="text"
+                                value={(cotizacion.edadesNinos && cotizacion.edadesNinos[i]) || ''}
+                                onChange={(e) => {
+                                  const copia = [...(cotizacion.edadesNinos || [])];
+                                  copia[i] = e.target.value;
+                                  handleCotizacionChange('edadesNinos', copia);
+                                }}
+                                placeholder="Ej. 4 años"
+                                className="w-full px-2 py-1 text-xs border border-slate-300 rounded-md text-center focus:ring-1 focus:ring-slate-900"
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Car Seat, Baby Seat y Booster */}
+                  <div className="pt-2 border-t border-slate-200">
+                    <label className="text-[11px] font-bold text-slate-600 uppercase block mb-1.5">
+                      Asientos Especiales (Car Seat / Baby Seat / Booster)
+                    </label>
+                    <div className="grid grid-cols-3 gap-2">
+                      <div className={`p-2 rounded-lg border transition-all ${parseInt(cotizacion.carSeat, 10) > 0 ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-700 border-slate-300'}`}>
+                        <label className="text-[10px] font-bold uppercase block mb-1">Car Seat</label>
+                        <input
+                          type="number"
+                          min="0"
+                          value={cotizacion.carSeat || 0}
+                          onChange={(e) => handleCotizacionChange('carSeat', Math.max(0, parseInt(e.target.value, 10) || 0))}
+                          className="w-full px-2 py-1 text-xs font-bold text-slate-900 bg-white border border-slate-300 rounded text-center"
+                        />
+                      </div>
+                      <div className={`p-2 rounded-lg border transition-all ${parseInt(cotizacion.babySeat, 10) > 0 ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-700 border-slate-300'}`}>
+                        <label className="text-[10px] font-bold uppercase block mb-1">Baby Seat</label>
+                        <input
+                          type="number"
+                          min="0"
+                          value={cotizacion.babySeat || 0}
+                          onChange={(e) => handleCotizacionChange('babySeat', Math.max(0, parseInt(e.target.value, 10) || 0))}
+                          className="w-full px-2 py-1 text-xs font-bold text-slate-900 bg-white border border-slate-300 rounded text-center"
+                        />
+                      </div>
+                      <div className={`p-2 rounded-lg border transition-all ${parseInt(cotizacion.booster, 10) > 0 ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-700 border-slate-300'}`}>
+                        <label className="text-[10px] font-bold uppercase block mb-1">Booster</label>
+                        <input
+                          type="number"
+                          min="0"
+                          value={cotizacion.booster || 0}
+                          onChange={(e) => handleCotizacionChange('booster', Math.max(0, parseInt(e.target.value, 10) || 0))}
+                          className="w-full px-2 py-1 text-xs font-bold text-slate-900 bg-white border border-slate-300 rounded text-center"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 {/* SECCIÓN TOTAL DEL PRESUPUESTO Y TIPO DE CAMBIO */}
-                <div className="col-span-2 bg-gradient-to-br from-amber-50/80 via-white to-amber-100/40 border border-amber-300/80 rounded-xl p-3.5 shadow-xs space-y-3">
+                <div className="col-span-2 bg-slate-50 border border-slate-300 rounded-xl p-3.5 shadow-xs space-y-3">
                   {/* Fila superior: Título y Selector de Moneda */}
                   <div className="flex items-center justify-between gap-2">
                     <label className="text-xs font-black text-slate-800 uppercase flex items-center gap-1.5 tracking-wide">
-                      <DollarSign size={15} className="text-amber-600" />
+                      <DollarSign size={15} className="text-slate-700" />
                       {idioma === 'EN' ? 'Total Quote & Currency' : 'Total del Presupuesto y Moneda'}
                     </label>
 
-                    <div className="flex items-center gap-1 bg-slate-100 p-0.5 rounded-lg border border-slate-300">
+                    <div className="flex items-center gap-1 bg-slate-200/70 p-0.5 rounded-lg border border-slate-300">
                       <button
                         type="button"
                         onClick={() => handleCotizacionChange('moneda', 'USD')}
                         className={`px-2.5 py-1 text-xs font-bold rounded-md transition-all ${
                           (cotizacion.moneda || 'USD') === 'USD'
-                            ? 'bg-amber-500 text-slate-950 shadow-xs'
-                            : 'text-slate-500 hover:text-slate-800'
+                            ? 'bg-slate-900 text-white shadow-xs'
+                            : 'text-slate-600 hover:text-slate-900'
                         }`}
                         title="Cotizar en Dólares Americanos"
                       >
@@ -1944,8 +2487,8 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
                         onClick={() => handleCotizacionChange('moneda', 'MXN')}
                         className={`px-2.5 py-1 text-xs font-bold rounded-md transition-all ${
                           cotizacion.moneda === 'MXN'
-                            ? 'bg-emerald-600 text-white shadow-xs'
-                            : 'text-slate-500 hover:text-slate-800'
+                            ? 'bg-slate-900 text-white shadow-xs'
+                            : 'text-slate-600 hover:text-slate-900'
                         }`}
                         title="Cotizar en Pesos Mexicanos"
                       >
@@ -1973,11 +2516,9 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
                           value={cotizacion.precioTotal}
                           onChange={(e) => handleCotizacionChange('precioTotal', e.target.value)}
                           placeholder="0.00"
-                          className="w-full pl-8 pr-14 py-2 text-base font-black border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none bg-white text-slate-900 shadow-inner"
+                          className="w-full pl-8 pr-14 py-2 text-base font-black border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-900 focus:outline-none bg-white text-slate-900 shadow-inner"
                         />
-                        <span className={`absolute right-2.5 top-2.5 text-[11px] font-black px-1.5 py-0.5 rounded ${
-                          cotizacion.moneda === 'MXN' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-900'
-                        }`}>
+                        <span className="absolute right-2.5 top-2.5 text-[11px] font-black px-1.5 py-0.5 rounded bg-slate-200 text-slate-800">
                           {cotizacion.moneda || 'USD'}
                         </span>
                       </div>
@@ -1991,7 +2532,7 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
                         </label>
                       </div>
                       <div className="relative">
-                        <span className="absolute left-3 top-2.5 text-emerald-600 font-bold">$</span>
+                        <span className="absolute left-3 top-2.5 text-slate-600 font-bold">$</span>
                         <input
                           type="number"
                           step="0.01"
@@ -1999,10 +2540,10 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
                           value={cotizacion.tipoCambio || ''}
                           onChange={(e) => handleTipoCambioChange(e.target.value)}
                           placeholder="Ej. 20.00"
-                          className="w-full pl-8 pr-16 py-2 text-base font-black border border-emerald-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-white text-emerald-800 shadow-inner"
+                          className="w-full pl-8 pr-16 py-2 text-base font-black border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-900 focus:outline-none bg-white text-slate-900 shadow-inner"
                           title="Ingresa o modifica el tipo de cambio del Dólar a Pesos MXN"
                         />
-                        <span className="absolute right-2.5 top-2.5 text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded">
+                        <span className="absolute right-2.5 top-2.5 text-[10px] font-bold text-slate-700 bg-slate-100 border border-slate-300 px-1.5 py-0.5 rounded">
                           MXN/USD
                         </span>
                       </div>
@@ -2017,11 +2558,11 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
                     const converted = tc > 0 ? (isUSD ? total * tc : total / tc) : 0;
 
                     return (
-                      <div className="bg-white/95 border border-amber-200/90 rounded-lg p-2.5 space-y-2">
+                      <div className="bg-white border border-slate-200 rounded-lg p-2.5 space-y-2">
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                           <div>
                             <div className="text-[10px] font-bold text-slate-500 uppercase flex items-center gap-1">
-                              <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                              <span className="w-2 h-2 rounded-full bg-slate-800"></span>
                               {isUSD 
                                 ? (idioma === 'EN' ? 'Equivalent in Mexican Pesos (MXN):' : 'Equivalente en Pesos Mexicanos (MXN):')
                                 : (idioma === 'EN' ? 'Equivalent in US Dollars (USD):' : 'Equivalente en Dólares (USD):')
@@ -2030,7 +2571,7 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
                             <div className="text-base font-black text-slate-900 mt-0.5 flex items-baseline gap-2">
                               {tc > 0 ? (
                                 <>
-                                  <span className={isUSD ? 'text-emerald-700' : 'text-blue-700'}>
+                                  <span className="text-slate-900">
                                     ${converted.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {isUSD ? 'MXN' : 'USD'}
                                   </span>
                                   <span className="text-[11px] font-semibold text-slate-500">
@@ -2038,7 +2579,7 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
                                   </span>
                                 </>
                               ) : (
-                                <span className="text-xs text-amber-600 italic font-semibold">
+                                <span className="text-xs text-slate-500 italic font-semibold">
                                   {idioma === 'EN' ? 'Enter exchange rate to calculate' : 'Ingresa el tipo de cambio para calcular'}
                                 </span>
                               )}
@@ -2051,18 +2592,16 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
                               type="button"
                               onClick={() => {
                                 if (isUSD) {
-                                  // Cambiar a MXN con el valor convertido
                                   handleCotizacionChange('moneda', 'MXN');
                                   handleCotizacionChange('precioTotal', (total * tc).toFixed(2));
                                   if (showToast) showToast('Cambiado a Pesos (MXN)', 'info');
                                 } else {
-                                  // Cambiar a USD con el valor convertido
                                   handleCotizacionChange('moneda', 'USD');
                                   handleCotizacionChange('precioTotal', (total / tc).toFixed(2));
                                   if (showToast) showToast('Cambiado a Dólares (USD)', 'info');
                                 }
                               }}
-                              className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-md text-[11px] font-bold flex items-center gap-1 border border-slate-200 transition-colors shrink-0"
+                              className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-md text-[11px] font-bold flex items-center gap-1 border border-slate-300 transition-colors shrink-0"
                               title="Cambiar la moneda principal con este valor calculado"
                             >
                               ⇄ {isUSD ? 'Fijar en MXN' : 'Fijar en USD'}
@@ -2077,7 +2616,7 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
                               type="checkbox"
                               checked={cotizacion.mostrarEquivalenteMXN !== false}
                               onChange={(e) => handleCotizacionChange('mostrarEquivalenteMXN', e.target.checked)}
-                              className="w-3.5 h-3.5 text-amber-600 rounded border-slate-300 focus:ring-amber-500"
+                              className="w-3.5 h-3.5 text-slate-900 rounded border-slate-300 focus:ring-slate-900"
                             />
                             <span>
                               {idioma === 'EN' 
@@ -2104,27 +2643,21 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
                 <button
                   type="button"
                   onClick={agregarDestino}
-                  className="bg-amber-500 hover:bg-amber-600 text-slate-950 px-3 py-1.5 rounded-lg font-bold text-xs flex items-center gap-1 shadow-sm transition-colors"
+                  className="bg-slate-900 hover:bg-slate-800 text-white px-3 py-1.5 rounded-lg font-bold text-xs flex items-center gap-1 shadow-sm transition-colors"
                 >
                   <Plus size={14} /> + Agregar Destino
                 </button>
               </div>
 
-              <div className="space-y-3 max-h-[380px] overflow-y-auto pr-1">
+              <div className="space-y-3 max-h-[540px] overflow-y-auto pr-1">
                 {cotizacion.etapas.map((etapa, idx) => (
                   <div
                     key={etapa.id}
-                    className={`p-3 rounded-xl border transition-all ${
-                      etapa.tipo === 'llegada'
-                        ? 'bg-slate-50 border-slate-200'
-                        : etapa.tipo === 'salida'
-                        ? 'bg-amber-50/40 border-amber-200'
-                        : 'bg-white border-slate-200 shadow-xs'
-                    }`}
+                    className="p-3.5 rounded-xl border border-slate-200 bg-slate-50/60 transition-all"
                   >
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs font-black uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
-                        <span className="w-5 h-5 rounded-full bg-slate-800 text-amber-400 flex items-center justify-center text-[10px] font-bold">
+                    <div className="flex items-center justify-between mb-2.5">
+                      <span className="text-xs font-black uppercase tracking-wider text-slate-800 flex items-center gap-1.5">
+                        <span className="w-5 h-5 rounded-md bg-slate-900 text-white flex items-center justify-center text-[10px] font-bold">
                           {idx + 1}
                         </span>
                         {idioma === 'EN' ? etapa.etiquetaEN : etapa.etiquetaES}
@@ -2133,7 +2666,7 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
                         <button
                           type="button"
                           onClick={() => eliminarEtapa(etapa.id)}
-                          className="text-slate-400 hover:text-red-600 p-1 rounded transition-colors"
+                          className="text-slate-400 hover:text-slate-800 p-1 rounded transition-colors"
                           title="Eliminar este tramo"
                         >
                           <Trash2 size={14} />
@@ -2153,7 +2686,7 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
                           value={etapa.origen}
                           onChange={(e) => handleEtapaChange(etapa.id, 'origen', e.target.value)}
                           placeholder={idioma === 'EN' ? 'Origin place' : 'Lugar origen'}
-                          className="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg focus:ring-1 focus:ring-amber-500 text-xs"
+                          className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-slate-900 text-xs"
                         />
                       </div>
 
@@ -2168,26 +2701,26 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
                           value={etapa.destino}
                           onChange={(e) => handleEtapaChange(etapa.id, 'destino', e.target.value)}
                           placeholder={idioma === 'EN' ? 'Destination place' : 'Lugar destino'}
-                          className="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg focus:ring-1 focus:ring-amber-500 text-xs"
+                          className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-slate-900 text-xs"
                         />
                       </div>
 
                       {/* FECHA Y PASAJEROS (PAX) */}
                       <div>
                         <label className="text-[10px] font-bold text-slate-500 uppercase flex items-center gap-1">
-                          <Calendar size={11} className="text-amber-500" /> {idioma === 'EN' ? 'Date' : 'Fecha'}
+                          <Calendar size={11} className="text-slate-600" /> {idioma === 'EN' ? 'Date' : 'Fecha'}
                         </label>
                         <input
                           type="date"
                           value={etapa.fecha}
                           onChange={(e) => handleEtapaChange(etapa.id, 'fecha', e.target.value)}
-                          className="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg focus:ring-1 focus:ring-amber-500 text-xs"
+                          className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-slate-900 text-xs"
                         />
                       </div>
 
                       <div>
                         <label className="text-[10px] font-bold text-slate-500 uppercase flex items-center gap-1">
-                          <Users size={11} className="text-amber-500" /> {idioma === 'EN' ? 'Passengers (PAX)' : 'Pasajeros (PAX)'}
+                          <Users size={11} className="text-slate-600" /> {idioma === 'EN' ? 'Passengers (PAX)' : 'Pasajeros (PAX)'}
                         </label>
                         <input
                           type="number"
@@ -2195,38 +2728,234 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
                           value={etapa.pax ?? cotizacion.pax ?? '2'}
                           onChange={(e) => handleEtapaChange(etapa.id, 'pax', e.target.value)}
                           placeholder="PAX"
-                          className="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg focus:ring-1 focus:ring-amber-500 text-xs font-bold text-slate-800"
+                          className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-slate-900 text-xs font-bold text-slate-900"
                         />
                       </div>
 
-                      {/* HORA DE RECOGIDA Y HORA DE REGRESO */}
-                      <div>
-                        <label className="text-[10px] font-bold text-slate-500 uppercase flex items-center gap-1">
-                          <Clock size={11} className="text-blue-500" /> {idioma === 'EN' ? 'Pick-up Time' : 'Hora de Recogida'}
-                        </label>
-                        <input
-                          type="time"
-                          value={etapa.horaRecogida || etapa.hora || ''}
-                          onChange={(e) => {
-                            handleEtapaChange(etapa.id, 'horaRecogida', e.target.value);
-                            handleEtapaChange(etapa.id, 'hora', e.target.value);
-                          }}
-                          className="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg focus:ring-1 focus:ring-amber-500 text-xs font-semibold"
-                        />
-                      </div>
+                      {/* CAMPOS ESPECÍFICOS SEGÚN EL TIPO DE CUADRO (LLEGADA / DESTINO / SALIDA) */}
+                      {etapa.tipo === 'llegada' && (
+                        <>
+                          <div>
+                            <label className="text-[10px] font-bold text-slate-500 uppercase flex items-center gap-1">
+                              <Plane size={11} className="text-slate-600" /> {idioma === 'EN' ? 'Airline' : 'Aerolínea'}
+                            </label>
+                            <input
+                              type="text"
+                              value={etapa.aerolinea || ''}
+                              onChange={(e) => handleEtapaChange(etapa.id, 'aerolinea', e.target.value)}
+                              placeholder="Ej. American Airlines / Delta"
+                              className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-slate-900 text-xs uppercase"
+                            />
+                          </div>
 
-                      <div>
-                        <label className="text-[10px] font-bold text-slate-500 uppercase flex items-center gap-1">
-                          <Clock size={11} className="text-amber-600" /> {idioma === 'EN' ? 'Return Time' : 'Hora de Regreso'}
-                        </label>
-                        <input
-                          type="time"
-                          value={etapa.horaRegreso || ''}
-                          onChange={(e) => handleEtapaChange(etapa.id, 'horaRegreso', e.target.value)}
-                          placeholder="HH:MM"
-                          className="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg focus:ring-1 focus:ring-amber-500 text-xs font-semibold"
-                        />
-                      </div>
+                          <div>
+                            <label className="text-[10px] font-bold text-slate-500 uppercase flex items-center gap-1">
+                              <Plane size={11} className="text-slate-600" /> {idioma === 'EN' ? 'Flight Number' : 'Número de Vuelo'}
+                            </label>
+                            <input
+                              type="text"
+                              value={etapa.numeroVuelo || ''}
+                              onChange={(e) => handleEtapaChange(etapa.id, 'numeroVuelo', e.target.value)}
+                              placeholder="Ej. AA 1234"
+                              className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-slate-900 text-xs uppercase"
+                            />
+                          </div>
+
+                          <div className="sm:col-span-2">
+                            <label className="text-[10px] font-bold text-slate-500 uppercase flex items-center gap-1">
+                              <Clock size={11} className="text-slate-600" /> {idioma === 'EN' ? 'Arrival Time' : 'Hora de Llegada'}
+                            </label>
+                            <input
+                              type="time"
+                              value={etapa.horaLlegada || etapa.horaRecogida || etapa.hora || ''}
+                              onChange={(e) => handleEtapaChange(etapa.id, 'horaLlegada', e.target.value)}
+                              className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-slate-900 text-xs font-semibold"
+                            />
+                          </div>
+                        </>
+                      )}
+
+                      {etapa.tipo === 'destino' && (
+                        <>
+                          <div>
+                            <label className="text-[10px] font-bold text-slate-500 uppercase flex items-center gap-1">
+                              <Clock size={11} className="text-slate-600" /> {idioma === 'EN' ? 'Pick-up Time' : 'Hora de Recogida'}
+                            </label>
+                            <input
+                              type="time"
+                              value={etapa.horaRecogida || etapa.hora || ''}
+                              onChange={(e) => {
+                                handleEtapaChange(etapa.id, 'horaRecogida', e.target.value);
+                                handleEtapaChange(etapa.id, 'hora', e.target.value);
+                              }}
+                              className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-slate-900 text-xs font-semibold"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="text-[10px] font-bold text-slate-500 uppercase flex items-center gap-1">
+                              <Clock size={11} className="text-slate-600" /> {idioma === 'EN' ? 'Return Time' : 'Hora de Regreso'}
+                            </label>
+                            <input
+                              type="time"
+                              value={etapa.horaRegreso || ''}
+                              onChange={(e) => handleEtapaChange(etapa.id, 'horaRegreso', e.target.value)}
+                              placeholder="HH:MM"
+                              className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-slate-900 text-xs font-semibold"
+                            />
+                          </div>
+
+                          {/* NIÑOS Y SILLAS EN CUADRO DE DESTINO */}
+                          <div className="sm:col-span-2 mt-1 pt-2 border-t border-slate-200 space-y-2">
+                            <div className="flex items-center justify-between">
+                              <span className="text-[11px] font-bold text-slate-700">¿Hay niños en este destino?</span>
+                              <div className="flex gap-1">
+                                <button
+                                  type="button"
+                                  onClick={() => handleEtapaChange(etapa.id, 'hayNinos', true)}
+                                  className={`px-2.5 py-0.5 rounded text-[11px] font-bold border transition-all ${
+                                    etapa.hayNinos
+                                      ? 'bg-slate-900 text-white border-slate-900'
+                                      : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-100'
+                                  }`}
+                                >
+                                  Sí
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleEtapaChange(etapa.id, 'hayNinos', false)}
+                                  className={`px-2.5 py-0.5 rounded text-[11px] font-bold border transition-all ${
+                                    !etapa.hayNinos
+                                      ? 'bg-slate-900 text-white border-slate-900'
+                                      : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-100'
+                                  }`}
+                                >
+                                  No
+                                </button>
+                              </div>
+                            </div>
+
+                            {etapa.hayNinos && (
+                              <div className="bg-white p-2 rounded-lg border border-slate-200 space-y-1.5">
+                                <div className="flex items-center justify-between">
+                                  <span className="text-[10px] font-bold text-slate-600 uppercase">Cantidad de Niños:</span>
+                                  <input
+                                    type="number"
+                                    min="1"
+                                    max="15"
+                                    value={etapa.cantidadNinos || 1}
+                                    onChange={(e) => handleEtapaChange(etapa.id, 'cantidadNinos', e.target.value)}
+                                    className="w-16 px-1.5 py-0.5 text-xs font-bold text-center border border-slate-300 rounded"
+                                  />
+                                </div>
+                                <div className="grid grid-cols-3 gap-1.5">
+                                  {Array.from({ length: Math.max(1, parseInt(etapa.cantidadNinos, 10) || 1) }).map((_, i) => (
+                                    <input
+                                      key={i}
+                                      type="text"
+                                      value={(etapa.edadesNinos && etapa.edadesNinos[i]) || ''}
+                                      onChange={(e) => {
+                                        const eds = [...(etapa.edadesNinos || [])];
+                                        eds[i] = e.target.value;
+                                        handleEtapaChange(etapa.id, 'edadesNinos', eds);
+                                      }}
+                                      placeholder={`Edad ${i + 1}`}
+                                      className="w-full px-1.5 py-1 text-[11px] border border-slate-300 rounded text-center"
+                                    />
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            <div className="grid grid-cols-3 gap-1.5">
+                              <div className={`p-1.5 rounded border text-center transition-all ${parseInt(etapa.carSeat, 10) > 0 ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-700 border-slate-300'}`}>
+                                <label className="text-[9px] font-bold uppercase block">Car Seat</label>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  value={etapa.carSeat || 0}
+                                  onChange={(e) => handleEtapaChange(etapa.id, 'carSeat', Math.max(0, parseInt(e.target.value, 10) || 0))}
+                                  className="w-full mt-0.5 px-1 py-0.5 text-xs font-bold text-slate-900 bg-white border border-slate-300 rounded text-center"
+                                />
+                              </div>
+                              <div className={`p-1.5 rounded border text-center transition-all ${parseInt(etapa.babySeat, 10) > 0 ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-700 border-slate-300'}`}>
+                                <label className="text-[9px] font-bold uppercase block">Baby Seat</label>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  value={etapa.babySeat || 0}
+                                  onChange={(e) => handleEtapaChange(etapa.id, 'babySeat', Math.max(0, parseInt(e.target.value, 10) || 0))}
+                                  className="w-full mt-0.5 px-1 py-0.5 text-xs font-bold text-slate-900 bg-white border border-slate-300 rounded text-center"
+                                />
+                              </div>
+                              <div className={`p-1.5 rounded border text-center transition-all ${parseInt(etapa.booster, 10) > 0 ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-700 border-slate-300'}`}>
+                                <label className="text-[9px] font-bold uppercase block">Booster</label>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  value={etapa.booster || 0}
+                                  onChange={(e) => handleEtapaChange(etapa.id, 'booster', Math.max(0, parseInt(e.target.value, 10) || 0))}
+                                  className="w-full mt-0.5 px-1 py-0.5 text-xs font-bold text-slate-900 bg-white border border-slate-300 rounded text-center"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        </>
+                      )}
+
+                      {etapa.tipo === 'salida' && (
+                        <>
+                          <div>
+                            <label className="text-[10px] font-bold text-slate-500 uppercase flex items-center gap-1">
+                              <Clock size={11} className="text-slate-600" /> {idioma === 'EN' ? 'Pick-up Time (Lobby)' : 'Hora de Pick Up (Lobby)'}
+                            </label>
+                            <input
+                              type="time"
+                              value={etapa.horaPickUpLobby || etapa.horaRecogida || ''}
+                              onChange={(e) => handleEtapaChange(etapa.id, 'horaPickUpLobby', e.target.value)}
+                              className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-slate-900 text-xs font-semibold"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="text-[10px] font-bold text-slate-500 uppercase flex items-center gap-1">
+                              <Clock size={11} className="text-slate-600" /> {idioma === 'EN' ? 'Flight Departure Time' : 'Hora de Salida de Vuelo'}
+                            </label>
+                            <input
+                              type="time"
+                              value={etapa.horaSalidaVuelo || etapa.horaRegreso || ''}
+                              onChange={(e) => handleEtapaChange(etapa.id, 'horaSalidaVuelo', e.target.value)}
+                              className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-slate-900 text-xs font-semibold"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="text-[10px] font-bold text-slate-500 uppercase flex items-center gap-1">
+                              <Plane size={11} className="text-slate-600" /> {idioma === 'EN' ? 'Airline' : 'Aerolínea'}
+                            </label>
+                            <input
+                              type="text"
+                              value={etapa.aerolinea || ''}
+                              onChange={(e) => handleEtapaChange(etapa.id, 'aerolinea', e.target.value)}
+                              placeholder="Ej. American Airlines / Delta"
+                              className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-slate-900 text-xs uppercase"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="text-[10px] font-bold text-slate-500 uppercase flex items-center gap-1">
+                              <Plane size={11} className="text-slate-600" /> {idioma === 'EN' ? 'Flight Number' : 'Número de Vuelo'}
+                            </label>
+                            <input
+                              type="text"
+                              value={etapa.numeroVuelo || ''}
+                              onChange={(e) => handleEtapaChange(etapa.id, 'numeroVuelo', e.target.value)}
+                              placeholder="Ej. AA 1234"
+                              className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg focus:ring-1 focus:ring-slate-900 text-xs uppercase"
+                            />
+                          </div>
+                        </>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -2240,21 +2969,21 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
                 <button
                   type="button"
                   onClick={handleRealizarVenta}
-                  className="w-full bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white font-black py-3 px-4 rounded-xl flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all text-sm group"
+                  className="w-full bg-slate-800 hover:bg-slate-950 text-white font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 shadow-sm transition-all text-sm"
                   title="Convierte esta cotización en una venta oficial asignándole el siguiente número de ticket consecutivo"
                 >
-                  <Receipt size={18} className="text-amber-300 group-hover:scale-110 transition-transform" />
-                  <span>💳 Realizar Venta / Generar Ticket ({proximoTicket})</span>
+                  <Receipt size={18} />
+                  <span>Realizar Venta / Generar Ticket ({proximoTicket})</span>
                 </button>
               ) : (
-                <div className="bg-emerald-50 border border-emerald-300 rounded-xl p-3 flex items-center justify-between">
+                <div className="bg-slate-100 border border-slate-300 rounded-xl p-3 flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <CheckCircle size={18} className="text-emerald-600 shrink-0" />
+                    <CheckCircle size={18} className="text-slate-800 shrink-0" />
                     <div>
-                      <div className="text-xs font-black text-emerald-950">
+                      <div className="text-xs font-black text-slate-900">
                         VENTA REALIZADA • TICKET #{cotizacion.numeroTicket || cotizacion.folio}
                       </div>
-                      <div className="text-[11px] text-emerald-700 font-medium">
+                      <div className="text-[11px] text-slate-600 font-medium">
                         Boleto Oficial de Venta consecutivo activo.
                       </div>
                     </div>
@@ -2262,7 +2991,7 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
                   <button
                     type="button"
                     onClick={handleRevertirACotizacion}
-                    className="text-[11px] font-bold text-slate-500 hover:text-slate-800 underline px-2 py-1"
+                    className="text-[11px] font-bold text-slate-600 hover:text-slate-900 underline px-2 py-1"
                     title="Volver al modo de cotización preliminar"
                   >
                     Revertir a Cotización
@@ -2272,15 +3001,15 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
 
               <button
                 onClick={handleGuardarCotizacion}
-                className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 shadow-md transition-colors text-sm"
+                className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 shadow-sm transition-colors text-sm"
               >
-                <CheckCircle size={18} className="text-amber-400" />
+                <CheckCircle size={18} />
                 {esVenta ? 'Guardar Ticket de Venta en Historial' : 'Guardar Presupuesto en Historial'}
               </button>
 
               <button
                 onClick={() => iniciarConversionAReserva(cotizacion)}
-                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 shadow-md transition-colors text-sm"
+                className="w-full bg-white hover:bg-slate-100 text-slate-900 border-2 border-slate-900 font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 shadow-xs transition-colors text-sm"
               >
                 <ArrowRight size={18} />
                 Convertir a Reserva(s) en el Sistema
@@ -2294,7 +3023,7 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
             <div className="w-full max-w-[800px] mb-4 flex flex-wrap items-center justify-between gap-3 bg-white p-3 rounded-xl border border-slate-200 shadow-sm">
               <div className="flex items-center gap-2">
                 <span className="text-xs font-bold text-slate-500 uppercase">Vista previa en tiempo real:</span>
-                <span className="text-xs font-bold px-2 py-0.5 rounded bg-amber-100 text-amber-800">
+                <span className="text-xs font-bold px-2 py-0.5 rounded bg-slate-200 text-slate-800">
                   {idioma === 'ES' ? 'Español' : 'English'}
                 </span>
               </div>
@@ -2304,7 +3033,7 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
                 {/* BOTÓN ENVIAR POR WHATSAPP (PDF NATURAL COMPLETO) */}
                 <button
                   onClick={() => handleCompartirPresupuestoWhatsApp('PDF')}
-                  className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-3 rounded-xl text-xs flex items-center gap-1.5 shadow-sm transition-colors"
+                  className="bg-slate-900 hover:bg-slate-800 text-white font-bold py-2 px-3 rounded-xl text-xs flex items-center gap-1.5 shadow-sm transition-colors"
                   title="Enviar presupuesto como PDF Natural completo por WhatsApp"
                 >
                   <Send size={14} />
@@ -2314,7 +3043,7 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
                 {/* BOTÓN ENVIAR IMAGEN */}
                 <button
                   onClick={() => handleCompartirPresupuestoWhatsApp('PNG')}
-                  className="bg-emerald-700 hover:bg-emerald-800 text-white font-bold py-2 px-3 rounded-xl text-xs flex items-center gap-1.5 shadow-sm transition-colors"
+                  className="bg-white hover:bg-slate-100 text-slate-800 font-bold py-2 px-3 rounded-xl text-xs flex items-center gap-1.5 border border-slate-300 transition-colors"
                   title="Enviar presupuesto como imagen por WhatsApp"
                 >
                   <FileText size={14} />
@@ -2324,17 +3053,17 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
                 {/* BOTÓN COPIAR AL PORTAPAPELES */}
                 <button
                   onClick={handleCopiarPortapapeles}
-                  className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2 px-3 rounded-xl text-xs flex items-center gap-1.5 border border-slate-300 transition-colors"
+                  className="bg-white hover:bg-slate-100 text-slate-700 font-bold py-2 px-3 rounded-xl text-xs flex items-center gap-1.5 border border-slate-300 transition-colors"
                   title="Copiar para pegar en Word, Excel o Correo"
                 >
-                  {copiado ? <Check size={14} className="text-emerald-600" /> : <Copy size={14} />}
+                  {copiado ? <Check size={14} className="text-slate-900" /> : <Copy size={14} />}
                   {copiado ? '¡Copiado!' : 'Copiar (Word)'}
                 </button>
 
                 {/* BOTÓN GUARDAR PDF NATIVO */}
                 <button
                   onClick={() => handleExportarPDFNativo()}
-                  className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold py-2 px-4 rounded-xl text-xs flex items-center gap-2 shadow-sm transition-colors"
+                  className="bg-slate-800 hover:bg-slate-950 text-white font-bold py-2 px-4 rounded-xl text-xs flex items-center gap-2 shadow-sm transition-colors"
                   title="Guardar como PDF Nativo vectorial, texto seleccionable y completo sin cortes"
                 >
                   <Download size={15} />
@@ -2343,7 +3072,7 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
               </div>
             </div>
 
-            {/* CONTENEDOR DEL TICKET (Diseño Sobrio, Formal y Recto) */}
+            {/* CONTENEDOR DEL TICKET (Diseño Sobrio, Formal y Recto con Logo Cabo Private Transportation) */}
             <div className="w-full flex justify-center overflow-x-auto pb-6">
               <div
                 id="area-impresion-presupuesto"
@@ -2358,16 +3087,20 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
                   overflow: 'hidden'
                 }}
               >
-                {/* ENCABEZADO SOBRIO */}
-                <table style={{ backgroundColor: '#f8fafc', color: '#0f172a', width: '100%', borderCollapse: 'collapse', borderBottom: '2px solid #0f172a' }}>
+                {/* ENCABEZADO CON LOGO CABO PRIVATE TRANSPORTATION */}
+                <table style={{ backgroundColor: '#ffffff', color: '#0f172a', width: '100%', borderCollapse: 'collapse', borderBottom: '2px solid #0f172a' }}>
                   <tbody>
                     <tr>
-                      <td style={{ padding: '20px 24px', width: '60%', verticalAlign: 'top', border: 'none' }}>
-                        <h1 style={{ margin: 0, color: '#0f172a', fontSize: '24px', fontWeight: 900, letterSpacing: '0.5px' }}>BALLARD TOUR SERVICES</h1>
-                        <h2 style={{ margin: '8px 0 2px 0', fontSize: '16px', color: '#0f172a', fontWeight: 700 }}>{t.tituloPrincipal}</h2>
+                      <td style={{ padding: '18px 24px', width: '62%', verticalAlign: 'middle', border: 'none' }}>
+                        <img
+                          src="/logo-letrero.jpg"
+                          alt="Cabo Private Transportation"
+                          style={{ height: '64px', width: 'auto', objectFit: 'contain', display: 'block', marginBottom: '6px' }}
+                        />
+                        <h2 style={{ margin: '4px 0 2px 0', fontSize: '15px', color: '#0f172a', fontWeight: 700 }}>{t.tituloPrincipal}</h2>
                         <p style={{ margin: 0, fontSize: '11.5px', color: '#475569' }}>{t.subtituloSeguro}</p>
                       </td>
-                      <td style={{ padding: '20px 24px', textAlign: 'right', width: '40%', verticalAlign: 'top', border: 'none' }}>
+                      <td style={{ padding: '18px 24px', textAlign: 'right', width: '38%', verticalAlign: 'top', border: 'none' }}>
                         <div style={{ 
                           backgroundColor: '#ffffff', 
                           color: '#0f172a', 
@@ -2385,6 +3118,11 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
                         <p style={{ margin: 0, fontSize: '13px', color: '#0f172a', fontFamily: 'monospace', fontWeight: 'bold' }}>
                           {t.folioLabel} {cotizacion.numeroTicket || cotizacion.folio}
                         </p>
+                        {cotizacion.folioReservaAsignado && cotizacion.folioReservaAsignado !== cotizacion.folio && (
+                          <p style={{ margin: '2px 0 0 0', fontSize: '11.5px', color: '#0f172a', fontFamily: 'monospace', fontWeight: 'bold' }}>
+                            RESERVA: {cotizacion.folioReservaAsignado}
+                          </p>
+                        )}
                         <p style={{ margin: '3px 0 0 0', fontSize: '11.5px', color: '#475569' }}>
                           {t.fechaLabel} {cotizacion.fechaEmision || new Date().toISOString().split('T')[0]}
                         </p>
@@ -2451,13 +3189,44 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
                         </td>
                         <td style={{ padding: '8px 12px', verticalAlign: 'top', border: '1px solid #cbd5e1' }}>
                           <div style={{ fontSize: '10px', color: '#64748b', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '2px' }}>
-                            {t.horaCheckoutLabel}
+                            {idioma === 'EN' ? 'RETURN PICK-UP (LOBBY)' : 'PICK-UP REGRESO (LOBBY)'}
                           </div>
                           <div style={{ fontSize: '14px', color: '#0f172a', fontWeight: 'bold' }}>
                             {cotizacion.horaCheckout ? `${cotizacion.horaCheckout} HRS` : '[HH:MM HRS]'}
                           </div>
                         </td>
                       </tr>
+                      {(cotizacion.paradaCompras || cotizacion.hayNinos || parseInt(cotizacion.carSeat, 10) > 0 || parseInt(cotizacion.babySeat, 10) > 0 || parseInt(cotizacion.booster, 10) > 0) && (
+                        <tr>
+                          <td colSpan="4" style={{ padding: '8px 12px', backgroundColor: '#f8fafc', border: '1px solid #cbd5e1', fontSize: '12px', color: '#0f172a' }}>
+                            <strong style={{ fontSize: '10px', color: '#64748b', textTransform: 'uppercase', marginRight: '8px' }}>
+                              {idioma === 'EN' ? 'EXTRAS & DETAILS:' : 'EXTRAS Y DETALLES:'}
+                            </strong>
+                            {cotizacion.paradaCompras && (
+                              <span style={{ fontWeight: 'bold', marginRight: '12px' }}>
+                                • {idioma === 'EN' ? 'Shopping Stop (+$30 USD)' : 'Parada de Compras (+$30 USD)'}
+                              </span>
+                            )}
+                            {cotizacion.hayNinos && (
+                              <span style={{ fontWeight: 'bold', marginRight: '12px' }}>
+                                • {idioma === 'EN' ? `Children: ${cotizacion.cantidadNinos || 1}` : `Niños: ${cotizacion.cantidadNinos || 1}`}
+                                {(cotizacion.edadesNinos || []).filter(e => String(e || '').trim()).length > 0 && (
+                                  ` (${idioma === 'EN' ? 'Ages' : 'Edades'}: ${(cotizacion.edadesNinos || []).filter(e => String(e || '').trim()).join(', ')})`
+                                )}
+                              </span>
+                            )}
+                            {parseInt(cotizacion.carSeat, 10) > 0 && (
+                              <span style={{ fontWeight: 'bold', marginRight: '12px' }}>• Car Seat: {cotizacion.carSeat}</span>
+                            )}
+                            {parseInt(cotizacion.babySeat, 10) > 0 && (
+                              <span style={{ fontWeight: 'bold', marginRight: '12px' }}>• Baby Seat: {cotizacion.babySeat}</span>
+                            )}
+                            {parseInt(cotizacion.booster, 10) > 0 && (
+                              <span style={{ fontWeight: 'bold', marginRight: '12px' }}>• Booster: {cotizacion.booster}</span>
+                            )}
+                          </td>
+                        </tr>
+                      )}
                     </tbody>
                   </table>
 
@@ -2469,10 +3238,10 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
                   <table style={{ width: '100%', marginBottom: '18px', borderCollapse: 'collapse', border: '1px solid #cbd5e1' }}>
                     <thead>
                       <tr style={{ backgroundColor: '#f1f5f9' }}>
-                        <th style={{ width: '20%', padding: '8px 10px', borderBottom: '1px solid #94a3b8', textAlign: 'left', fontSize: '10.5px', color: '#1e293b', fontWeight: 'bold', textTransform: 'uppercase' }}>
+                        <th style={{ width: '18%', padding: '8px 10px', borderBottom: '1px solid #94a3b8', textAlign: 'left', fontSize: '10.5px', color: '#1e293b', fontWeight: 'bold', textTransform: 'uppercase' }}>
                           {t.colEtapa}
                         </th>
-                        <th style={{ width: '40%', padding: '8px 10px', borderBottom: '1px solid #94a3b8', textAlign: 'left', fontSize: '10.5px', color: '#1e293b', fontWeight: 'bold', textTransform: 'uppercase' }}>
+                        <th style={{ width: '42%', padding: '8px 10px', borderBottom: '1px solid #94a3b8', textAlign: 'left', fontSize: '10.5px', color: '#1e293b', fontWeight: 'bold', textTransform: 'uppercase' }}>
                           {t.colDescripcion}
                         </th>
                         <th style={{ width: '10%', padding: '8px 10px', borderBottom: '1px solid #94a3b8', textAlign: 'center', fontSize: '10.5px', color: '#1e293b', fontWeight: 'bold', textTransform: 'uppercase' }}>
@@ -2504,8 +3273,9 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
 
                         const fechaFormateada = etapa.fecha || (idioma === 'EN' ? '[YYYY-MM-DD]' : '[DD-MMM-AAAA]');
                         const paxTramo = etapa.pax || cotizacion.pax || '1';
-                        const horaPickUp = etapa.horaRecogida || etapa.hora;
-                        const horaReturn = etapa.horaRegreso;
+                        const aeroVuelo = [etapa.aerolinea, etapa.numeroVuelo].filter(Boolean).join(' ').trim();
+                        const tieneSillasTramo = (parseInt(etapa.carSeat, 10) > 0) || (parseInt(etapa.babySeat, 10) > 0) || (parseInt(etapa.booster, 10) > 0);
+                        const edadesTramo = (etapa.edadesNinos || []).map(e => String(e || '').trim()).filter(Boolean);
 
                         return (
                           <tr key={etapa.id} style={{ backgroundColor: idx % 2 === 0 ? '#ffffff' : '#f8fafc' }}>
@@ -2515,7 +3285,25 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
                               </strong>
                             </td>
                             <td style={{ padding: '10px', borderBottom: '1px solid #e2e8f0', fontSize: '13px', verticalAlign: 'top', color: '#1e293b' }}>
-                              {descripcionTrayecto}
+                              <div>{descripcionTrayecto}</div>
+                              {aeroVuelo && (
+                                <div style={{ fontSize: '11.5px', color: '#334155', marginTop: '3px' }}>
+                                  <strong>{idioma === 'EN' ? 'Flight:' : 'Vuelo:'}</strong> {aeroVuelo}
+                                </div>
+                              )}
+                              {(etapa.hayNinos || tieneSillasTramo) && (
+                                <div style={{ fontSize: '11px', color: '#475569', marginTop: '3px' }}>
+                                  {etapa.hayNinos && (
+                                    <span>
+                                      <strong>{idioma === 'EN' ? 'Children:' : 'Niños:'}</strong> {etapa.cantidadNinos || 1}
+                                      {edadesTramo.length > 0 ? ` (${edadesTramo.join(', ')})` : ''}{' '}
+                                    </span>
+                                  )}
+                                  {parseInt(etapa.carSeat, 10) > 0 && <span>• Car Seat: {etapa.carSeat} </span>}
+                                  {parseInt(etapa.babySeat, 10) > 0 && <span>• Baby Seat: {etapa.babySeat} </span>}
+                                  {parseInt(etapa.booster, 10) > 0 && <span>• Booster: {etapa.booster}</span>}
+                                </div>
+                              )}
                             </td>
                             <td style={{ padding: '10px', borderBottom: '1px solid #e2e8f0', textAlign: 'center', verticalAlign: 'top', fontWeight: 'bold', fontSize: '13px', color: '#0f172a' }}>
                               {paxTramo}
@@ -2524,20 +3312,49 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
                               <div style={{ fontWeight: 'bold', fontSize: '12.5px', marginBottom: '2px' }}>
                                 {fechaFormateada}
                               </div>
-                              {horaPickUp && (
-                                <div style={{ fontSize: '11.5px', color: '#334155' }}>
-                                  <strong>{t.recogidaLabel} </strong>{horaPickUp}
-                                </div>
-                              )}
-                              {horaReturn && (
-                                <div style={{ fontSize: '11.5px', color: '#334155' }}>
-                                  <strong>{t.regresoLabel} </strong>{horaReturn}
-                                </div>
-                              )}
-                              {!horaPickUp && !horaReturn && (
-                                <div style={{ fontSize: '11.5px', color: '#64748b' }}>
-                                  [HH:MM]
-                                </div>
+                              {etapa.tipo === 'llegada' ? (
+                                (etapa.horaLlegada || etapa.horaRecogida || etapa.hora) ? (
+                                  <div style={{ fontSize: '11.5px', color: '#334155' }}>
+                                    <strong>{idioma === 'EN' ? 'Arrival:' : 'Hora Llegada:'} </strong>
+                                    {etapa.horaLlegada || etapa.horaRecogida || etapa.hora}
+                                  </div>
+                                ) : (
+                                  <div style={{ fontSize: '11.5px', color: '#64748b' }}>[HH:MM]</div>
+                                )
+                              ) : etapa.tipo === 'salida' ? (
+                                <>
+                                  {(etapa.horaPickUpLobby || etapa.horaRecogida || etapa.hora) && (
+                                    <div style={{ fontSize: '11.5px', color: '#334155' }}>
+                                      <strong>Pick-up (Lobby): </strong>
+                                      {etapa.horaPickUpLobby || etapa.horaRecogida || etapa.hora}
+                                    </div>
+                                  )}
+                                  {(etapa.horaSalidaVuelo || etapa.horaRegreso) && (
+                                    <div style={{ fontSize: '11.5px', color: '#334155' }}>
+                                      <strong>{idioma === 'EN' ? 'Flight Dep.:' : 'Salida Vuelo:'} </strong>
+                                      {etapa.horaSalidaVuelo || etapa.horaRegreso}
+                                    </div>
+                                  )}
+                                  {!(etapa.horaPickUpLobby || etapa.horaRecogida || etapa.hora) && !(etapa.horaSalidaVuelo || etapa.horaRegreso) && (
+                                    <div style={{ fontSize: '11.5px', color: '#64748b' }}>[HH:MM]</div>
+                                  )}
+                                </>
+                              ) : (
+                                <>
+                                  {(etapa.horaRecogida || etapa.hora) && (
+                                    <div style={{ fontSize: '11.5px', color: '#334155' }}>
+                                      <strong>{t.recogidaLabel} </strong>{etapa.horaRecogida || etapa.hora}
+                                    </div>
+                                  )}
+                                  {etapa.horaRegreso && (
+                                    <div style={{ fontSize: '11.5px', color: '#334155' }}>
+                                      <strong>{t.regresoLabel} </strong>{etapa.horaRegreso}
+                                    </div>
+                                  )}
+                                  {!(etapa.horaRecogida || etapa.hora) && !etapa.horaRegreso && (
+                                    <div style={{ fontSize: '11.5px', color: '#64748b' }}>[HH:MM]</div>
+                                  )}
+                                </>
                               )}
                             </td>
                           </tr>
@@ -2562,6 +3379,11 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
                           <tr>
                             <td style={{ textAlign: 'right', padding: '14px 18px', backgroundColor: '#f8fafc', border: 'none' }}>
                               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
+                                {cotizacion.paradaCompras && (
+                                  <div style={{ fontSize: '11px', color: '#475569', fontWeight: 700 }}>
+                                    {idioma === 'EN' ? '* Includes Shopping Stop (+$30.00 USD)' : '* Incluye Parada de Compras (+$30.00 USD)'}
+                                  </div>
+                                )}
                                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', flexWrap: 'wrap', gap: '10px' }}>
                                   <span style={{ fontSize: '11px', color: '#475569', fontWeight: 'bold', textTransform: 'uppercase' }}>
                                     {t.totalPresupuesto}
@@ -2633,8 +3455,8 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
         <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b pb-4">
             <div>
-              <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                <FileText className="text-amber-500" /> Historial de Presupuestos Guardados
+              <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                <FileText className="text-slate-800" /> Historial de Presupuestos Guardados
               </h2>
               <p className="text-xs text-slate-500">
                 Consulta cotizaciones anteriores, descárgalas en PDF o conviértelas en reservas automáticas.
@@ -2649,7 +3471,7 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
                   type="button"
                   onClick={() => setFiltroTipoHistorial('TODOS')}
                   className={`px-3 py-1.5 rounded-lg transition-all ${
-                    filtroTipoHistorial === 'TODOS' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800'
+                    filtroTipoHistorial === 'TODOS' ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
                   Todos ({historialCotizaciones.length})
@@ -2658,7 +3480,7 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
                   type="button"
                   onClick={() => setFiltroTipoHistorial('VENTAS')}
                   className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1 ${
-                    filtroTipoHistorial === 'VENTAS' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800'
+                    filtroTipoHistorial === 'VENTAS' ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
                   <Receipt size={13} />
@@ -2668,7 +3490,7 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
                   type="button"
                   onClick={() => setFiltroTipoHistorial('COTIZACIONES')}
                   className={`px-3 py-1.5 rounded-lg transition-all ${
-                    filtroTipoHistorial === 'COTIZACIONES' ? 'bg-amber-500 text-slate-950 shadow-sm' : 'text-slate-500 hover:text-slate-800'
+                    filtroTipoHistorial === 'COTIZACIONES' ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
                   Cotizaciones ({historialCotizaciones.filter(c => !(c.tipoDocumento === 'VENTA' || c.estado === 'VENTA' || c.folio?.startsWith('TCK-'))).length})
@@ -2683,7 +3505,7 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
                   value={filtroHistorial}
                   onChange={(e) => setFiltroHistorial(e.target.value.toUpperCase())}
                   placeholder="Buscar cliente, ticket o folio..."
-                  className="w-full pl-9 pr-3 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                  className="w-full pl-9 pr-3 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-900 focus:outline-none"
                 />
               </div>
             </div>
@@ -2691,15 +3513,15 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
 
           {/* BARRA DE ESTADO DE LA BASE DE DATOS SUPABASE */}
           {tablaSupabaseExiste === false ? (
-            <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-300 rounded-xl p-3.5 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 text-xs shadow-xs">
+            <div className="bg-slate-50 border border-slate-300 rounded-xl p-3.5 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 text-xs shadow-xs">
               <div className="flex items-start gap-2.5">
-                <Database size={20} className="text-amber-600 shrink-0 mt-0.5" />
+                <Database size={20} className="text-slate-700 shrink-0 mt-0.5" />
                 <div>
-                  <p className="font-bold text-amber-950 flex items-center gap-1.5">
+                  <p className="font-bold text-slate-900 flex items-center gap-1.5">
                     <span>Guardado en la Nube (Base de Datos Supabase)</span>
-                    <span className="bg-amber-200 text-amber-900 text-[10px] px-1.5 py-0.5 rounded font-black">Activar 1 Clic</span>
+                    <span className="bg-slate-200 text-slate-800 text-[10px] px-1.5 py-0.5 rounded font-black">Activar 1 Clic</span>
                   </p>
-                  <p className="text-amber-800 text-[11px] mt-0.5 leading-relaxed">
+                  <p className="text-slate-600 text-[11px] mt-0.5 leading-relaxed">
                     Tus presupuestos están seguros en este navegador. Para sincronizarlos automáticamente en Supabase y verlos en todos tus dispositivos, crea la tabla <code>presupuestos</code> en tu panel de Supabase.
                   </p>
                 </div>
@@ -2708,7 +3530,7 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
                 <button
                   type="button"
                   onClick={() => setMostrarModalSQL(true)}
-                  className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold px-3 py-1.5 rounded-lg shadow-sm transition-colors text-xs flex items-center gap-1.5"
+                  className="bg-slate-900 hover:bg-slate-800 text-white font-bold px-3 py-1.5 rounded-lg shadow-sm transition-colors text-xs flex items-center gap-1.5"
                 >
                   <Copy size={13} /> Ver / Copiar SQL
                 </button>
@@ -2727,9 +3549,9 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
           ) : (
             <div className="bg-slate-50 border border-slate-200 rounded-xl p-2.5 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-600">
               <div className="flex items-center gap-2">
-                <Cloud size={16} className="text-emerald-600 shrink-0" />
+                <Cloud size={16} className="text-slate-700 shrink-0" />
                 <span className="font-medium">
-                  Base de Datos: <strong className="text-emerald-700">Conectada con Supabase</strong> (los presupuestos y ventas se guardan en la nube)
+                  Base de Datos: <strong className="text-slate-900">Conectada con Supabase</strong> (los presupuestos y ventas se guardan en la nube)
                 </span>
               </div>
               <div className="flex items-center gap-2">
@@ -2758,12 +3580,12 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
 
           {cotizacionesFiltradas.length === 0 ? (
             <div className="text-center py-16 text-slate-400">
-              <FileText size={48} className="mx-auto mb-3 opacity-30 text-amber-500" />
+              <FileText size={48} className="mx-auto mb-3 opacity-30 text-slate-500" />
               <p className="text-base font-bold text-slate-600">No hay cotizaciones en el historial</p>
               <p className="text-xs text-slate-400 mt-1">Crea una nueva cotización en el diseñador y presiona "Guardar Presupuesto".</p>
               <button
                 onClick={() => setActiveSubTab('editor')}
-                className="mt-4 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold px-4 py-2 rounded-lg text-xs shadow-sm transition-colors"
+                className="mt-4 bg-slate-900 hover:bg-slate-800 text-white font-bold px-4 py-2 rounded-lg text-xs shadow-sm transition-colors"
               >
                 Ir al Diseñador
               </button>
@@ -2790,12 +3612,17 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
                       <td className="p-3 font-mono font-bold text-slate-800">
                         {c.tipoDocumento === 'VENTA' || c.estado === 'VENTA' || c.folio?.startsWith('TCK-') ? (
                           <div className="flex items-center gap-1.5">
-                            <span className="text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded border border-emerald-300 font-black">
+                            <span className="text-slate-900 bg-slate-200 px-2 py-0.5 rounded border border-slate-300 font-black">
                               {c.numeroTicket || c.folio}
                             </span>
                           </div>
                         ) : (
-                          <span>{c.folio}</span>
+                          <div>
+                            <span>{c.folio}</span>
+                            {c.folioOriginalCotizacion && c.folioOriginalCotizacion !== c.folio && (
+                              <div className="text-[10px] text-slate-500">({c.folioOriginalCotizacion})</div>
+                            )}
+                          </div>
                         )}
                       </td>
                       <td className="p-3 text-slate-600">{c.fechaEmision}</td>
@@ -2803,10 +3630,8 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
                       <td className="p-3 text-slate-600">{c.hotelPrincipal || 'N/A'}</td>
                       <td className="p-3 text-center font-bold text-slate-700">
                         <div>{c.pax} PAX</div>
-                        <span className={`inline-block mt-0.5 text-[10px] px-2 py-0.5 rounded-full font-black ${
-                          c.tipoVehiculo === 'VAN' ? 'bg-sky-100 text-sky-800' : 'bg-amber-100 text-amber-900'
-                        }`}>
-                          {c.tipoVehiculo === 'VAN' ? '🚐 VAN' : '🚙 SUV'}
+                        <span className="inline-block mt-0.5 text-[10px] px-2 py-0.5 rounded-full font-black bg-slate-200 text-slate-800">
+                          {c.tipoVehiculo === 'VAN' ? 'VAN' : 'SUV'}
                         </span>
                       </td>
                       <td className="p-3 text-center">
@@ -2819,7 +3644,7 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
                           ${parseFloat(c.precioTotal || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {c.moneda || 'USD'}
                         </div>
                         {c.tipoCambio && parseFloat(c.tipoCambio) > 0 && (
-                          <div className="text-[10px] text-emerald-700 font-bold">
+                          <div className="text-[10px] text-slate-500 font-bold">
                             ≈ ${(
                               (c.moneda || 'USD') === 'USD'
                                 ? (parseFloat(c.precioTotal || 0) * parseFloat(c.tipoCambio))
@@ -2830,16 +3655,14 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
                       </td>
                       <td className="p-3 text-center">
                         {c.tipoDocumento === 'VENTA' || c.estado === 'VENTA' ? (
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wide bg-emerald-100 text-emerald-800 border border-emerald-200 inline-flex items-center gap-1">
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wide bg-slate-900 text-white inline-flex items-center gap-1">
                             <CheckCircle size={10} /> VENTA
                           </span>
                         ) : (
-                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wide ${
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wide border ${
                             c.estado === 'CONVERTIDO'
-                              ? 'bg-emerald-100 text-emerald-800'
-                              : c.estado === 'APROBADO'
-                              ? 'bg-blue-100 text-blue-800'
-                              : 'bg-amber-100 text-amber-800'
+                              ? 'bg-slate-900 text-white border-slate-900'
+                              : 'bg-slate-100 text-slate-700 border-slate-300'
                           }`}>
                             {c.estado}
                           </span>
@@ -2850,7 +3673,7 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
                           {/* BOTÓN CARGAR AL EDITOR */}
                           <button
                             onClick={() => handleCargarCotizacion(c)}
-                            className="p-1.5 text-blue-600 hover:bg-blue-100 rounded transition-colors"
+                            className="p-1.5 text-slate-700 hover:bg-slate-200 rounded transition-colors"
                             title="Editar en Diseñador"
                           >
                             <Eye size={16} />
@@ -2859,7 +3682,7 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
                           {/* BOTÓN ENVIAR POR WHATSAPP DESDE EL HISTORIAL */}
                           <button
                             onClick={() => handleCompartirPresupuestoWhatsApp('PDF', c)}
-                            className="p-1.5 text-green-600 hover:bg-green-100 rounded transition-colors"
+                            className="p-1.5 text-slate-700 hover:bg-slate-200 rounded transition-colors"
                             title="Enviar PDF Natural por WhatsApp"
                           >
                             <Send size={16} />
@@ -2868,7 +3691,7 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
                           {/* BOTÓN DESCARGAR PDF NATIVO DIRECTO */}
                           <button
                             onClick={() => handleExportarPDFNativo(c)}
-                            className="p-1.5 text-amber-600 hover:bg-amber-100 rounded transition-colors"
+                            className="p-1.5 text-slate-700 hover:bg-slate-200 rounded transition-colors"
                             title="Descargar / Compartir PDF Natural"
                           >
                             <Download size={16} />
@@ -2877,11 +3700,7 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
                           {/* BOTÓN CONVERTIR A RESERVA */}
                           <button
                             onClick={() => iniciarConversionAReserva(c)}
-                            className={`p-1.5 rounded transition-colors ${
-                              c.estado === 'CONVERTIDO'
-                                ? 'text-slate-400 hover:bg-slate-100'
-                                : 'text-emerald-600 hover:bg-emerald-100'
-                            }`}
+                            className="p-1.5 text-slate-800 hover:bg-slate-200 rounded transition-colors"
                             title="Convertir a Reservas en el Sistema"
                           >
                             <ArrowRight size={16} />
@@ -2890,7 +3709,7 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
                           {/* BOTÓN ELIMINAR */}
                           <button
                             onClick={() => handleEliminarCotizacion(c.id, c.folio)}
-                            className="p-1.5 text-red-500 hover:bg-red-100 rounded transition-colors"
+                            className="p-1.5 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
                             title="Eliminar Presupuesto"
                           >
                             <Trash2 size={16} />
@@ -2917,11 +3736,11 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
             <div className="bg-slate-900 text-white p-5 flex items-center justify-between">
               <div>
                 <h3 className="text-lg font-bold flex items-center gap-2">
-                  <ShieldCheck className="text-emerald-400" />
-                  Convertir Cotización a Reservas Reales ({cotizacionAConvertir.folio})
+                  <ShieldCheck className="text-white" />
+                  Convertir Cotización ({cotizacionAConvertir.folio}) ➔ Reserva #{cotizacionAConvertir.folioReservaAsignado || serviciosAConvertir[0]?.reserva}
                 </h3>
                 <p className="text-xs text-slate-300 mt-1">
-                  Se creará un servicio en la Base de Datos para cada tramo del itinerario. Revisa y completa los datos faltantes:
+                  El presupuesto cambiará automáticamente al folio consecutivo de reservas ({cotizacionAConvertir.folioReservaAsignado || serviciosAConvertir[0]?.reserva}). Revisa y confirma los tramos:
                 </p>
               </div>
               <button
