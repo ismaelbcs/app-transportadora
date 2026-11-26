@@ -3201,6 +3201,18 @@ export default function App() {
                   <div>
                     <div className="flex items-center justify-between mb-1">
                       <label className="block text-xs font-medium text-gray-700">Hotel / Destino</label>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        name="hotel"
+                        list="hoteles-list"
+                        value={currentService.hotel}
+                        onChange={handleInputChange}
+                        className="block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm focus:ring-blue-500 focus:border-blue-500 uppercase"
+                        placeholder="Escribe o selecciona..."
+                      />
                       <button
                         type="button"
                         onClick={() => {
@@ -3217,23 +3229,11 @@ export default function App() {
                           }
                           setMostrarNuevoHotelBox(!mostrarNuevoHotelBox);
                         }}
-                        className="text-[11px] font-bold bg-slate-900 hover:bg-slate-800 text-white px-2.5 py-1 rounded-md flex items-center gap-1 shadow-xs transition-colors"
-                        title="Integrar un nuevo hotel con su zona para que aparezca siempre en la lista"
+                        className="bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold px-3 py-2 rounded-md border border-slate-900 transition-colors whitespace-nowrap flex items-center gap-1 shadow-xs"
+                        title="Agregar nuevo hotel con su zona a la lista"
                       >
-                        <Plus size={12} /> + Agregar Hotel
+                        <Plus size={14} /> Agregar Hotel
                       </button>
-                    </div>
-
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        name="hotel"
-                        list="hoteles-list"
-                        value={currentService.hotel}
-                        onChange={handleInputChange}
-                        className="block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm focus:ring-blue-500 focus:border-blue-500 uppercase"
-                        placeholder="Escribe o selecciona..."
-                      />
                     </div>
 
                     {/* Aviso rápido si escribió un hotel que aún no está en el catálogo */}
