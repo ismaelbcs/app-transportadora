@@ -385,6 +385,7 @@ const PresupuestoPDFDocument = ({ cotizacion, idioma, formatearMetodoPago, logoS
 export default function Presupuestos({ 
   services = [], 
   LISTA_HOTELES = [], 
+  onAgregarNuevoHotel,
   supabase, 
   fetchAllData, 
   showToast,
@@ -393,6 +394,9 @@ export default function Presupuestos({
 }) {
   // Pestaña interna: 'editor' | 'historial'
   const [activeSubTab, setActiveSubTab] = useState('editor');
+  const [mostrarAgregarHotelCotiz, setMostrarAgregarHotelCotiz] = useState(false);
+  const [nuevoHotelNombreCotiz, setNuevoHotelNombreCotiz] = useState('');
+  const [nuevoHotelZonaCotiz, setNuevoHotelZonaCotiz] = useState(1);
 
   // Idioma de la cotización
   const [idioma, setIdioma] = useState('ES'); // 'ES' | 'EN'
@@ -811,7 +815,7 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
       } else if (data) {
         setTablaSupabaseExiste(true);
         const mapeados = data
-          .filter(row => row.id !== 'CFG_PAGOS_PROVEEDORES_V1')
+          .filter(row => row.id !== 'CFG_PAGOS_PROVEEDORES_V1' && row.id !== 'CFG_CATALOGO_HOTELES_V1')
           .map(mapSupabaseToCotizacion);
         setHistorialCotizaciones(mapeados);
         try {
@@ -2282,7 +2286,25 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
                 </div>
 
                 <div className="col-span-2">
-                  <label className="text-xs font-bold text-slate-600 uppercase mb-1 block">Hotel o Alojamiento Principal</label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-xs font-bold text-slate-600 uppercase block">Hotel o Alojamiento Principal</label>
+                    {onAgregarNuevoHotel && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!mostrarAgregarHotelCotiz) {
+                            const txt = (cotizacion.hotelPrincipal || '').trim();
+                            const existe = LISTA_HOTELES.some(h => h.nombre.trim().toLowerCase() === txt.toLowerCase());
+                            setNuevoHotelNombreCotiz(!existe && txt ? txt : '');
+                          }
+                          setMostrarAgregarHotelCotiz(!mostrarAgregarHotelCotiz);
+                        }}
+                        className="text-[11px] font-bold bg-slate-900 hover:bg-slate-800 text-white px-2.5 py-0.5 rounded flex items-center gap-1 transition-colors"
+                      >
+                        <Plus size={11} /> + Agregar Hotel
+                      </button>
+                    )}
+                  </div>
                   <input
                     type="text"
                     list="lista-hoteles-cotizacion"
@@ -2291,9 +2313,97 @@ CREATE POLICY "Permitir todo en presupuestos" ON public.presupuestos FOR ALL USI
                     placeholder="Selecciona o escribe el hotel..."
                     className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-900 focus:outline-none"
                   />
+
+                  {/* Sugerencia rápida si el hotel escrito no está en la lista */}
+                  {onAgregarNuevoHotel &&
+                    cotizacion.hotelPrincipal &&
+                    cotizacion.hotelPrincipal.trim().length > 2 &&
+                    !mostrarAgregarHotelCotiz &&
+                    !LISTA_HOTELES.some(h => h.nombre.trim().toLowerCase() === cotizacion.hotelPrincipal.trim().toLowerCase()) && (
+                      <div className="mt-1.5 p-2 bg-slate-50 border border-slate-300 rounded-lg flex flex-wrap items-center justify-between gap-2 text-xs">
+                        <span className="text-slate-700">
+                          <strong>"{cotizacion.hotelPrincipal.trim()}"</strong> no está en la lista.
+                        </span>
+                        <div className="flex items-center gap-1.5">
+                          <select
+                            value={nuevoHotelZonaCotiz}
+                            onChange={(e) => setNuevoHotelZonaCotiz(parseInt(e.target.value, 10))}
+                            className="border border-slate-300 rounded px-2 py-1 text-xs font-bold bg-white text-slate-800"
+                          >
+                            <option value={1}>Zona 1 ($45)</option>
+                            <option value={2}>Zona 2 ($48.5)</option>
+                            <option value={3}>Zona 3 ($52)</option>
+                            <option value={4}>Zona 4 ($55)</option>
+                            <option value={5}>Zona 5 (La Paz)</option>
+                          </select>
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              await onAgregarNuevoHotel(cotizacion.hotelPrincipal, nuevoHotelZonaCotiz);
+                            }}
+                            className="bg-slate-900 hover:bg-slate-800 text-white font-bold px-2.5 py-1 rounded text-xs"
+                          >
+                            Integrar Hotel
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                  {onAgregarNuevoHotel && mostrarAgregarHotelCotiz && (
+                    <div className="mt-2 p-3 bg-slate-50 border border-slate-300 rounded-xl space-y-2">
+                      <div className="flex items-center justify-between border-b border-slate-200 pb-1">
+                        <span className="text-[11px] font-bold text-slate-800 uppercase">Integrar Nuevo Hotel con su Zona</span>
+                        <button type="button" onClick={() => setMostrarAgregarHotelCotiz(false)} className="text-slate-400 hover:text-slate-700">
+                          <X size={13} />
+                        </button>
+                      </div>
+                      <div className="grid grid-cols-3 gap-2">
+                        <div className="col-span-2">
+                          <input
+                            type="text"
+                            value={nuevoHotelNombreCotiz || cotizacion.hotelPrincipal || ''}
+                            onChange={(e) => setNuevoHotelNombreCotiz(e.target.value.toUpperCase())}
+                            placeholder="NOMBRE DEL HOTEL..."
+                            className="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg bg-white uppercase font-semibold"
+                          />
+                        </div>
+                        <div>
+                          <select
+                            value={nuevoHotelZonaCotiz}
+                            onChange={(e) => setNuevoHotelZonaCotiz(parseInt(e.target.value, 10))}
+                            className="w-full px-2 py-1.5 text-xs border border-slate-300 rounded-lg bg-white font-bold text-slate-800"
+                          >
+                            <option value={1}>Zona 1 ($45)</option>
+                            <option value={2}>Zona 2 ($48.5)</option>
+                            <option value={3}>Zona 3 ($52)</option>
+                            <option value={4}>Zona 4 ($55)</option>
+                            <option value={5}>Zona 5 (La Paz)</option>
+                          </select>
+                        </div>
+                      </div>
+                      <div className="flex justify-end gap-2">
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            const nom = (nuevoHotelNombreCotiz || cotizacion.hotelPrincipal || '').trim();
+                            const res = await onAgregarNuevoHotel(nom, nuevoHotelZonaCotiz);
+                            if (res?.nombre) {
+                              handleCotizacionChange('hotelPrincipal', res.nombre);
+                              setMostrarAgregarHotelCotiz(false);
+                              setNuevoHotelNombreCotiz('');
+                            }
+                          }}
+                          className="bg-slate-900 hover:bg-slate-800 text-white font-bold px-3 py-1 rounded-lg text-xs"
+                        >
+                          Guardar en Lista
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
                   <datalist id="lista-hoteles-cotizacion">
                     {LISTA_HOTELES.map((h, i) => (
-                      <option key={i} value={h.nombre} />
+                      <option key={i} value={h.nombre}>Zona {h.zona}</option>
                     ))}
                   </datalist>
                 </div>

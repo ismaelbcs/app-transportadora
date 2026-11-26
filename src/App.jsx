@@ -13,6 +13,7 @@ const normalizarVehiculo = (v) => {
 };
 
 const ID_CONFIG_PAGOS_PROVEEDORES = 'CFG_PAGOS_PROVEEDORES_V1';
+const ID_CONFIG_CATALOGO_HOTELES = 'CFG_CATALOGO_HOTELES_V1';
 
 const SuvIcon = ({ size = 24, className = "" }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={className}>
@@ -710,6 +711,38 @@ export default function App() {
     }
   });
 
+  // --- ESTADO DE HOTELES PERSONALIZADOS AGREGADOS POR EL USUARIO ---
+  const [hotelesPersonalizados, setHotelesPersonalizados] = useState(() => {
+    try {
+      const saved = localStorage.getItem('ballard_hoteles_personalizados_v1');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      return [];
+    }
+  });
+  const [mostrarNuevoHotelBox, setMostrarNuevoHotelBox] = useState(false);
+  const [nuevoHotelNombre, setNuevoHotelNombre] = useState('');
+  const [nuevoHotelZona, setNuevoHotelZona] = useState(1);
+
+  // Lista combinada de hoteles (Base + Personalizados sin duplicados)
+  const listaHotelesCompleta = React.useMemo(() => {
+    const mapa = new Map();
+    LISTA_HOTELES.forEach(h => {
+      if (h && h.nombre) {
+        mapa.set(h.nombre.trim().toLowerCase(), h);
+      }
+    });
+    (hotelesPersonalizados || []).forEach(h => {
+      if (h && h.nombre) {
+        mapa.set(h.nombre.trim().toLowerCase(), {
+          nombre: h.nombre.trim(),
+          zona: parseInt(h.zona, 10) || 1
+        });
+      }
+    });
+    return Array.from(mapa.values());
+  }, [hotelesPersonalizados]);
+
   // NUEVO: Estado para abrir/cerrar el menú lateral y hacerlo adaptable a móvil
   const [isSidebarOpen, setIsSidebarOpen] = useState(window.innerWidth > 768);
 
@@ -746,7 +779,7 @@ export default function App() {
     if (normalizarVehiculo(vehiculoFiltro) !== 'SUV') return precioOriginal;
 
     // Buscamos a qué zona pertenece el hotel
-    const hotelEncontrado = LISTA_HOTELES.find(h =>
+    const hotelEncontrado = listaHotelesCompleta.find(h =>
       h.nombre.trim().toLowerCase() === (hotelName || '').trim().toLowerCase()
     );
 
@@ -807,6 +840,34 @@ export default function App() {
         }
       } catch (e) {
         console.warn('Control de pagos en modo local:', e);
+      }
+
+      // 1.6 Traer catálogo de hoteles personalizados desde la nube
+      try {
+        const { data: cfgHoteles } = await supabase
+          .from('presupuestos')
+          .select('data_completa')
+          .eq('id', ID_CONFIG_CATALOGO_HOTELES)
+          .maybeSingle();
+
+        if (cfgHoteles && Array.isArray(cfgHoteles.data_completa)) {
+          setHotelesPersonalizados(prev => {
+            const mapa = new Map();
+            (prev || []).forEach(h => {
+              if (h?.nombre) mapa.set(h.nombre.trim().toLowerCase(), h);
+            });
+            cfgHoteles.data_completa.forEach(h => {
+              if (h?.nombre) mapa.set(h.nombre.trim().toLowerCase(), h);
+            });
+            const combinados = Array.from(mapa.values());
+            try {
+              localStorage.setItem('ballard_hoteles_personalizados_v1', JSON.stringify(combinados));
+            } catch (e) {}
+            return combinados;
+          });
+        }
+      } catch (e) {
+        console.warn('Catálogo de hoteles personalizados en modo local:', e);
       }
 
       // 2. Traer Call Center
@@ -1557,6 +1618,51 @@ export default function App() {
     });
     setPagosProveedoresMap(nuevoMapa);
     await persistirPagosProveedoresEnNube(nuevoMapa);
+  };
+
+  // --- GUARDAR NUEVO HOTEL EN EL CATÁLOGO PERMANENTE (CON ZONA) ---
+  const handleAgregarNuevoHotel = async (nombreParam, zonaParam) => {
+    const nombreLimpio = String(nombreParam ?? nuevoHotelNombre ?? currentService.hotel ?? '').trim().toUpperCase();
+    const zonaNum = parseInt(zonaParam ?? nuevoHotelZona, 10) || 1;
+
+    if (!nombreLimpio) {
+      showToast('Escribe el nombre del hotel o destino', 'error');
+      return null;
+    }
+
+    const nuevoObj = { nombre: nombreLimpio, zona: zonaNum };
+
+    const mapa = new Map();
+    (hotelesPersonalizados || []).forEach(h => {
+      if (h?.nombre) mapa.set(h.nombre.trim().toLowerCase(), h);
+    });
+    mapa.set(nombreLimpio.toLowerCase(), nuevoObj);
+    const nuevaLista = Array.from(mapa.values());
+
+    setHotelesPersonalizados(nuevaLista);
+    try {
+      localStorage.setItem('ballard_hoteles_personalizados_v1', JSON.stringify(nuevaLista));
+    } catch (e) {}
+
+    try {
+      await supabase.from('presupuestos').upsert({
+        id: ID_CONFIG_CATALOGO_HOTELES,
+        folio: 'CATALOGO-HOTELES',
+        tipo_documento: 'CONFIG_HOTELES',
+        estado: 'ACTIVO',
+        nombre_cliente: 'CATALOGO DE HOTELES PERSONALIZADOS',
+        data_completa: nuevaLista,
+        updated_at: new Date().toISOString()
+      });
+    } catch (e) {
+      console.warn('Error guardando hotel en la nube:', e);
+    }
+
+    setCurrentService(prev => ({ ...prev, hotel: nombreLimpio }));
+    setMostrarNuevoHotelBox(false);
+    setNuevoHotelNombre('');
+    showToast(`¡Hotel "${nombreLimpio}" (Zona ${zonaNum}) integrado a la lista!`);
+    return nuevoObj;
   };
 
   const handleRollChange = (id, field, rawValue) => {
@@ -3093,18 +3199,143 @@ export default function App() {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-medium text-gray-700">Hotel / Destino</label>
-                    <input
-                      type="text"
-                      name="hotel"
-                      list="hoteles-list"
-                      value={currentService.hotel}
-                      onChange={handleInputChange}
-                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="Escribe o selecciona..."
-                    />
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="block text-xs font-medium text-gray-700">Hotel / Destino</label>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!mostrarNuevoHotelBox) {
+                            const textoActual = (currentService.hotel || '').trim();
+                            const existeEnLista = listaHotelesCompleta.some(
+                              h => h.nombre.trim().toLowerCase() === textoActual.toLowerCase()
+                            );
+                            setNuevoHotelNombre(!existeEnLista && textoActual ? textoActual : '');
+                            const encontrado = listaHotelesCompleta.find(
+                              h => h.nombre.trim().toLowerCase() === textoActual.toLowerCase()
+                            );
+                            setNuevoHotelZona(encontrado?.zona || 1);
+                          }
+                          setMostrarNuevoHotelBox(!mostrarNuevoHotelBox);
+                        }}
+                        className="text-[11px] font-bold bg-slate-900 hover:bg-slate-800 text-white px-2.5 py-1 rounded-md flex items-center gap-1 shadow-xs transition-colors"
+                        title="Integrar un nuevo hotel con su zona para que aparezca siempre en la lista"
+                      >
+                        <Plus size={12} /> + Agregar Hotel
+                      </button>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        name="hotel"
+                        list="hoteles-list"
+                        value={currentService.hotel}
+                        onChange={handleInputChange}
+                        className="block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm focus:ring-blue-500 focus:border-blue-500 uppercase"
+                        placeholder="Escribe o selecciona..."
+                      />
+                    </div>
+
+                    {/* Aviso rápido si escribió un hotel que aún no está en el catálogo */}
+                    {currentService.hotel &&
+                      currentService.hotel.trim().length > 2 &&
+                      !mostrarNuevoHotelBox &&
+                      !listaHotelesCompleta.some(
+                        h => h.nombre.trim().toLowerCase() === currentService.hotel.trim().toLowerCase()
+                      ) && (
+                        <div className="mt-1.5 p-2 bg-slate-50 border border-slate-300 rounded-md flex flex-wrap items-center justify-between gap-2 text-xs">
+                          <span className="text-slate-700 font-medium">
+                            <strong>"{currentService.hotel.trim()}"</strong> no está en la lista. ¿Integrarlo con su zona?
+                          </span>
+                          <div className="flex items-center gap-1.5">
+                            <select
+                              value={nuevoHotelZona}
+                              onChange={(e) => setNuevoHotelZona(parseInt(e.target.value, 10))}
+                              className="border border-slate-300 rounded px-2 py-1 text-xs font-bold bg-white text-slate-800"
+                            >
+                              <option value={1}>Zona 1 ($45)</option>
+                              <option value={2}>Zona 2 ($48.5)</option>
+                              <option value={3}>Zona 3 ($52)</option>
+                              <option value={4}>Zona 4 ($55)</option>
+                              <option value={5}>Zona 5 (La Paz)</option>
+                            </select>
+                            <button
+                              type="button"
+                              onClick={() => handleAgregarNuevoHotel(currentService.hotel, nuevoHotelZona)}
+                              className="bg-slate-900 hover:bg-slate-800 text-white font-bold px-2.5 py-1 rounded text-xs transition-colors"
+                            >
+                              Guardar en Lista
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                    {/* Cuadro desplegable al pulsar "+ Agregar Hotel" */}
+                    {mostrarNuevoHotelBox && (
+                      <div className="mt-2 p-3 bg-slate-50 border border-slate-300 rounded-lg space-y-2.5 shadow-xs">
+                        <div className="flex items-center justify-between border-b border-slate-200 pb-1.5">
+                          <span className="text-xs font-bold text-slate-800 uppercase">
+                            Integrar Nuevo Hotel / Destino al Catálogo
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setMostrarNuevoHotelBox(false)}
+                            className="text-slate-400 hover:text-slate-700"
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                          <div className="sm:col-span-2">
+                            <label className="block text-[10px] font-bold text-slate-600 uppercase mb-0.5">
+                              Nombre del Hotel *
+                            </label>
+                            <input
+                              type="text"
+                              value={nuevoHotelNombre || currentService.hotel || ''}
+                              onChange={(e) => setNuevoHotelNombre(e.target.value.toUpperCase())}
+                              placeholder="EJ. HOTEL NUEVO LOS CABOS"
+                              className="w-full border border-slate-300 rounded-md p-1.5 text-xs bg-white uppercase font-semibold"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[10px] font-bold text-slate-600 uppercase mb-0.5">
+                              Zona *
+                            </label>
+                            <select
+                              value={nuevoHotelZona}
+                              onChange={(e) => setNuevoHotelZona(parseInt(e.target.value, 10))}
+                              className="w-full border border-slate-300 rounded-md p-1.5 text-xs font-bold bg-white text-slate-800"
+                            >
+                              <option value={1}>Zona 1 ($45)</option>
+                              <option value={2}>Zona 2 ($48.5)</option>
+                              <option value={3}>Zona 3 ($52)</option>
+                              <option value={4}>Zona 4 ($55)</option>
+                              <option value={5}>Zona 5 (La Paz)</option>
+                            </select>
+                          </div>
+                        </div>
+                        <div className="flex justify-end gap-2 pt-1">
+                          <button
+                            type="button"
+                            onClick={() => setMostrarNuevoHotelBox(false)}
+                            className="px-2.5 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-200 rounded"
+                          >
+                            Cancelar
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleAgregarNuevoHotel(nuevoHotelNombre || currentService.hotel, nuevoHotelZona)}
+                            className="bg-slate-900 hover:bg-slate-800 text-white font-bold px-3 py-1 rounded text-xs flex items-center gap-1 shadow-xs"
+                          >
+                            <CheckCircle size={13} /> Guardar e Integrar Hotel
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
                     <datalist id="hoteles-list">
-                      {LISTA_HOTELES.map((hotel, index) => (
+                      {listaHotelesCompleta.map((hotel, index) => (
                         <option key={index} value={hotel.nombre}>
                           Zona {hotel.zona}
                         </option>
@@ -4020,7 +4251,7 @@ export default function App() {
               </div>
 
               <div className="flex-1 overflow-x-auto overflow-y-auto p-4 w-full"><datalist id="hoteles-rol-list">
-                {LISTA_HOTELES.map((hotel, index) => (
+                {listaHotelesCompleta.map((hotel, index) => (
                   <option key={`rol-${index}`} value={hotel.nombre}>
                     Zona {hotel.zona}
                   </option>
@@ -4337,7 +4568,7 @@ export default function App() {
                 {/* --- FIN BARRA DE FILTROS AVANZADOS --- */}
 
                 <datalist id="hoteles-bd-list">
-                  {LISTA_HOTELES.map((hotel, index) => (
+                  {listaHotelesCompleta.map((hotel, index) => (
                     <option key={`bd-${index}`} value={hotel.nombre}>
                       Zona {hotel.zona}
                     </option>
@@ -4978,7 +5209,8 @@ export default function App() {
           {activeTab === 'presupuestos' && (
             <Presupuestos
               services={services}
-              LISTA_HOTELES={LISTA_HOTELES}
+              LISTA_HOTELES={listaHotelesCompleta}
+              onAgregarNuevoHotel={handleAgregarNuevoHotel}
               supabase={supabase}
               fetchAllData={fetchAllData}
               showToast={showToast}
