@@ -726,21 +726,26 @@ export default function App() {
 
   // Lista combinada de hoteles (Base + Personalizados sin duplicados)
   const listaHotelesCompleta = React.useMemo(() => {
-    const mapa = new Map();
+    const registro = {};
+    const orden = [];
     LISTA_HOTELES.forEach(h => {
       if (h && h.nombre) {
-        mapa.set(h.nombre.trim().toLowerCase(), h);
+        const key = h.nombre.trim().toLowerCase();
+        if (!registro[key]) orden.push(key);
+        registro[key] = h;
       }
     });
     (hotelesPersonalizados || []).forEach(h => {
       if (h && h.nombre) {
-        mapa.set(h.nombre.trim().toLowerCase(), {
+        const key = h.nombre.trim().toLowerCase();
+        if (!registro[key]) orden.push(key);
+        registro[key] = {
           nombre: h.nombre.trim(),
           zona: parseInt(h.zona, 10) || 1
-        });
+        };
       }
     });
-    return Array.from(mapa.values());
+    return orden.map(k => registro[k]);
   }, [hotelesPersonalizados]);
 
   // NUEVO: Estado para abrir/cerrar el menú lateral y hacerlo adaptable a móvil
@@ -852,14 +857,23 @@ export default function App() {
 
         if (cfgHoteles && Array.isArray(cfgHoteles.data_completa)) {
           setHotelesPersonalizados(prev => {
-            const mapa = new Map();
+            const registro = {};
+            const orden = [];
             (prev || []).forEach(h => {
-              if (h?.nombre) mapa.set(h.nombre.trim().toLowerCase(), h);
+              if (h?.nombre) {
+                const k = h.nombre.trim().toLowerCase();
+                if (!registro[k]) orden.push(k);
+                registro[k] = h;
+              }
             });
             cfgHoteles.data_completa.forEach(h => {
-              if (h?.nombre) mapa.set(h.nombre.trim().toLowerCase(), h);
+              if (h?.nombre) {
+                const k = h.nombre.trim().toLowerCase();
+                if (!registro[k]) orden.push(k);
+                registro[k] = h;
+              }
             });
-            const combinados = Array.from(mapa.values());
+            const combinados = orden.map(k => registro[k]);
             try {
               localStorage.setItem('ballard_hoteles_personalizados_v1', JSON.stringify(combinados));
             } catch (e) {}
@@ -1632,12 +1646,19 @@ export default function App() {
 
     const nuevoObj = { nombre: nombreLimpio, zona: zonaNum };
 
-    const mapa = new Map();
+    const registro = {};
+    const orden = [];
     (hotelesPersonalizados || []).forEach(h => {
-      if (h?.nombre) mapa.set(h.nombre.trim().toLowerCase(), h);
+      if (h?.nombre) {
+        const k = h.nombre.trim().toLowerCase();
+        if (!registro[k]) orden.push(k);
+        registro[k] = h;
+      }
     });
-    mapa.set(nombreLimpio.toLowerCase(), nuevoObj);
-    const nuevaLista = Array.from(mapa.values());
+    const kNuevo = nombreLimpio.toLowerCase();
+    if (!registro[kNuevo]) orden.push(kNuevo);
+    registro[kNuevo] = nuevoObj;
+    const nuevaLista = orden.map(k => registro[k]);
 
     setHotelesPersonalizados(nuevaLista);
     try {
